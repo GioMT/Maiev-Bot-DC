@@ -339,17 +339,33 @@ client.on('interactionCreate', async (interaction) => {
 
       // /post-rules (Admin)
       if (commandName === 'post-rules') {
-        const payload = createRulesMessage();
-        await interaction.channel.send(payload);
-        await interaction.reply({ content: '✅ Rules card posted successfully!', ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
+        try {
+          const payload = createRulesMessage();
+          await interaction.channel.send(payload);
+          await interaction.editReply({ content: '✅ Rules card posted successfully in this channel!' });
+        } catch (sendErr) {
+          console.error('Error in /post-rules:', sendErr);
+          await interaction.editReply({
+            content: `❌ Could not send rules message in this channel: **${sendErr.message}**.\nPlease ensure Maiev has **Send Messages** and **Embed Links** permissions in this channel!`
+          });
+        }
         return;
       }
 
       // /post-verify (Admin)
       if (commandName === 'post-verify') {
-        const payload = createVerifyMessage(guild);
-        await interaction.channel.send(payload);
-        await interaction.reply({ content: '✅ Maiev AION 2 verification card posted successfully!', ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
+        try {
+          const payload = createVerifyMessage(guild);
+          await interaction.channel.send(payload);
+          await interaction.editReply({ content: '✅ Maiev AION 2 verification card posted successfully in this channel!' });
+        } catch (sendErr) {
+          console.error('Error in /post-verify:', sendErr);
+          await interaction.editReply({
+            content: `❌ Could not send verification message in this channel: **${sendErr.message}**.\nPlease ensure Maiev has **Send Messages** and **Embed Links** permissions in this channel!`
+          });
+        }
         return;
       }
 
