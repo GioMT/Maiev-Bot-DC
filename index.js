@@ -30,9 +30,10 @@ const CONFIG_FILE = path.join(__dirname, 'config.json');
 const {
   DISCORD_TOKEN,
   CLIENT_ID,
-  GUILD_ID,
-  PORT = 3000
+  GUILD_ID
 } = process.env;
+
+const PORT = process.env.SERVER_PORT || process.env.PORT || 3000;
 
 // Validate essential environment variables
 if (!DISCORD_TOKEN || !CLIENT_ID) {
@@ -607,9 +608,9 @@ app.get('/api/members', (req, res) => {
 });
 
 // Start Express Server
-app.listen(PORT, () => {
-  console.log(`🌐 Web Control Center listening on port ${PORT}`);
-  console.log(`👉 Open http://localhost:${PORT} in your browser!`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 Web Control Center listening on 0.0.0.0:${PORT}`);
+  console.log(`👉 Ready for connections!`);
 });
 
 // Start Discord Bot
