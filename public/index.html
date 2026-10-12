@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maiev Bot Control Center — AION 2 Verification Dashboard</title>
+  <meta name="description" content="Professional web dashboard for Maiev Discord Bot. Manage rules acknowledgment roles, AION 2 IGN verification pipeline, and live member tracking.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Main Container -->
+  <div class="dashboard-wrapper">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="bot-avatar-container">
+          <img id="bot-avatar" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev Avatar" class="bot-avatar">
+          <span class="status-indicator online" id="bot-status-dot" title="Bot Online"></span>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title-row">
+            <h1 class="brand-title">MAIEV CONTROL CENTER</h1>
+            <span class="badge badge-accent">AION 2 ELYOS</span>
+          </div>
+          <p class="brand-subtitle" id="bot-connection-string">Connecting to Discord Gateway...</p>
+        </div>
+      </div>
+
+      <div class="header-telemetry">
+        <div class="telemetry-pill">
+          <span class="telemetry-icon">📡</span>
+          <span class="telemetry-label">Gateway Ping</span>
+          <span class="telemetry-value" id="ping-value">-- ms</span>
+        </div>
+        <div class="telemetry-pill">
+          <span class="telemetry-icon">🏰</span>
+          <span class="telemetry-label">Server</span>
+          <span class="telemetry-value" id="server-name">Loading...</span>
+        </div>
+        <div class="telemetry-pill">
+          <span class="telemetry-icon">👥</span>
+          <span class="telemetry-label">Members</span>
+          <span class="telemetry-value" id="member-count">--</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh" title="Refresh Live Data">
+          🔄 Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Alert / Toast Banner -->
+    <div id="toast-banner" class="toast-banner hidden">
+      <span id="toast-message">Message text here</span>
+    </div>
+
+    <!-- Metrics Funnel Strip -->
+    <section class="funnel-section">
+      <div class="funnel-card">
+        <div class="funnel-step-badge">STEP 1</div>
+        <div class="funnel-icon">📜</div>
+        <div class="funnel-info">
+          <h3>Rules Phase</h3>
+          <p>Assigned Role: <strong id="funnel-onboarded-label">Onboarded</strong></p>
+        </div>
+        <div class="funnel-arrow">➜</div>
+      </div>
+
+      <div class="funnel-card">
+        <div class="funnel-step-badge">STEP 2</div>
+        <div class="funnel-icon">🎮</div>
+        <div class="funnel-info">
+          <h3>AION 2 IGN Modal</h3>
+          <p>Nickname set to IGN</p>
+        </div>
+        <div class="funnel-arrow">➜</div>
+      </div>
+
+      <div class="funnel-card">
+        <div class="funnel-step-badge">STEP 3</div>
+        <div class="funnel-icon">🛡️</div>
+        <div class="funnel-info">
+          <h3>Roles Assigned</h3>
+          <p>Grant: <strong id="funnel-grant-label">[Unverified] + [Elyos Fregion]</strong></p>
+        </div>
+        <div class="funnel-arrow">➜</div>
+      </div>
+
+      <div class="funnel-card highlighted">
+        <div class="funnel-step-badge">STEP 4</div>
+        <div class="funnel-icon">📸</div>
+        <div class="funnel-info">
+          <h3>Screenshot Verification</h3>
+          <p>#verify-ign removed, main channels visible</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Grid: Configuration + Live Simulator -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Pipeline Role Configuration (User's primary requirement) -->
+      <div class="grid-col config-column">
+        <div class="card glass-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">⚙️</span>
+              <div>
+                <h2 class="card-title">Verification Pipeline Roles</h2>
+                <p class="card-subtitle">Configure the exact roles given and removed at each stage of onboarding.</p>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-save-config">
+              💾 Save Configuration
+            </button>
+          </div>
+
+          <div class="card-body">
+            <!-- Stage 1 Configuration -->
+            <div class="config-stage-box">
+              <div class="stage-header">
+                <span class="stage-num">1</span>
+                <div>
+                  <h3 class="stage-title">Rules Acknowledgment Action</h3>
+                  <p class="stage-desc">When a user clicks "I Agree to Rules" in your rules channel:</p>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="select-onboarded-role" class="form-label">
+                  Role to GIVE upon acknowledging rules:
+                </label>
+                <select id="select-onboarded-role" class="form-select">
+                  <option value="">Loading server roles...</option>
+                </select>
+                <span class="form-hint">Typically <strong>[Onboarded]</strong>. This role grants view access to the #verify-ign channel.</span>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-rules-channel" class="form-label">
+                    Rules Channel:
+                  </label>
+                  <select id="select-rules-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                </div>
+                <div class="form-group-action">
+                  <button class="btn btn-secondary" id="btn-post-rules-channel">
+                    🚀 Post Rules Embed
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 2 Configuration -->
+            <div class="config-stage-box mt-4">
+              <div class="stage-header">
+                <span class="stage-num">2</span>
+                <div>
+                  <h3 class="stage-title">AION 2 IGN Verification Actions</h3>
+                  <p class="stage-desc">When a user submits their in-game character name via Maiev's modal:</p>
+                </div>
+              </div>
+
+              <!-- Roles to Add -->
+              <div class="form-group">
+                <label class="form-label">
+                  Role(s) to GIVE when IGN is set:
+                </label>
+                <div id="roles-to-add-container" class="roles-checkbox-grid">
+                  <p class="text-muted">Loading roles...</p>
+                </div>
+                <span class="form-hint">Recommended: Check <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>.</span>
+              </div>
+
+              <!-- Roles to Remove -->
+              <div class="form-group">
+                <label class="form-label">
+                  Role(s) to REMOVE when IGN is set:
+                </label>
+                <div id="roles-to-remove-container" class="roles-checkbox-grid">
+                  <p class="text-muted">Loading roles...</p>
+                </div>
+                <span class="form-hint">Recommended: Check <strong>[Onboarded]</strong> so #verify-ign disappears for verified members.</span>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-verify-channel" class="form-label">
+                    Verify IGN Channel:
+                  </label>
+                  <select id="select-verify-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                </div>
+                <div class="form-group-action">
+                  <button class="btn btn-secondary" id="btn-post-verify-channel">
+                    🚀 Post Verification Embed
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Health & Role Hierarchy Diagnostics -->
+        <div class="card glass-card mt-4">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">🩺</span>
+              <div>
+                <h2 class="card-title">Permissions & Hierarchy Diagnostic</h2>
+                <p class="card-subtitle">Verifies that Discord allows Maiev to assign and remove your selected roles.</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="diagnostic-grid">
+              <div class="diagnostic-item" id="diag-manage-roles">
+                <span class="diag-status">⏳</span>
+                <div class="diag-text">
+                  <strong>Manage Roles Permission</strong>
+                  <p class="diag-subtext">Required for bot to assign/remove member roles</p>
+                </div>
+              </div>
+              <div class="diagnostic-item" id="diag-manage-nicknames">
+                <span class="diag-status">⏳</span>
+                <div class="diag-text">
+                  <strong>Manage Nicknames Permission</strong>
+                  <p class="diag-subtext">Required for bot to set AION 2 IGN</p>
+                </div>
+              </div>
+              <div class="diagnostic-item" id="diag-hierarchy">
+                <span class="diag-status">⏳</span>
+                <div class="diag-text">
+                  <strong>Role Hierarchy Position</strong>
+                  <p class="diag-subtext">Bot role must sit above configured member roles</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Live Discord Embed & Modal Interactive Simulator -->
+      <div class="grid-col simulator-column">
+        <div class="card glass-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">💬</span>
+              <div>
+                <h2 class="card-title">Live Discord Interaction Simulator</h2>
+                <p class="card-subtitle">Test the onboarding experience exactly as members will see it on Discord.</p>
+              </div>
+            </div>
+            <div class="tab-switch">
+              <button class="tab-btn active" id="tab-rules-btn">Rules Embed</button>
+              <button class="tab-btn" id="tab-verify-btn">Verify Embed</button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <!-- Simulated Discord Chat Frame -->
+            <div class="discord-preview-container">
+              <div class="discord-chat-header">
+                <span class="discord-hash">#</span>
+                <span class="discord-channel-name" id="sim-channel-name">rules</span>
+                <span class="discord-topic">Server Onboarding Simulator</span>
+              </div>
+
+              <!-- Rules Embed Preview -->
+              <div id="sim-rules-view" class="discord-message-group">
+                <div class="discord-message">
+                  <img class="discord-author-avatar" id="sim-bot-avatar-1" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                  <div class="discord-message-content">
+                    <div class="discord-author-row">
+                      <span class="discord-author-name">Maiev</span>
+                      <span class="discord-bot-badge">BOT</span>
+                      <span class="discord-timestamp">Today at 7:00 AM</span>
+                    </div>
+
+                    <!-- Embed Box -->
+                    <div class="discord-embed dark-embed">
+                      <div class="embed-title">📜 Server Rules & Guidelines</div>
+                      <div class="embed-description">
+                        Welcome to the community! Before proceeding, please review our core server rules:<br><br>
+                        <strong>1. Respect Everyone</strong> — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.<br>
+                        <strong>2. Keep Content Appropriate</strong> — Keep discussions in the relevant channels.<br>
+                        <strong>3. Follow Game Terms of Service</strong> — No exploits or unapproved software.<br>
+                        <strong>4. Listen to Staff</strong> — Follow moderator instructions.<br><br>
+                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+                        <strong>Next Step:</strong> Click the button below to acknowledge the rules. You will be given the <strong>[Onboarded]</strong> role, unlocking the <strong>#verify-ign</strong> channel!
+                      </div>
+                      <div class="embed-footer">Acknowledge the rules below to proceed</div>
+                    </div>
+
+                    <!-- Action Row Button -->
+                    <div class="discord-action-row">
+                      <button class="discord-btn discord-btn-success" id="sim-btn-accept-rules">
+                        ✅ I Have Read & Agree to the Rules
+                      </button>
+                    </div>
+
+                    <!-- Simulation Result Feed -->
+                    <div id="sim-rules-feedback" class="sim-feedback hidden"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Verification Embed Preview -->
+              <div id="sim-verify-view" class="discord-message-group hidden">
+                <div class="discord-message">
+                  <img class="discord-author-avatar" id="sim-bot-avatar-2" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                  <div class="discord-message-content">
+                    <div class="discord-author-row">
+                      <span class="discord-author-name">Maiev</span>
+                      <span class="discord-bot-badge">BOT</span>
+                      <span class="discord-timestamp">Today at 7:01 AM</span>
+                    </div>
+
+                    <!-- Embed Box -->
+                    <div class="discord-embed blurple-embed">
+                      <div class="embed-title">🛡️ Maiev — AION 2 IGN Verification</div>
+                      <div class="embed-description">
+                        Welcome to the server!<br><br>
+                        To proceed, please register your <strong>AION 2 In-Game Name (IGN)</strong>:<br><br>
+                        <strong>How it works:</strong><br>
+                        1. Click the <strong>"🎮 Set AION 2 IGN & Verify"</strong> button below.<br>
+                        2. Enter your exact in-game character name.<br>
+                        3. Maiev will update your server nickname, grant you <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Onboarded]</strong>!
+                      </div>
+                      <div class="embed-footer">Maiev Verification System • AION 2</div>
+                    </div>
+
+                    <!-- Action Row Button -->
+                    <div class="discord-action-row">
+                      <button class="discord-btn discord-btn-primary" id="sim-btn-open-modal">
+                        🎮 Set AION 2 IGN & Verify
+                      </button>
+                    </div>
+
+                    <!-- Simulation Result Feed -->
+                    <div id="sim-verify-feedback" class="sim-feedback hidden"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Member Roster -->
+        <div class="card glass-card mt-4">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">📋</span>
+              <div>
+                <h2 class="card-title">Live Server Member Roster</h2>
+                <p class="card-subtitle">Real-time status of members currently in the server.</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Server Nickname</th>
+                    <th>Current Roles</th>
+                  </tr>
+                </thead>
+                <tbody id="members-table-body">
+                  <tr>
+                    <td colspan="3" class="text-center py-4">Loading server members...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Simulated Discord Modal Dialog -->
+  <div class="modal-backdrop hidden" id="sim-modal-backdrop">
+    <div class="discord-modal">
+      <div class="modal-header">
+        <h3 class="modal-title">AION 2 IGN Verification</h3>
+        <button class="modal-close" id="sim-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-form-group">
+          <label class="modal-label" for="sim-modal-ign-input">
+            ENTER YOUR AION 2 CHARACTER NAME (IGN) <span class="required">*</span>
+          </label>
+          <input type="text" id="sim-modal-ign-input" class="modal-input" placeholder="e.g. DaevaLegend, ShadowWing, etc." maxlength="32" value="DaevaLegend">
+          <span class="modal-hint">Max 32 characters. This will become your server nickname.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="sim-modal-cancel">Cancel</button>
+        <button class="discord-btn discord-btn-primary" id="sim-modal-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
