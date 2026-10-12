@@ -1,0 +1,24 @@
+{
+  "name": "discord-nickname-bot",
+  "version": "1.0.0",
+  "description": "Discord bot that prompts new members to change their server nickname with an interactive button and modal",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  },
+  "keywords": [
+    "discord",
+    "discord.js",
+    "bot",
+    "nickname",
+    "welcome"
+  ],
+  "author": "",
+  "license": "ISC"
+}
