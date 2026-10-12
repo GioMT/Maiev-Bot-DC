@@ -835,6 +835,45 @@ body {
   margin-bottom: 2px;
 }
 
+/* Personalized Rules Box */
+.personalized-rules-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed var(--border-accent);
+  border-radius: 12px;
+  padding: 16px;
+}
+.rules-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.editor-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: 0.5px;
+}
+.form-textarea {
+  width: 100%;
+  background: #111520;
+  border: 1px solid var(--border-subtle);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-family: var(--font-main);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  transition: all 0.2s;
+}
+.form-textarea:focus {
+  border-color: var(--accent-blurple);
+  box-shadow: 0 0 10px rgba(88, 101, 242, 0.3);
+}
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+
 /* Utility */
 .mt-4 { margin-top: 20px; }
 .hidden { display: none !important; }

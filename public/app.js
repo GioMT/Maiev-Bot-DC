@@ -2,6 +2,20 @@
  * Maiev Bot Control Center — Client Application
  */
 
+const DEFAULT_RULES_TEMPLATE = {
+  title: '📜 Server Rules & Guidelines',
+  content: `Welcome to the community! Before proceeding, please review our core server rules:
+
+**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.
+**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.
+**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.
+**4. Listen to Staff** — Follow moderator instructions at all times.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!`,
+  footer: 'Acknowledge the rules below to proceed'
+};
+
 let serverState = null;
 
 // Initialize on DOM load
@@ -21,6 +35,7 @@ async function fetchServerState() {
     renderHeaderTelemetry(data);
     renderRoleDropdowns(data);
     renderChannelDropdowns(data);
+    renderRulesEditor(data.config || {});
     renderDiagnostics(data);
     fetchMembers();
   } catch (err) {
@@ -139,6 +154,52 @@ function renderChannelDropdowns(data) {
   });
 }
 
+// Render Personalized Rules Editor
+function renderRulesEditor(cfg) {
+  const title = cfg.rulesTitle || DEFAULT_RULES_TEMPLATE.title;
+  const content = cfg.rulesContent || DEFAULT_RULES_TEMPLATE.content;
+  const footer = cfg.rulesFooter || DEFAULT_RULES_TEMPLATE.footer;
+
+  document.getElementById('rules-title-input').value = title;
+  document.getElementById('rules-content-input').value = content;
+  document.getElementById('rules-footer-input').value = footer;
+
+  updateRulesPreview();
+}
+
+// Update the Discord embed simulator in real-time
+function updateRulesPreview() {
+  const title = document.getElementById('rules-title-input').value;
+  const content = document.getElementById('rules-content-input').value;
+  const footer = document.getElementById('rules-footer-input').value;
+
+  const simTitle = document.getElementById('sim-rules-title');
+  const simDesc = document.getElementById('sim-rules-desc');
+  const simFooter = document.getElementById('sim-rules-footer');
+
+  if (simTitle) simTitle.textContent = title || '📜 Server Rules & Guidelines';
+  if (simDesc) simDesc.innerHTML = formatDiscordMarkdown(content);
+  if (simFooter) simFooter.textContent = footer || 'Acknowledge the rules below to proceed';
+}
+
+// Format Discord Markdown to HTML
+function formatDiscordMarkdown(text) {
+  if (!text) return '';
+  let formatted = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // Bold **text**
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // Italic *text*
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  // Inline code `code`
+  formatted = formatted.replace(/`(.*?)`/g, '<code style="background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px;">$1</code>');
+  // Newlines
+  formatted = formatted.replace(/\n/g, '<br>');
+  return formatted;
+}
+
 // Render Diagnostics
 function renderDiagnostics(data) {
   const perms = data.permissions || {};
@@ -200,13 +261,31 @@ async function fetchMembers() {
 
 // Event Listeners Setup
 function setupEventListeners() {
+  // Live input listening on personalized rules fields
+  const titleInput = document.getElementById('rules-title-input');
+  const contentInput = document.getElementById('rules-content-input');
+  const footerInput = document.getElementById('rules-footer-input');
+
+  titleInput.addEventListener('input', updateRulesPreview);
+  contentInput.addEventListener('input', updateRulesPreview);
+  footerInput.addEventListener('input', updateRulesPreview);
+
+  // Reset Rules Template Button
+  document.getElementById('btn-reset-rules-template').addEventListener('click', () => {
+    titleInput.value = DEFAULT_RULES_TEMPLATE.title;
+    contentInput.value = DEFAULT_RULES_TEMPLATE.content;
+    footerInput.value = DEFAULT_RULES_TEMPLATE.footer;
+    updateRulesPreview();
+    showToast('Reset rules editor to standard AION 2 template!', 'success');
+  });
+
   // Refresh Button
   document.getElementById('btn-refresh').addEventListener('click', () => {
     fetchServerState();
     showToast('Refreshed live data from Discord!', 'success');
   });
 
-  // Save Configuration
+  // Save Configuration (includes personalized rules!)
   document.getElementById('btn-save-config').addEventListener('click', async () => {
     const onboardedRoleId = document.getElementById('select-onboarded-role').value;
     const rulesChannelId = document.getElementById('select-rules-channel').value;
@@ -214,6 +293,10 @@ function setupEventListeners() {
 
     const ignRolesToAdd = Array.from(document.querySelectorAll('input[name="role_add"]:checked')).map(el => el.value);
     const ignRolesToRemove = Array.from(document.querySelectorAll('input[name="role_remove"]:checked')).map(el => el.value);
+
+    const rulesTitle = titleInput.value.trim();
+    const rulesContent = contentInput.value.trim();
+    const rulesFooter = footerInput.value.trim();
 
     try {
       const res = await fetch('/api/config', {
@@ -224,13 +307,16 @@ function setupEventListeners() {
           ignRolesToAdd,
           ignRolesToRemove,
           rulesChannelId,
-          verifyChannelId
+          verifyChannelId,
+          rulesTitle,
+          rulesContent,
+          rulesFooter
         })
       });
 
       if (!res.ok) throw new Error('Save failed');
       const result = await res.json();
-      showToast('🎉 Configuration saved successfully and synced with Maiev!', 'success');
+      showToast('🎉 Configuration & Personalized Rules saved and synced with Maiev!', 'success');
       updateFunnelLabels();
     } catch (err) {
       showToast('❌ Error saving configuration.', 'error');
@@ -244,7 +330,7 @@ function setupEventListeners() {
       showToast('Please select a rules channel first.', 'error');
       return;
     }
-    postEmbed('/api/post-rules', channelId, 'Rules card posted successfully!');
+    postEmbed('/api/post-rules', channelId, 'Personalized Rules card posted successfully to Discord!');
   });
 
   // Post Verify Embed Button

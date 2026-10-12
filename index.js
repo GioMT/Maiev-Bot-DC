@@ -48,7 +48,18 @@ let config = {
   ignRolesToAdd: [],
   ignRolesToRemove: [],
   rulesChannelId: process.env.RULES_CHANNEL_ID || '',
-  verifyChannelId: process.env.VERIFY_CHANNEL_ID || ''
+  verifyChannelId: process.env.VERIFY_CHANNEL_ID || '',
+  rulesTitle: process.env.RULES_TITLE || '📜 Server Rules & Guidelines',
+  rulesContent: process.env.RULES_CONTENT || (
+    'Welcome to the community! Before proceeding, please review our core server rules:\n\n' +
+    '**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.\n' +
+    '**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.\n' +
+    '**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.\n' +
+    '**4. Listen to Staff** — Follow moderator instructions at all times.\n\n' +
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+    '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
+  ),
+  rulesFooter: process.env.RULES_FOOTER || 'Acknowledge the rules below to proceed'
 };
 
 // Load config.json if available
@@ -114,8 +125,9 @@ async function resolveChannel(guild, channelId, fallbackPattern = /verify/i) {
 function createRulesMessage() {
   const embed = new EmbedBuilder()
     .setColor(0x2B2D31)
-    .setTitle('📜 Server Rules & Guidelines')
+    .setTitle(config.rulesTitle || '📜 Server Rules & Guidelines')
     .setDescription(
+      config.rulesContent ||
       'Welcome to the community! Before proceeding, please review our core server rules:\n\n' +
       '**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.\n' +
       '**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.\n' +
@@ -124,7 +136,7 @@ function createRulesMessage() {
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
       '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
     )
-    .setFooter({ text: 'Acknowledge the rules below to proceed' });
+    .setFooter({ text: config.rulesFooter || 'Acknowledge the rules below to proceed' });
 
   const button = new ButtonBuilder()
     .setCustomId('btn_accept_rules')
@@ -519,13 +531,26 @@ app.get('/api/status', (req, res) => {
 
 // API: Save Configuration
 app.post('/api/config', (req, res) => {
-  const { onboardedRoleId, ignRolesToAdd, ignRolesToRemove, rulesChannelId, verifyChannelId } = req.body;
+  const {
+    onboardedRoleId,
+    ignRolesToAdd,
+    ignRolesToRemove,
+    rulesChannelId,
+    verifyChannelId,
+    rulesTitle,
+    rulesContent,
+    rulesFooter
+  } = req.body;
+
   saveConfig({
-    onboardedRoleId: onboardedRoleId || config.onboardedRoleId,
+    onboardedRoleId: onboardedRoleId !== undefined ? onboardedRoleId : config.onboardedRoleId,
     ignRolesToAdd: Array.isArray(ignRolesToAdd) ? ignRolesToAdd : config.ignRolesToAdd,
     ignRolesToRemove: Array.isArray(ignRolesToRemove) ? ignRolesToRemove : config.ignRolesToRemove,
-    rulesChannelId: rulesChannelId || config.rulesChannelId,
-    verifyChannelId: verifyChannelId || config.verifyChannelId
+    rulesChannelId: rulesChannelId !== undefined ? rulesChannelId : config.rulesChannelId,
+    verifyChannelId: verifyChannelId !== undefined ? verifyChannelId : config.verifyChannelId,
+    rulesTitle: rulesTitle !== undefined ? rulesTitle : config.rulesTitle,
+    rulesContent: rulesContent !== undefined ? rulesContent : config.rulesContent,
+    rulesFooter: rulesFooter !== undefined ? rulesFooter : config.rulesFooter
   });
   console.log('⚙️ Configuration updated via Web UI:', config);
   res.json({ success: true, config });

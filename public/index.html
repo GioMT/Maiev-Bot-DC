@@ -157,6 +157,38 @@
                   </button>
                 </div>
               </div>
+
+              <!-- Personalized Rules Content Editor -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge">✍️ PERSONALIZED SERVER RULES</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-rules-template" title="Reset to standard rules template">
+                    ↺ Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="rules-title-input" class="form-label">
+                    Rules Embed Title:
+                  </label>
+                  <input type="text" id="rules-title-input" class="form-input" placeholder="📜 Server Rules & Guidelines" value="📜 Server Rules & Guidelines">
+                </div>
+
+                <div class="form-group">
+                  <label for="rules-content-input" class="form-label">
+                    Personalized Rules Content:
+                  </label>
+                  <textarea id="rules-content-input" class="form-textarea" rows="7" placeholder="Type your personalized server rules here..."></textarea>
+                  <span class="form-hint">Supports Discord Markdown: <strong>**bold**</strong>, <em>*italics*</em>, <code>`code`</code>, bullet points (•), and line breaks. Updates the live preview in real time!</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="rules-footer-input" class="form-label">
+                    Rules Footer Note:
+                  </label>
+                  <input type="text" id="rules-footer-input" class="form-input" placeholder="Acknowledge the rules below to proceed" value="Acknowledge the rules below to proceed">
+                </div>
+              </div>
             </div>
 
             <!-- Stage 2 Configuration -->
@@ -288,8 +320,8 @@
 
                     <!-- Embed Box -->
                     <div class="discord-embed dark-embed">
-                      <div class="embed-title">📜 Server Rules & Guidelines</div>
-                      <div class="embed-description">
+                      <div class="embed-title" id="sim-rules-title">📜 Server Rules & Guidelines</div>
+                      <div class="embed-description" id="sim-rules-desc">
                         Welcome to the community! Before proceeding, please review our core server rules:<br><br>
                         <strong>1. Respect Everyone</strong> — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.<br>
                         <strong>2. Keep Content Appropriate</strong> — Keep discussions in the relevant channels.<br>
@@ -298,7 +330,7 @@
                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
                         <strong>Next Step:</strong> Click the button below to acknowledge the rules. You will be given the <strong>[Onboarded]</strong> role, unlocking the <strong>#verify-ign</strong> channel!
                       </div>
-                      <div class="embed-footer">Acknowledge the rules below to proceed</div>
+                      <div class="embed-footer" id="sim-rules-footer">Acknowledge the rules below to proceed</div>
                     </div>
 
                     <!-- Action Row Button -->
