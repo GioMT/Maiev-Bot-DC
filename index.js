@@ -27,8 +27,9 @@ const {
 
 // Runtime state for roles & channels (configurable via .env or /configure-verification)
 let config = {
-  rulesRoleId: process.env.RULES_ROLE_ID || '',
-  verifiedRoleId: process.env.VERIFIED_ROLE_ID || '',
+  onboardedRoleId: process.env.ONBOARDED_ROLE_ID || process.env.RULES_ROLE_ID || '',
+  unverifiedRoleId: process.env.UNVERIFIED_ROLE_ID || '',
+  fregionRoleId: process.env.ELYOS_FREGION_ROLE_ID || process.env.FREGION_ROLE_ID || '',
   verifyChannelId: process.env.VERIFY_CHANNEL_ID || ''
 };
 
@@ -48,15 +49,19 @@ const client = new Client({
   partials: [Partials.GuildMember, Partials.User]
 });
 
-// Helper: Resolve or find a role by ID or Name
+// Helper: Resolve or find a role by ID or Name (handles bracketed names like [Onboarded] vs Onboarded)
 async function resolveRole(guild, roleId, fallbackNames = []) {
   if (roleId) {
     const role = await guild.roles.fetch(roleId).catch(() => null);
     if (role) return role;
   }
-  return guild.roles.cache.find(r => 
-    fallbackNames.some(name => r.name.toLowerCase().includes(name.toLowerCase()))
-  ) || null;
+  return guild.roles.cache.find(r => {
+    const cleanRoleName = r.name.replace(/[[\]]/g, '').trim().toLowerCase();
+    return fallbackNames.some(name => {
+      const cleanTarget = name.replace(/[[\]]/g, '').trim().toLowerCase();
+      return cleanRoleName === cleanTarget || cleanRoleName.includes(cleanTarget);
+    });
+  }) || null;
 }
 
 // Helper: Resolve or find the #verify-ign channel
@@ -83,7 +88,7 @@ function createRulesMessage() {
       '**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.\n' +
       '**4. Listen to Staff** — Follow the instructions of moderators and administrators at all times.\n\n' +
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      '**Next Step:** Click the button below to acknowledge the rules. This will unlock the **#verify-ign** channel so you can register your AION 2 In-Game Name with **Maiev**!'
+      '**Next Step:** Click the button below to acknowledge the rules. You will be given the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
     )
     .setFooter({ text: 'Acknowledge the rules below to proceed' });
 
@@ -103,11 +108,11 @@ function createVerifyMessage(guild) {
     .setTitle(`🛡️ Maiev — AION 2 IGN Verification`)
     .setDescription(
       `Welcome to **${guild.name}**!\n\n` +
-      `To complete your membership and gain full access to the server channels, please register your **AION 2 In-Game Name (IGN)**.\n\n` +
+      `To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n` +
       `**How it works:**\n` +
-      `1. Click the **"🎮 Set AION 2 IGN"** button below.\n` +
-      `2. Enter your exact AION 2 character name in the popup.\n` +
-      `3. Maiev will set your server nickname and assign your verified member role automatically!`
+      `1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n` +
+      `2. Enter your exact in-game character name.\n` +
+      `3. Maiev will update your server nickname to your IGN, grant you the **[Unverified]** and **[Elyos Fregion]** roles, and close this channel so you can access the screenshot verification channel!`
     )
     .setThumbnail(guild.iconURL({ dynamic: true }) || undefined)
     .setFooter({ text: 'Maiev Verification System • AION 2' });
@@ -135,18 +140,24 @@ const slashCommands = [
 
   new SlashCommandBuilder()
     .setName('configure-verification')
-    .setDescription('Configure roles and channel for the AION 2 verification flow (Admin only)')
+    .setDescription('Configure roles and channel for the onboarding flow (Admin only)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addRoleOption(option =>
       option
-        .setName('rules_role')
-        .setDescription('Role given after accepting rules (to view #verify-ign)')
+        .setName('onboarded_role')
+        .setDescription('Role given after accepting rules (e.g. [Onboarded])')
         .setRequired(false)
     )
     .addRoleOption(option =>
       option
-        .setName('verified_role')
-        .setDescription('Final role given after setting AION 2 IGN')
+        .setName('unverified_role')
+        .setDescription('Role given after setting IGN (e.g. [Unverified])')
+        .setRequired(false)
+    )
+    .addRoleOption(option =>
+      option
+        .setName('elyos_fregion_role')
+        .setDescription('Role given after setting IGN (e.g. [Elyos Fregion])')
         .setRequired(false)
     )
     .addChannelOption(option =>
@@ -189,7 +200,7 @@ client.once('ready', async () => {
   console.log(`\n======================================================`);
   console.log(`🤖 Maiev is ONLINE as: ${client.user.tag}`);
   console.log(`📡 Serving ${client.guilds.cache.size} server(s)`);
-  console.log(`🛡️ AION 2 Nickname & Role Verification Ready`);
+  console.log(`🛡️ AION 2 Onboarded -> [Unverified + Elyos Fregion] Pipeline Ready`);
   console.log(`======================================================\n`);
   await registerSlashCommands();
 });
@@ -200,39 +211,49 @@ client.on('interactionCreate', async (interaction) => {
     const guild = interaction.guild;
     const member = interaction.member;
 
+    if (!guild || !member) return;
+
     // ──────────────────────────────────────────
     // 1. BUTTON INTERACTIONS
     // ──────────────────────────────────────────
     if (interaction.isButton()) {
       // Step A: Member clicks "I Agree to Rules"
       if (interaction.customId === 'btn_accept_rules') {
-        const rulesRole = await resolveRole(guild, config.rulesRoleId, ['Rules Acknowledged', 'Rules Accepted', 'Unverified']);
+        const botMember = guild.members.me;
+
+        // Check if bot can manage roles
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+          await interaction.reply({
+            content: '❌ **Bot Permission Error:** Maiev lacks the **Manage Roles** permission. Please go to **Server Settings > Roles > Maiev > Permissions** and enable **Manage Roles**.',
+            ephemeral: true
+          });
+          return;
+        }
+
+        const onboardedRole = await resolveRole(guild, config.onboardedRoleId, ['Onboarded', 'Rules Acknowledged']);
         const verifyChannel = await resolveVerifyChannel(guild);
 
-        if (rulesRole) {
-          // Check if bot can manage roles
-          if (!guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
-            await interaction.reply({
-              content: '❌ **Bot Permission Error:** Maiev lacks the **Manage Roles** permission. Please ask an admin to fix role permissions.',
-              ephemeral: true
-            });
-            return;
-          }
-
-          if (guild.members.me.roles.highest.position <= rulesRole.position) {
-            await interaction.reply({
-              content: `⚠️ **Role Hierarchy Error:** The bot's role must be placed **above** the **@${rulesRole.name}** role in **Server Settings > Roles**.`,
-              ephemeral: true
-            });
-            return;
-          }
-
-          await member.roles.add(rulesRole, 'Accepted server rules');
+        if (!onboardedRole) {
+          await interaction.reply({
+            content: '⚠️ Could not find a role named **Onboarded** (or `[Onboarded]`). Please create this role in Server Settings or link it with `/configure-verification`.',
+            ephemeral: true
+          });
+          return;
         }
+
+        if (botMember.roles.highest.position <= onboardedRole.position) {
+          await interaction.reply({
+            content: `⚠️ **Role Hierarchy Error:** The **Maiev** role must be dragged **above** the **@${onboardedRole.name}** role in **Server Settings > Roles**.`,
+            ephemeral: true
+          });
+          return;
+        }
+
+        await member.roles.add(onboardedRole, 'Acknowledged server rules');
 
         const channelMention = verifyChannel ? `<#${verifyChannel.id}>` : '**#verify-ign**';
         await interaction.reply({
-          content: `✅ **Rules Acknowledged!** Thank you!\n\n👉 Please head over to ${channelMention} to set your **AION 2 IGN** with Maiev and unlock the rest of the server!`,
+          content: `✅ **Rules Acknowledged!** You have received the **@${onboardedRole.name}** role.\n\n👉 Please head over to ${channelMention} to set your **AION 2 In-Game Name** with Maiev!`,
           ephemeral: true
         });
         return;
@@ -246,7 +267,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const ignInput = new TextInputBuilder()
           .setCustomId('input_aion_ign')
-          .setLabel('Enter your AION 2 In-Game Name (IGN)')
+          .setLabel('Enter your AION 2 Character Name (IGN)')
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('e.g. DaevaLegend, ShadowWing, etc.')
           .setMinLength(2)
@@ -269,10 +290,19 @@ client.on('interactionCreate', async (interaction) => {
         const ign = interaction.fields.getTextInputValue('input_aion_ign').trim();
         const botMember = guild.members.me;
 
-        // Permissions check
+        // Permissions check: Manage Nicknames
         if (!botMember.permissions.has(PermissionFlagsBits.ManageNicknames)) {
           await interaction.reply({
-            content: '❌ **Permission Error:** Maiev lacks the **Manage Nicknames** permission. Please notify an administrator.',
+            content: '❌ **Permission Error:** Maiev lacks the **Manage Nicknames** permission. Please enable it in Server Settings > Roles.',
+            ephemeral: true
+          });
+          return;
+        }
+
+        // Permissions check: Manage Roles
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+          await interaction.reply({
+            content: '❌ **Permission Error:** Maiev lacks the **Manage Roles** permission. Please enable it in Server Settings > Roles.',
             ephemeral: true
           });
           return;
@@ -289,44 +319,61 @@ client.on('interactionCreate', async (interaction) => {
 
         if (member.roles.highest.position >= botMember.roles.highest.position) {
           await interaction.reply({
-            content: `⚠️ **Role Hierarchy Notice:** Maiev's role must be dragged **above** your highest role in **Server Settings > Roles** to change your nickname.`,
+            content: `⚠️ **Role Hierarchy Notice:** Maiev's role must be placed **above** your highest role in **Server Settings > Roles** to change your nickname.`,
             ephemeral: true
           });
           return;
         }
 
         // 1. Update Nickname
-        await member.setNickname(ign, 'AION 2 IGN Verification via Maiev');
+        await member.setNickname(ign, 'AION 2 IGN Registration via Maiev');
 
-        // 2. Assign Verified Role & Remove Temporary Rules Role
-        const verifiedRole = await resolveRole(guild, config.verifiedRoleId, ['Verified', 'Member', 'AION 2', 'Legionnaire']);
-        const rulesRole = await resolveRole(guild, config.rulesRoleId, ['Rules Acknowledged', 'Rules Accepted', 'Unverified']);
+        // 2. Fetch target roles: [Unverified] & [Elyos Fregion]
+        const unverifiedRole = await resolveRole(guild, config.unverifiedRoleId, ['Unverified']);
+        const fregionRole = await resolveRole(guild, config.fregionRoleId, ['Elyos Fregion', 'Fregion']);
+        const onboardedRole = await resolveRole(guild, config.onboardedRoleId, ['Onboarded', 'Rules Acknowledged']);
 
-        if (verifiedRole && botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
-          if (botMember.roles.highest.position > verifiedRole.position) {
-            await member.roles.add(verifiedRole, 'Verified AION 2 IGN');
+        const rolesAddedNames = [];
+
+        // Add [Unverified] role
+        if (unverifiedRole) {
+          if (botMember.roles.highest.position > unverifiedRole.position) {
+            await member.roles.add(unverifiedRole, 'AION 2 IGN registered; awaiting screenshot verification');
+            rolesAddedNames.push(`@${unverifiedRole.name}`);
+          } else {
+            console.warn(`[Hierarchy Warning] Bot role is below @${unverifiedRole.name}`);
           }
         }
 
-        if (rulesRole && botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
-          if (botMember.roles.highest.position > rulesRole.position) {
-            await member.roles.remove(rulesRole, 'Completed verification').catch(() => null);
+        // Add [Elyos Fregion] role
+        if (fregionRole) {
+          if (botMember.roles.highest.position > fregionRole.position) {
+            await member.roles.add(fregionRole, 'AION 2 IGN registered; granted server access');
+            rolesAddedNames.push(`@${fregionRole.name}`);
+          } else {
+            console.warn(`[Hierarchy Warning] Bot role is below @${fregionRole.name}`);
           }
         }
 
-        // Send confirmation
-        const roleText = verifiedRole ? ` and granted the **@${verifiedRole.name}** role` : '';
+        // 3. Remove temporary [Onboarded] role (closes #verify-ign for them)
+        if (onboardedRole && member.roles.cache.has(onboardedRole.id)) {
+          if (botMember.roles.highest.position > onboardedRole.position) {
+            await member.roles.remove(onboardedRole, 'AION 2 IGN set; removing temporary Onboarded role').catch(() => null);
+          }
+        }
+
+        // Confirmation reply
+        const rolesText = rolesAddedNames.length > 0 ? rolesAddedNames.join(' and ') : 'your new roles';
         await interaction.reply({
-          content: `🎉 **Verification Complete!**\n\nYour nickname is now set to **${ign}**${roleText}!\nWelcome to the community, Daeva!`,
+          content: `🎉 **AION 2 IGN Registered!**\n\n` +
+            `• **Nickname:** Changed to **${ign}**\n` +
+            `• **Roles Given:** **${rolesText}**\n` +
+            `• **Role Removed:** **@${onboardedRole?.name || 'Onboarded'}**\n\n` +
+            `📸 **Next Step:** The exclusive channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.`,
           ephemeral: true
         });
 
-        // Public announcement in channel
-        await interaction.channel.send({
-          content: `⚔️ **${member}** has verified their AION 2 IGN as **${ign}** and joined the server!`
-        }).catch(() => null);
-
-        console.log(`[Verification] Verified ${member.user.tag} as "${ign}" in ${guild.name}`);
+        console.log(`[Verification] ${member.user.tag} set IGN to "${ign}". Assigned: [${rolesAddedNames.join(', ')}]. Removed: [${onboardedRole?.name}]`);
         return;
       }
     }
@@ -347,7 +394,7 @@ client.on('interactionCreate', async (interaction) => {
         } catch (sendErr) {
           console.error('Error in /post-rules:', sendErr);
           await interaction.editReply({
-            content: `❌ Could not send rules message in this channel: **${sendErr.message}**.\nPlease ensure Maiev has **Send Messages** and **Embed Links** permissions in this channel!`
+            content: `❌ Could not send rules message: **${sendErr.message}**.\nPlease ensure Maiev has **Send Messages** and **Embed Links** in this channel!`
           });
         }
         return;
@@ -363,7 +410,7 @@ client.on('interactionCreate', async (interaction) => {
         } catch (sendErr) {
           console.error('Error in /post-verify:', sendErr);
           await interaction.editReply({
-            content: `❌ Could not send verification message in this channel: **${sendErr.message}**.\nPlease ensure Maiev has **Send Messages** and **Embed Links** permissions in this channel!`
+            content: `❌ Could not send verification message: **${sendErr.message}**.\nPlease ensure Maiev has **Send Messages** and **Embed Links** in this channel!`
           });
         }
         return;
@@ -371,22 +418,25 @@ client.on('interactionCreate', async (interaction) => {
 
       // /configure-verification (Admin)
       if (commandName === 'configure-verification') {
-        const rulesRole = interaction.options.getRole('rules_role');
-        const verifiedRole = interaction.options.getRole('verified_role');
+        const onboardedRole = interaction.options.getRole('onboarded_role');
+        const unverifiedRole = interaction.options.getRole('unverified_role');
+        const fregionRole = interaction.options.getRole('elyos_fregion_role');
         const verifyChannel = interaction.options.getChannel('verify_channel');
 
-        if (rulesRole) config.rulesRoleId = rulesRole.id;
-        if (verifiedRole) config.verifiedRoleId = verifiedRole.id;
+        if (onboardedRole) config.onboardedRoleId = onboardedRole.id;
+        if (unverifiedRole) config.unverifiedRoleId = unverifiedRole.id;
+        if (fregionRole) config.fregionRoleId = fregionRole.id;
         if (verifyChannel) config.verifyChannelId = verifyChannel.id;
 
         const summary = [
-          `**Rules Role:** ${config.rulesRoleId ? `<@&${config.rulesRoleId}>` : '*Auto-detecting "Rules Acknowledged" / "Unverified"*'}`,
-          `**Verified Role:** ${config.verifiedRoleId ? `<@&${config.verifiedRoleId}>` : '*Auto-detecting "Member" / "Verified" / "AION 2"*'}`,
+          `**Onboarded Role:** ${config.onboardedRoleId ? `<@&${config.onboardedRoleId}>` : '*Auto-detecting "[Onboarded]"*'}`,
+          `**Unverified Role:** ${config.unverifiedRoleId ? `<@&${config.unverifiedRoleId}>` : '*Auto-detecting "[Unverified]"*'}`,
+          `**Elyos Fregion Role:** ${config.fregionRoleId ? `<@&${config.fregionRoleId}>` : '*Auto-detecting "[Elyos Fregion]"*'}`,
           `**Verify Channel:** ${config.verifyChannelId ? `<#${config.verifyChannelId}>` : '*Auto-detecting #verify-ign*'}`
         ].join('\n');
 
         await interaction.reply({
-          content: `⚙️ **Verification Configuration Updated:**\n\n${summary}`,
+          content: `⚙️ **AION 2 Verification Pipeline Configured:**\n\n${summary}`,
           ephemeral: true
         });
         return;
@@ -395,8 +445,9 @@ client.on('interactionCreate', async (interaction) => {
       // /setnickname (Anyone)
       if (commandName === 'setnickname') {
         const directNickname = interaction.options.getString('nickname');
+        const botMember = guild.members.me;
+
         if (directNickname) {
-          const botMember = guild.members.me;
           if (!botMember.permissions.has(PermissionFlagsBits.ManageNicknames)) {
             await interaction.reply({ content: '❌ Bot lacks Manage Nicknames permission.', ephemeral: true });
             return;
