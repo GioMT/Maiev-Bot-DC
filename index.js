@@ -84,7 +84,7 @@ let config = {
   welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!',
   nationalityTitle: '🌍 Choose Your Nationality',
   nationalityContent: '',
-  nationalityFooter: 'Click a flag button or react with an emoji to toggle your role',
+  nationalityFooter: 'React with a flag emoji below to toggle your role',
   nationalityMessageIds: [],
   nationalityRoles: [
     { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
@@ -224,10 +224,10 @@ function createNationalityMessage(guild) {
     `Please select your nationality flag below to unlock access to your regional legion channels:\n\n` +
     `${formattedList}\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👉 **React with your flag emoji below** or **click the button** to receive your nationality role!`
+    `👉 **React with your flag emoji below** to receive your nationality role!`
   );
   const description = rawDesc.replace(/{server}/g, guild.name);
-  const footer = config.nationalityFooter || 'Click a flag button or react with an emoji to toggle your role';
+  const footer = config.nationalityFooter || 'React with a flag emoji below to toggle your role';
 
   const embed = new EmbedBuilder()
     .setColor(0x00d2ff)
@@ -236,8 +236,7 @@ function createNationalityMessage(guild) {
     .setThumbnail(guild.iconURL({ dynamic: true }) || undefined)
     .setFooter({ text: footer });
 
-  const rows = createNationalityButtonRows(config.nationalityRoles || []);
-  return { embeds: [embed], components: rows };
+  return { embeds: [embed] };
 }
 
 // ──────────────────────────────────────────

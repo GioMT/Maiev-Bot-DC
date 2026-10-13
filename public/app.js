@@ -46,7 +46,7 @@ const DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE = "👋 Welcome to **{server}**, {us
 const DEFAULT_NATIONALITY_TEMPLATE = {
   title: '🌍 Choose Your Nationality',
   content: '',
-  footer: 'Click a flag button or react with an emoji to toggle your role'
+  footer: 'React with a flag emoji below to toggle your role'
 };
 
 let serverState = null;
@@ -388,29 +388,9 @@ function updateNationalityPreview() {
       `Please select your nationality flag below to unlock access to your regional legion channels:<br><br>` +
       `${listStr}<br><br>` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>` +
-      `👉 <strong>React with your flag emoji below</strong> or <strong>click the button</strong> to receive your nationality role!`;
+      `👉 <strong>React with your flag emoji below</strong> to receive your nationality role!`;
   }
   if (simDesc) simDesc.innerHTML = descHtml;
-
-  // Render buttons in simulator
-  if (simButtons) {
-    simButtons.innerHTML = '';
-    const activeNats = (currentNationalityRoles || []).filter(n => n && n.name);
-    activeNats.forEach(item => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'discord-btn discord-btn-secondary';
-      btn.textContent = `${item.emoji || ''} ${item.name}`.trim();
-      btn.addEventListener('click', () => {
-        const feedback = document.getElementById('sim-nationality-feedback');
-        if (feedback) {
-          feedback.classList.remove('hidden');
-          feedback.innerHTML = `✅ <strong>[Simulated Response]</strong> Clicked button <strong>${item.emoji} ${item.name}</strong>! Role assigned and regional channel unlocked!`;
-        }
-      });
-      simButtons.appendChild(btn);
-    });
-  }
 
   // Render emoji reaction pills in simulator
   if (simReactions) {

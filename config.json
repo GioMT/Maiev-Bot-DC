@@ -18,7 +18,7 @@
   "welcomeAnnouncementMessage": "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!",
   "nationalityTitle": "🌍 Choose Your Nationality",
   "nationalityContent": "",
-  "nationalityFooter": "Click a flag button or react with an emoji to toggle your role",
+  "nationalityFooter": "React with a flag emoji below to toggle your role",
   "nationalityMessageIds": [],
   "nationalityRoles": [
     { "code": "ph", "name": "Philippines", "emoji": "🇵🇭", "roleId": "" },
