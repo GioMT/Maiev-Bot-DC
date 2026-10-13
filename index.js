@@ -361,6 +361,40 @@ const slashCommands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('add-flag-role')
+    .setDescription('Link a flag emoji to a server role for nationality channels (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption(option =>
+      option
+        .setName('flag')
+        .setDescription('The flag emoji (e.g. 🇺🇸, 🇰🇷, 🇩🇪, 🇧🇷)')
+        .setRequired(true)
+    )
+    .addRoleOption(option =>
+      option
+        .setName('role')
+        .setDescription('The server role to grant when reacting to this flag')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
+        .setName('country')
+        .setDescription('Country name (e.g. United States, Korea)')
+        .setRequired(false)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('remove-flag-role')
+    .setDescription('Remove a flag emoji from nationality roles (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption(option =>
+      option
+        .setName('flag')
+        .setDescription('The flag emoji or country code to remove')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('configure-verification')
     .setDescription('Configure roles and channel for the onboarding flow (Admin only)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -742,9 +776,71 @@ client.on('interactionCreate', async (interaction) => {
             saveConfig(config);
           }
 
-          await interaction.editReply({ content: '✅ Nationality role card posted successfully! Flag emoji reactions and interactive buttons are now active in this channel.' });
+          await interaction.editReply({ content: '✅ Nationality role card posted successfully! Flag emoji reactions are now active in this channel.' });
         } catch (sendErr) {
           await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
+        }
+        return;
+      }
+
+      if (commandName === 'add-flag-role') {
+        const emoji = interaction.options.getString('flag').trim();
+        const targetRole = interaction.options.getRole('role');
+        const country = interaction.options.getString('country')?.trim() || targetRole.name.replace(/[[\]]/g, '').trim();
+        const code = country.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'role';
+
+        if (!Array.isArray(config.nationalityRoles)) config.nationalityRoles = [];
+
+        const existingIndex = config.nationalityRoles.findIndex(n => 
+          n.emoji === emoji || 
+          n.roleId === targetRole.id ||
+          (n.code && n.code.toLowerCase() === code)
+        );
+
+        if (existingIndex >= 0) {
+          config.nationalityRoles[existingIndex] = {
+            ...config.nationalityRoles[existingIndex],
+            emoji,
+            name: country,
+            code,
+            roleId: targetRole.id
+          };
+        } else {
+          config.nationalityRoles.push({
+            code,
+            name: country,
+            emoji,
+            roleId: targetRole.id
+          });
+        }
+
+        saveConfig(config);
+
+        await interaction.reply({
+          content: `✅ Successfully linked ${emoji} **${country}** to role **@${targetRole.name}**!\n\n` +
+                   `• Members who react with ${emoji} will automatically receive this role.\n` +
+                   `• Run \`/post-nationality\` to post an updated card with ${emoji} included.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      if (commandName === 'remove-flag-role') {
+        const query = interaction.options.getString('flag').trim().toLowerCase();
+        if (!Array.isArray(config.nationalityRoles)) config.nationalityRoles = [];
+
+        const initialLength = config.nationalityRoles.length;
+        config.nationalityRoles = config.nationalityRoles.filter(n => 
+          n.emoji !== query && 
+          n.code.toLowerCase() !== query &&
+          n.name.toLowerCase() !== query
+        );
+
+        if (config.nationalityRoles.length < initialLength) {
+          saveConfig(config);
+          await interaction.reply({ content: `✅ Removed flag option \`${query}\`. Run \`/post-nationality\` to post the updated card.`, ephemeral: true });
+        } else {
+          await interaction.reply({ content: `⚠️ Could not find a configured flag matching \`${query}\`.`, ephemeral: true });
         }
         return;
       }
