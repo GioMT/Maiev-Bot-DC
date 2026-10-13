@@ -29,6 +29,17 @@ To proceed, please register your **AION 2 In-Game Name (IGN)**:
   footer: 'Maiev Verification System • AION 2'
 };
 
+const DEFAULT_WELCOME_TEMPLATE = {
+  title: '🎉 Welcome to {server}, {ign}!',
+  content: `Your AION 2 IGN has been successfully registered as **{ign}**!
+
+• **Roles Granted:** **[Unverified]** and **[Elyos Fregion]**
+• **Channel Updated:** **#verify-ign** has been closed
+
+📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.`,
+  footer: '{server} • AION 2 Elyos Legion'
+};
+
 let serverState = null;
 
 // Initialize on DOM load
@@ -50,6 +61,7 @@ async function fetchServerState() {
     renderChannelDropdowns(data);
     renderRulesEditor(data.config || {});
     renderVerifyEditor(data.config || {});
+    renderWelcomeEditor(data.config || {});
     renderDiagnostics(data);
     fetchMembers();
   } catch (err) {
@@ -227,6 +239,17 @@ function updateVerifyPreview() {
   if (simFooter) simFooter.textContent = footer || 'Maiev Verification System • AION 2';
 }
 
+// Render Personalized Post-Verification Welcome Popup Editor
+function renderWelcomeEditor(cfg) {
+  const title = cfg.welcomeTitle || DEFAULT_WELCOME_TEMPLATE.title;
+  const content = cfg.welcomeContent || DEFAULT_WELCOME_TEMPLATE.content;
+  const footer = cfg.welcomeFooter || DEFAULT_WELCOME_TEMPLATE.footer;
+
+  document.getElementById('welcome-title-input').value = title;
+  document.getElementById('welcome-content-input').value = content;
+  document.getElementById('welcome-footer-input').value = footer;
+}
+
 // Format Discord Markdown to HTML
 function formatDiscordMarkdown(text) {
   if (!text) return '';
@@ -342,13 +365,21 @@ function setupEventListeners() {
     showToast('Reset verification editor to standard template!', 'success');
   });
 
+  // Reset Welcome Card Template Button
+  document.getElementById('btn-reset-welcome-template').addEventListener('click', () => {
+    document.getElementById('welcome-title-input').value = DEFAULT_WELCOME_TEMPLATE.title;
+    document.getElementById('welcome-content-input').value = DEFAULT_WELCOME_TEMPLATE.content;
+    document.getElementById('welcome-footer-input').value = DEFAULT_WELCOME_TEMPLATE.footer;
+    showToast('Reset welcome popup card to standard template!', 'success');
+  });
+
   // Refresh Button
   document.getElementById('btn-refresh').addEventListener('click', () => {
     fetchServerState();
     showToast('Refreshed live data from Discord!', 'success');
   });
 
-  // Save Configuration (includes rules and verification embeds!)
+  // Save Configuration (includes rules, verification, and welcome popup embeds!)
   document.getElementById('btn-save-config').addEventListener('click', async () => {
     const onboardedRoleId = document.getElementById('select-onboarded-role').value;
     const rulesChannelId = document.getElementById('select-rules-channel').value;
@@ -365,6 +396,10 @@ function setupEventListeners() {
     const verifyContent = verifyContentInput.value.trim();
     const verifyFooter = verifyFooterInput.value.trim();
 
+    const welcomeTitle = document.getElementById('welcome-title-input').value.trim();
+    const welcomeContent = document.getElementById('welcome-content-input').value.trim();
+    const welcomeFooter = document.getElementById('welcome-footer-input').value.trim();
+
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
@@ -380,13 +415,16 @@ function setupEventListeners() {
           rulesFooter,
           verifyTitle,
           verifyContent,
-          verifyFooter
+          verifyFooter,
+          welcomeTitle,
+          welcomeContent,
+          welcomeFooter
         })
       });
 
       if (!res.ok) throw new Error('Save failed');
       const result = await res.json();
-      showToast('🎉 Configuration, Rules, & Verification Embed saved successfully!', 'success');
+      showToast('🎉 Configuration, Rules, & Welcome Popup Card saved successfully!', 'success');
       updateFunnelLabels();
     } catch (err) {
       showToast('❌ Error saving configuration.', 'error');
@@ -459,20 +497,27 @@ function setupEventListeners() {
     const ign = document.getElementById('sim-modal-ign-input').value.trim() || 'DaevaLegend';
     modalBackdrop.classList.add('hidden');
 
-    const addRoleLabels = Array.from(document.querySelectorAll('input[name="role_add"]:checked'))
-      .map(el => el.parentElement.textContent.trim()).join(' and ') || '@Unverified and @Elyos Fregion';
-
-    const removeRoleLabels = Array.from(document.querySelectorAll('input[name="role_remove"]:checked'))
-      .map(el => el.parentElement.textContent.trim()).join(', ') || '@Onboarded';
+    const serverName = serverState?.guild?.name || 'AION 2 Server';
+    const serverIcon = serverState?.guild?.icon || 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
+    const welcomeTitle = (document.getElementById('welcome-title-input').value || DEFAULT_WELCOME_TEMPLATE.title)
+      .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
+    const welcomeBody = (document.getElementById('welcome-content-input').value || DEFAULT_WELCOME_TEMPLATE.content)
+      .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
+    const welcomeFoot = (document.getElementById('welcome-footer-input').value || DEFAULT_WELCOME_TEMPLATE.footer)
+      .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
 
     const feedback = document.getElementById('sim-verify-feedback');
     feedback.classList.remove('hidden');
     feedback.innerHTML = `
-      🎉 <strong>[Simulated Response] Verification Complete!</strong><br>
-      • Nickname updated to: <strong>${ign}</strong><br>
-      • Roles Granted: <strong>${addRoleLabels}</strong><br>
-      • Role Removed: <strong>${removeRoleLabels}</strong> (Channel #verify-ign disappeared)<br>
-      📸 Exclusive community channels now unlocked!
+      <div style="background: rgba(0, 210, 255, 0.08); border-left: 3px solid #00d2ff; padding: 12px; border-radius: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <img src="${serverIcon}" style="width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0,210,255,0.4);" alt="Server Profile">
+          <strong style="color: #00d2ff; font-size: 0.85rem;">${serverName}</strong>
+        </div>
+        <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 6px;">${welcomeTitle}</div>
+        <div style="line-height: 1.45; color: #dbdee1; font-size: 0.84rem;">${formatDiscordMarkdown(welcomeBody)}</div>
+        <div style="font-size: 0.72rem; color: #949ba4; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">${welcomeFoot}</div>
+      </div>
     `;
   });
 }

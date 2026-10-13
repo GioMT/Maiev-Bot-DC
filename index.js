@@ -70,7 +70,15 @@ let config = {
     '2. Enter your exact in-game character name.\n' +
     '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
   ),
-  verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2'
+  verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2',
+  welcomeTitle: process.env.WELCOME_TITLE || '🎉 Welcome to {server}, {ign}!',
+  welcomeContent: process.env.WELCOME_CONTENT || (
+    'Your AION 2 IGN has been successfully registered as **{ign}**!\n\n' +
+    '• **Roles Granted:** **{roles}**\n' +
+    '• **Channel Updated:** **#verify-ign** has been closed\n\n' +
+    '📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.'
+  ),
+  welcomeFooter: process.env.WELCOME_FOOTER || '{server} • AION 2 Elyos Legion'
 };
 
 // Load config.json if available
@@ -396,11 +404,40 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         const rolesText = addedNames.length > 0 ? addedNames.join(' and ') : 'your verified roles';
+        
+        // Build rich welcome popup embed with server profile and name
+        const serverName = guild.name;
+        const serverIcon = guild.iconURL({ dynamic: true, size: 256 }) || undefined;
+
+        const welcomeTitle = (config.welcomeTitle || '🎉 Welcome to {server}, {ign}!')
+          .replace(/{server}/g, serverName)
+          .replace(/{ign}/g, ign);
+
+        const welcomeDescription = (config.welcomeContent || (
+          'Your AION 2 IGN has been successfully registered as **{ign}**!\n\n' +
+          '• **Roles Granted:** **{roles}**\n\n' +
+          '📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.'
+        ))
+          .replace(/{server}/g, serverName)
+          .replace(/{ign}/g, ign)
+          .replace(/{roles}/g, rolesText)
+          .replace(/{user}/g, `<@${member.id}>`);
+
+        const welcomeFooterText = (config.welcomeFooter || '{server} • AION 2 Elyos Legion')
+          .replace(/{server}/g, serverName)
+          .replace(/{ign}/g, ign);
+
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor(0x00d2ff) // Radiant AION Elyos cyan
+          .setAuthor({ name: serverName, iconURL: serverIcon })
+          .setTitle(welcomeTitle)
+          .setDescription(welcomeDescription)
+          .setThumbnail(serverIcon)
+          .setFooter({ text: welcomeFooterText, iconURL: serverIcon })
+          .setTimestamp();
+
         await interaction.reply({
-          content: `🎉 **AION 2 IGN Registered!**\n\n` +
-            `• **Nickname:** Changed to **${ign}**\n` +
-            `• **Roles Given:** **${rolesText}**\n\n` +
-            `📸 **Next Step:** Please submit your character screenshot in the verification channel for staff approval!`,
+          embeds: [welcomeEmbed],
           ephemeral: true
         });
 
@@ -555,7 +592,10 @@ app.post('/api/config', (req, res) => {
     rulesFooter,
     verifyTitle,
     verifyContent,
-    verifyFooter
+    verifyFooter,
+    welcomeTitle,
+    welcomeContent,
+    welcomeFooter
   } = req.body;
 
   saveConfig({
@@ -569,7 +609,10 @@ app.post('/api/config', (req, res) => {
     rulesFooter: rulesFooter !== undefined ? rulesFooter : config.rulesFooter,
     verifyTitle: verifyTitle !== undefined ? verifyTitle : config.verifyTitle,
     verifyContent: verifyContent !== undefined ? verifyContent : config.verifyContent,
-    verifyFooter: verifyFooter !== undefined ? verifyFooter : config.verifyFooter
+    verifyFooter: verifyFooter !== undefined ? verifyFooter : config.verifyFooter,
+    welcomeTitle: welcomeTitle !== undefined ? welcomeTitle : config.welcomeTitle,
+    welcomeContent: welcomeContent !== undefined ? welcomeContent : config.welcomeContent,
+    welcomeFooter: welcomeFooter !== undefined ? welcomeFooter : config.welcomeFooter
   });
   console.log('⚙️ Configuration updated via Web UI:', config);
   res.json({ success: true, config });

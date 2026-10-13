@@ -9,5 +9,8 @@
   "rulesFooter": "Acknowledge the rules below to proceed",
   "verifyTitle": "🛡️ Maiev — AION 2 IGN Verification",
   "verifyContent": "Welcome to **{server}**!\n\nTo proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n**How it works:**\n1. Click the **\"🎮 Set AION 2 IGN & Verify\"** button below.\n2. Enter your exact in-game character name.\n3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!",
-  "verifyFooter": "Maiev Verification System • AION 2"
+  "verifyFooter": "Maiev Verification System • AION 2",
+  "welcomeTitle": "🎉 Welcome to {server}, {ign}!",
+  "welcomeContent": "Your AION 2 IGN has been successfully registered as **{ign}**!\n\n• **Roles Granted:** **[Unverified]** and **[Elyos Fregion]**\n• **Channel Updated:** **#verify-ign** has been closed\n\n📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.",
+  "welcomeFooter": "{server} • AION 2 Elyos Legion"
 }

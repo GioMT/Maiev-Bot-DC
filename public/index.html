@@ -270,6 +270,38 @@
                   <input type="text" id="verify-footer-input" class="form-input" placeholder="Maiev Verification System • AION 2" value="Maiev Verification System • AION 2">
                 </div>
               </div>
+
+              <!-- Post-Verification Welcome Popup Message Editor -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge">🎉 POST-VERIFICATION WELCOME POPUP CARD</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-welcome-template" title="Reset to standard welcome card template">
+                    ↺ Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="welcome-title-input" class="form-label">
+                    Welcome Popup Title:
+                  </label>
+                  <input type="text" id="welcome-title-input" class="form-input" placeholder="🎉 Welcome to {server}, {ign}!" value="🎉 Welcome to {server}, {ign}!">
+                </div>
+
+                <div class="form-group">
+                  <label for="welcome-content-input" class="form-label">
+                    Customizable Welcome Message:
+                  </label>
+                  <textarea id="welcome-content-input" class="form-textarea" rows="7" placeholder="Type your personalized welcome popup message here..."></textarea>
+                  <span class="form-hint">Tip: Use <strong>{server}</strong> for server name and <strong>{ign}</strong> for the player's new in-game name. Includes your Discord server's profile picture automatically!</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="welcome-footer-input" class="form-label">
+                    Welcome Card Footer:
+                  </label>
+                  <input type="text" id="welcome-footer-input" class="form-input" placeholder="{server} • AION 2 Elyos Legion" value="{server} • AION 2 Elyos Legion">
+                </div>
+              </div>
             </div>
           </div>
         </div>
