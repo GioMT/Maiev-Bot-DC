@@ -352,13 +352,25 @@ const slashCommands = [
 
   new SlashCommandBuilder()
     .setName('post-nationality')
-    .setDescription('Post nationality role selection card with flag emoji reactions and buttons (Admin only)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDescription('Post or update nationality role card with flag emoji reactions (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addBooleanOption(option =>
+      option
+        .setName('force_new')
+        .setDescription('Create a brand-new message instead of updating the existing one')
+        .setRequired(false)
+    ),
 
   new SlashCommandBuilder()
     .setName('post-nationality-roles')
-    .setDescription('Post interactive flag reaction roles for nationality channels (Admin only)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDescription('Post or update nationality role card with flag emoji reactions (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addBooleanOption(option =>
+      option
+        .setName('force_new')
+        .setDescription('Create a brand-new message instead of updating the existing one')
+        .setRequired(false)
+    ),
 
   new SlashCommandBuilder()
     .setName('add-flag-role')
@@ -761,22 +773,68 @@ client.on('interactionCreate', async (interaction) => {
       if (commandName === 'post-nationality' || commandName === 'post-nationality-roles') {
         await interaction.deferReply({ ephemeral: true });
         try {
+          const forceNew = interaction.options.getBoolean('force_new') || false;
           const payload = createNationalityMessage(guild);
-          const sentMsg = await interaction.channel.send(payload);
 
-          // Automatically react with configured flag emojis so members can react directly!
-          const activeNats = (config.nationalityRoles || []).filter(n => n && n.emoji);
-          for (const item of activeNats) {
-            await safelyReact(sentMsg, item.emoji);
+          let targetMsg = null;
+
+          if (!forceNew) {
+            // 1. Try to find an existing nationality message in this channel by stored IDs
+            if (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.length > 0) {
+              for (const msgId of config.nationalityMessageIds) {
+                try {
+                  const fetched = await interaction.channel.messages.fetch(msgId);
+                  if (fetched && fetched.author?.id === client.user?.id) {
+                    targetMsg = fetched;
+                    break;
+                  }
+                } catch (_) {
+                  // Message not in this channel or deleted
+                }
+              }
+            }
+
+            // 2. Fallback: Search recent 25 messages in channel for Maiev's nationality card
+            if (!targetMsg) {
+              try {
+                const recent = await interaction.channel.messages.fetch({ limit: 25 });
+                targetMsg = recent.find(m =>
+                  m.author?.id === client.user?.id && (
+                    m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+                    m.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
+                  )
+                );
+              } catch (_) {}
+            }
           }
 
+          let wasUpdated = false;
+          if (targetMsg) {
+            // Edit the existing message in-place: removes text buttons, updates embed, and KEEPS all existing user reactions intact!
+            await targetMsg.edit({ embeds: payload.embeds, components: [] });
+            wasUpdated = true;
+          } else {
+            targetMsg = await interaction.channel.send(payload);
+          }
+
+          // Ensure message ID is tracked
           if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
-          if (!config.nationalityMessageIds.includes(sentMsg.id)) {
-            config.nationalityMessageIds.push(sentMsg.id);
+          if (!config.nationalityMessageIds.includes(targetMsg.id)) {
+            config.nationalityMessageIds.push(targetMsg.id);
             saveConfig(config);
           }
 
-          await interaction.editReply({ content: '✅ Nationality role card posted successfully! Flag emoji reactions are now active in this channel.' });
+          // Automatically react with configured flag emojis (skips already reacted ones)
+          const activeNats = (config.nationalityRoles || []).filter(n => n && n.emoji);
+          for (const item of activeNats) {
+            await safelyReact(targetMsg, item.emoji);
+          }
+
+          const responseText = wasUpdated
+            ? '✅ Existing nationality card updated in-place! **All previous user reactions and roles are preserved**, old text buttons were removed, and any new flag emojis were added.'
+            : '✅ Nationality role card posted successfully! Flag emoji reactions are now active in this channel.';
+
+          await interaction.editReply({ content: responseText });
         } catch (sendErr) {
           await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
         }
@@ -816,10 +874,32 @@ client.on('interactionCreate', async (interaction) => {
 
         saveConfig(config);
 
+        // Auto-update any existing nationality card in this channel so the new flag appears and is reacted immediately
+        let cardUpdated = false;
+        try {
+          if (interaction.channel) {
+            const recent = await interaction.channel.messages.fetch({ limit: 25 }).catch(() => null);
+            const activeMsg = recent?.find(m =>
+              m.author?.id === client.user?.id && (
+                config.nationalityMessageIds?.includes(m.id) ||
+                m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title))
+              )
+            );
+            if (activeMsg) {
+              const updatedPayload = createNationalityMessage(guild);
+              await activeMsg.edit({ embeds: updatedPayload.embeds, components: [] }).catch(() => null);
+              await safelyReact(activeMsg, emoji);
+              cardUpdated = true;
+            }
+          }
+        } catch (_) {}
+
+        const updateNote = cardUpdated
+          ? `\n\n• The nationality card in this channel was **automatically updated** and reacted with ${emoji} (all previous reactions preserved)!`
+          : `\n\n• Run \`/post-nationality\` to post or update the card in this channel.`;
+
         await interaction.reply({
-          content: `✅ Successfully linked ${emoji} **${country}** to role **@${targetRole.name}**!\n\n` +
-                   `• Members who react with ${emoji} will automatically receive this role.\n` +
-                   `• Run \`/post-nationality\` to post an updated card with ${emoji} included.`,
+          content: `✅ Successfully linked ${emoji} **${country}** to role **@${targetRole.name}**!${updateNote}`,
           ephemeral: true
         });
         return;
@@ -838,7 +918,25 @@ client.on('interactionCreate', async (interaction) => {
 
         if (config.nationalityRoles.length < initialLength) {
           saveConfig(config);
-          await interaction.reply({ content: `✅ Removed flag option \`${query}\`. Run \`/post-nationality\` to post the updated card.`, ephemeral: true });
+
+          // Auto-update active card in this channel if present
+          try {
+            if (interaction.channel) {
+              const recent = await interaction.channel.messages.fetch({ limit: 25 }).catch(() => null);
+              const activeMsg = recent?.find(m =>
+                m.author?.id === client.user?.id && (
+                  config.nationalityMessageIds?.includes(m.id) ||
+                  m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title))
+                )
+              );
+              if (activeMsg) {
+                const updatedPayload = createNationalityMessage(guild);
+                await activeMsg.edit({ embeds: updatedPayload.embeds, components: [] }).catch(() => null);
+              }
+            }
+          } catch (_) {}
+
+          await interaction.reply({ content: `✅ Removed flag option \`${query}\`. The nationality card has been updated.`, ephemeral: true });
         } else {
           await interaction.reply({ content: `⚠️ Could not find a configured flag matching \`${query}\`.`, ephemeral: true });
         }
