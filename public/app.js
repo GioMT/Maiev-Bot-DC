@@ -16,6 +16,19 @@ const DEFAULT_RULES_TEMPLATE = {
   footer: 'Acknowledge the rules below to proceed'
 };
 
+const DEFAULT_VERIFY_TEMPLATE = {
+  title: '🛡️ Maiev — AION 2 IGN Verification',
+  content: `Welcome to **{server}**!
+
+To proceed, please register your **AION 2 In-Game Name (IGN)**:
+
+**How it works:**
+1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.
+2. Enter your exact in-game character name.
+3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`,
+  footer: 'Maiev Verification System • AION 2'
+};
+
 let serverState = null;
 
 // Initialize on DOM load
@@ -36,6 +49,7 @@ async function fetchServerState() {
     renderRoleDropdowns(data);
     renderChannelDropdowns(data);
     renderRulesEditor(data.config || {});
+    renderVerifyEditor(data.config || {});
     renderDiagnostics(data);
     fetchMembers();
   } catch (err) {
@@ -182,6 +196,37 @@ function updateRulesPreview() {
   if (simFooter) simFooter.textContent = footer || 'Acknowledge the rules below to proceed';
 }
 
+// Render Personalized Verification Embed Editor
+function renderVerifyEditor(cfg) {
+  const title = cfg.verifyTitle || DEFAULT_VERIFY_TEMPLATE.title;
+  const content = cfg.verifyContent || DEFAULT_VERIFY_TEMPLATE.content;
+  const footer = cfg.verifyFooter || DEFAULT_VERIFY_TEMPLATE.footer;
+
+  document.getElementById('verify-title-input').value = title;
+  document.getElementById('verify-content-input').value = content;
+  document.getElementById('verify-footer-input').value = footer;
+
+  updateVerifyPreview();
+}
+
+// Update the Discord verification embed simulator in real-time
+function updateVerifyPreview() {
+  const title = document.getElementById('verify-title-input').value;
+  let content = document.getElementById('verify-content-input').value;
+  const footer = document.getElementById('verify-footer-input').value;
+
+  const serverName = serverState?.guild?.name || 'AION 2 Server';
+  content = content.replace(/{server}/g, serverName);
+
+  const simTitle = document.getElementById('sim-verify-title');
+  const simDesc = document.getElementById('sim-verify-desc');
+  const simFooter = document.getElementById('sim-verify-footer');
+
+  if (simTitle) simTitle.textContent = title || '🛡️ Maiev — AION 2 IGN Verification';
+  if (simDesc) simDesc.innerHTML = formatDiscordMarkdown(content);
+  if (simFooter) simFooter.textContent = footer || 'Maiev Verification System • AION 2';
+}
+
 // Format Discord Markdown to HTML
 function formatDiscordMarkdown(text) {
   if (!text) return '';
@@ -270,6 +315,15 @@ function setupEventListeners() {
   contentInput.addEventListener('input', updateRulesPreview);
   footerInput.addEventListener('input', updateRulesPreview);
 
+  // Live input listening on personalized verification embed fields
+  const verifyTitleInput = document.getElementById('verify-title-input');
+  const verifyContentInput = document.getElementById('verify-content-input');
+  const verifyFooterInput = document.getElementById('verify-footer-input');
+
+  verifyTitleInput.addEventListener('input', updateVerifyPreview);
+  verifyContentInput.addEventListener('input', updateVerifyPreview);
+  verifyFooterInput.addEventListener('input', updateVerifyPreview);
+
   // Reset Rules Template Button
   document.getElementById('btn-reset-rules-template').addEventListener('click', () => {
     titleInput.value = DEFAULT_RULES_TEMPLATE.title;
@@ -279,13 +333,22 @@ function setupEventListeners() {
     showToast('Reset rules editor to standard AION 2 template!', 'success');
   });
 
+  // Reset Verification Template Button
+  document.getElementById('btn-reset-verify-template').addEventListener('click', () => {
+    verifyTitleInput.value = DEFAULT_VERIFY_TEMPLATE.title;
+    verifyContentInput.value = DEFAULT_VERIFY_TEMPLATE.content;
+    verifyFooterInput.value = DEFAULT_VERIFY_TEMPLATE.footer;
+    updateVerifyPreview();
+    showToast('Reset verification editor to standard template!', 'success');
+  });
+
   // Refresh Button
   document.getElementById('btn-refresh').addEventListener('click', () => {
     fetchServerState();
     showToast('Refreshed live data from Discord!', 'success');
   });
 
-  // Save Configuration (includes personalized rules!)
+  // Save Configuration (includes rules and verification embeds!)
   document.getElementById('btn-save-config').addEventListener('click', async () => {
     const onboardedRoleId = document.getElementById('select-onboarded-role').value;
     const rulesChannelId = document.getElementById('select-rules-channel').value;
@@ -297,6 +360,10 @@ function setupEventListeners() {
     const rulesTitle = titleInput.value.trim();
     const rulesContent = contentInput.value.trim();
     const rulesFooter = footerInput.value.trim();
+
+    const verifyTitle = verifyTitleInput.value.trim();
+    const verifyContent = verifyContentInput.value.trim();
+    const verifyFooter = verifyFooterInput.value.trim();
 
     try {
       const res = await fetch('/api/config', {
@@ -310,13 +377,16 @@ function setupEventListeners() {
           verifyChannelId,
           rulesTitle,
           rulesContent,
-          rulesFooter
+          rulesFooter,
+          verifyTitle,
+          verifyContent,
+          verifyFooter
         })
       });
 
       if (!res.ok) throw new Error('Save failed');
       const result = await res.json();
-      showToast('🎉 Configuration & Personalized Rules saved and synced with Maiev!', 'success');
+      showToast('🎉 Configuration, Rules, & Verification Embed saved successfully!', 'success');
       updateFunnelLabels();
     } catch (err) {
       showToast('❌ Error saving configuration.', 'error');

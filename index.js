@@ -60,7 +60,17 @@ let config = {
     '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
     '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
   ),
-  rulesFooter: process.env.RULES_FOOTER || 'Acknowledge the rules below to proceed'
+  rulesFooter: process.env.RULES_FOOTER || 'Acknowledge the rules below to proceed',
+  verifyTitle: process.env.VERIFY_TITLE || '🛡️ Maiev — AION 2 IGN Verification',
+  verifyContent: process.env.VERIFY_CONTENT || (
+    'Welcome to **{server}**!\n\n' +
+    'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
+    '**How it works:**\n' +
+    '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
+    '2. Enter your exact in-game character name.\n' +
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+  ),
+  verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2'
 };
 
 // Load config.json if available
@@ -149,19 +159,24 @@ function createRulesMessage() {
 
 // Build: Maiev AION 2 Verification Card
 function createVerifyMessage(guild) {
+  const title = config.verifyTitle || '🛡️ Maiev — AION 2 IGN Verification';
+  const rawDescription = config.verifyContent || (
+    'Welcome to **{server}**!\n\n' +
+    'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
+    '**How it works:**\n' +
+    '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
+    '2. Enter your exact in-game character name.\n' +
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+  );
+  const description = rawDescription.replace(/{server}/g, guild.name);
+  const footer = config.verifyFooter || 'Maiev Verification System • AION 2';
+
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
-    .setTitle(`🛡️ Maiev — AION 2 IGN Verification`)
-    .setDescription(
-      `Welcome to **${guild.name}**!\n\n` +
-      `To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n` +
-      `**How it works:**\n` +
-      `1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n` +
-      `2. Enter your exact in-game character name.\n` +
-      `3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`
-    )
+    .setTitle(title)
+    .setDescription(description)
     .setThumbnail(guild.iconURL({ dynamic: true }) || undefined)
-    .setFooter({ text: 'Maiev Verification System • AION 2' });
+    .setFooter({ text: footer });
 
   const button = new ButtonBuilder()
     .setCustomId('btn_open_ign_modal')
@@ -284,11 +299,8 @@ client.on('interactionCreate', async (interaction) => {
 
         await member.roles.add(onboardedRole, 'Acknowledged server rules');
 
-        const channelMention = verifyChannel ? `<#${verifyChannel.id}>` : '**#verify-ign**';
-        await interaction.reply({
-          content: `✅ **Rules Acknowledged!** You have received the **@${onboardedRole.name}** role.\n\n👉 Head over to ${channelMention} to set your **AION 2 In-Game Name** with Maiev!`,
-          ephemeral: true
-        });
+        // Acknowledge the interaction silently without sending ANY message to the channel
+        await interaction.deferUpdate();
         return;
       }
 
@@ -540,7 +552,10 @@ app.post('/api/config', (req, res) => {
     verifyChannelId,
     rulesTitle,
     rulesContent,
-    rulesFooter
+    rulesFooter,
+    verifyTitle,
+    verifyContent,
+    verifyFooter
   } = req.body;
 
   saveConfig({
@@ -551,7 +566,10 @@ app.post('/api/config', (req, res) => {
     verifyChannelId: verifyChannelId !== undefined ? verifyChannelId : config.verifyChannelId,
     rulesTitle: rulesTitle !== undefined ? rulesTitle : config.rulesTitle,
     rulesContent: rulesContent !== undefined ? rulesContent : config.rulesContent,
-    rulesFooter: rulesFooter !== undefined ? rulesFooter : config.rulesFooter
+    rulesFooter: rulesFooter !== undefined ? rulesFooter : config.rulesFooter,
+    verifyTitle: verifyTitle !== undefined ? verifyTitle : config.verifyTitle,
+    verifyContent: verifyContent !== undefined ? verifyContent : config.verifyContent,
+    verifyFooter: verifyFooter !== undefined ? verifyFooter : config.verifyFooter
   });
   console.log('⚙️ Configuration updated via Web UI:', config);
   res.json({ success: true, config });

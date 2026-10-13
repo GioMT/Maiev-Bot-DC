@@ -6,5 +6,8 @@
   "verifyChannelId": "",
   "rulesTitle": "📜 Server Rules & Guidelines",
   "rulesContent": "Welcome to the community! Before proceeding, please review our core server rules:\n\n**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.\n**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.\n**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.\n**4. Listen to Staff** — Follow moderator instructions at all times.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!",
-  "rulesFooter": "Acknowledge the rules below to proceed"
+  "rulesFooter": "Acknowledge the rules below to proceed",
+  "verifyTitle": "🛡️ Maiev — AION 2 IGN Verification",
+  "verifyContent": "Welcome to **{server}**!\n\nTo proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n**How it works:**\n1. Click the **\"🎮 Set AION 2 IGN & Verify\"** button below.\n2. Enter your exact in-game character name.\n3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!",
+  "verifyFooter": "Maiev Verification System • AION 2"
 }

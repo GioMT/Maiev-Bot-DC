@@ -238,6 +238,38 @@
                   </button>
                 </div>
               </div>
+
+              <!-- Personalized Verification Embed Editor -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge">🎮 PERSONALIZED VERIFICATION EMBED</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-verify-template" title="Reset to standard verification template">
+                    ↺ Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="verify-title-input" class="form-label">
+                    Verification Embed Title:
+                  </label>
+                  <input type="text" id="verify-title-input" class="form-input" placeholder="🛡️ Maiev — AION 2 IGN Verification" value="🛡️ Maiev — AION 2 IGN Verification">
+                </div>
+
+                <div class="form-group">
+                  <label for="verify-content-input" class="form-label">
+                    Personalized Verification Content:
+                  </label>
+                  <textarea id="verify-content-input" class="form-textarea" rows="7" placeholder="Type your personalized verification instructions here..."></textarea>
+                  <span class="form-hint">Tip: Use <strong>{server}</strong> to automatically display your Discord server name! Supports Markdown (<strong>**bold**</strong>, line breaks).</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="verify-footer-input" class="form-label">
+                    Verification Footer Note:
+                  </label>
+                  <input type="text" id="verify-footer-input" class="form-input" placeholder="Maiev Verification System • AION 2" value="Maiev Verification System • AION 2">
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -359,8 +391,8 @@
 
                     <!-- Embed Box -->
                     <div class="discord-embed blurple-embed">
-                      <div class="embed-title">🛡️ Maiev — AION 2 IGN Verification</div>
-                      <div class="embed-description">
+                      <div class="embed-title" id="sim-verify-title">🛡️ Maiev — AION 2 IGN Verification</div>
+                      <div class="embed-description" id="sim-verify-desc">
                         Welcome to the server!<br><br>
                         To proceed, please register your <strong>AION 2 In-Game Name (IGN)</strong>:<br><br>
                         <strong>How it works:</strong><br>
@@ -368,7 +400,7 @@
                         2. Enter your exact in-game character name.<br>
                         3. Maiev will update your server nickname, grant you <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Onboarded]</strong>!
                       </div>
-                      <div class="embed-footer">Maiev Verification System • AION 2</div>
+                      <div class="embed-footer" id="sim-verify-footer">Maiev Verification System • AION 2</div>
                     </div>
 
                     <!-- Action Row Button -->
