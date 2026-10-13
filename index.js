@@ -1263,29 +1263,36 @@ client.on('interactionCreate', async (interaction) => {
         // Send PUBLIC Welcome Announcement in designated welcome channel
         if (config.enableWelcomeAnnouncement !== false) {
           try {
-            const welcomeChan = await resolveChannel(guild, config.welcomeAnnouncementChannelId, /welcome|announcement|general/i);
+            const welcomeChan = await resolveChannel(guild, config.welcomeAnnouncementChannelId, /welcome/i);
             if (welcomeChan && welcomeChan.isTextBased()) {
-              const defaultPublicTemplate = "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
-              const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
-              const publicMessage = rawPublicTemplate
-                .replace(/{user}/g, `<@${member.id}>`)
-                .replace(/{ign}/g, ign)
-                .replace(/{server}/g, guild.name)
-                .replace(/{roles}/g, rolesText);
+              const chanPerms = welcomeChan.permissionsFor(guild.members.me);
+              if (!chanPerms || !chanPerms.has(PermissionFlagsBits.SendMessages)) {
+                console.warn(`[Welcome Announcement] ⚠️ Cannot post welcome message to #${welcomeChan.name}: Maiev lacks 'Send Messages' permission in this channel. Please grant Maiev permission in Channel Settings > Permissions.`);
+              } else {
+                const defaultPublicTemplate = "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
+                const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
+                const publicMessage = rawPublicTemplate
+                  .replace(/{user}/g, `<@${member.id}>`)
+                  .replace(/{ign}/g, ign)
+                  .replace(/{server}/g, guild.name)
+                  .replace(/{roles}/g, rolesText);
 
-              const publicEmbed = new EmbedBuilder()
-                .setColor(0x00d2ff)
-                .setAuthor({ name: `${guild.name} • New Daeva Arrival`, iconURL: serverIcon })
-                .setDescription(publicMessage)
-                .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-                .setFooter({ text: `AION 2 Elyos Legion • Member #${guild.memberCount}`, iconURL: serverIcon })
-                .setTimestamp();
+                const publicEmbed = new EmbedBuilder()
+                  .setColor(0x00d2ff)
+                  .setAuthor({ name: `${guild.name} • New Daeva Arrival`, iconURL: serverIcon })
+                  .setDescription(publicMessage)
+                  .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+                  .setFooter({ text: `AION 2 Elyos Legion • Member #${guild.memberCount}`, iconURL: serverIcon })
+                  .setTimestamp();
 
-              await welcomeChan.send({
-                content: `<@${member.id}>`,
-                embeds: [publicEmbed]
-              });
-              console.log(`[Welcome Announcement] Sent public welcome for ${member.user.tag} to #${welcomeChan.name}`);
+                await welcomeChan.send({
+                  content: `<@${member.id}>`,
+                  embeds: [publicEmbed]
+                });
+                console.log(`[Welcome Announcement] Sent public welcome for ${member.user.tag} to #${welcomeChan.name}`);
+              }
+            } else {
+              console.warn('[Welcome Announcement] Could not resolve a text-based welcome channel.');
             }
           } catch (pubErr) {
             console.warn('[Welcome Announcement] Failed to post to welcome channel:', pubErr.message);

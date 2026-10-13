@@ -18,7 +18,7 @@
   "welcomeTitle": "🎉 Welcome to {server}, {ign}!",
   "welcomeContent": "Your AION 2 IGN has been successfully registered as **{ign}**!\n\n• **Roles Granted:** **[Unverified]** and **[Elyos Fregion]**\n• **Channel Updated:** **#verify-ign** has been closed\n\n📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval. Visit your regional channel to pick your nationality role!",
   "welcomeFooter": "{server} • AION 2 Elyos Legion",
-  "welcomeAnnouncementChannelId": "",
+  "welcomeAnnouncementChannelId": "1559275351396323329",
   "enableWelcomeAnnouncement": true,
   "welcomeAnnouncementMessage": "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!",
   "nationalityChannelId": "1559205186088472596",
