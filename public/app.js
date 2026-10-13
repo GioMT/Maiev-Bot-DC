@@ -25,8 +25,8 @@ To proceed, please register your **AION 2 In-Game Name (IGN)**:
 
 **How it works:**
 1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.
-2. Enter your exact in-game character name and select your nationality flag.
-3. Maiev will update your server nickname to your IGN, assign your nationality role, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`,
+2. Enter your exact in-game character name.
+3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`,
   footer: 'Maiev Verification System • AION 2'
 };
 
@@ -34,14 +34,14 @@ const DEFAULT_WELCOME_TEMPLATE = {
   title: '🎉 Welcome to {server}, {ign}!',
   content: `Your AION 2 IGN has been successfully registered as **{ign}**!
 
-• **Roles Granted:** **[Unverified]**, **[Elyos Fregion]**, and **{nationalityRole}**
+• **Roles Granted:** **{roles}**
 • **Channel Updated:** **#verify-ign** has been closed
 
-📸 **Next Step:** The exclusive community channels and your regional nationality channel are now unlocked! Please post your character screenshot in the verification channel for staff approval.`,
+📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval. Visit your regional channel to pick your nationality role!`,
   footer: '{server} • AION 2 Elyos Legion'
 };
 
-const DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE = "👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!";
+const DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE = "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
 
 let serverState = null;
 let currentNationalityRoles = [];
@@ -780,16 +780,7 @@ function setupEventListeners() {
   // Simulator: Submit Modal
   document.getElementById('sim-modal-submit').addEventListener('click', () => {
     const ign = document.getElementById('sim-modal-ign-input').value.trim() || 'DaevaLegend';
-    const natInput = document.getElementById('sim-modal-nat-input').value.trim();
     modalBackdrop.classList.add('hidden');
-
-    // Find matched nationality from current list
-    const cleanNat = natInput.toLowerCase();
-    const matchedNat = currentNationalityRoles.find(n => 
-      (n.emoji && natInput.includes(n.emoji)) || 
-      (n.code && cleanNat.includes(n.code.toLowerCase())) || 
-      (n.name && cleanNat.includes(n.name.toLowerCase()))
-    ) || currentNationalityRoles.find(n => n.code === 'global' || n.emoji === '🌐') || { emoji: '🌐', name: 'Global / Other' };
 
     const serverName = serverState?.guild?.name || 'AION 2 Server';
     const serverIcon = serverState?.guild?.icon || 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
@@ -798,9 +789,7 @@ function setupEventListeners() {
     const welcomeBody = (document.getElementById('welcome-content-input').value || DEFAULT_WELCOME_TEMPLATE.content)
       .replace(/{server}/g, serverName)
       .replace(/{ign}/g, ign)
-      .replace(/{nationalityRole}/g, `${matchedNat.emoji} ${matchedNat.name}`)
-      .replace(/{flag}/g, matchedNat.emoji)
-      .replace(/{nationality}/g, matchedNat.name);
+      .replace(/{roles}/g, '@Unverified, @Elyos Fregion');
     const welcomeFoot = (document.getElementById('welcome-footer-input').value || DEFAULT_WELCOME_TEMPLATE.footer)
       .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
 
@@ -830,8 +819,7 @@ function setupEventListeners() {
           .replace(/{server}/g, serverName)
           .replace(/{user}/g, '@DaevaPlayer')
           .replace(/{ign}/g, ign)
-          .replace(/{flag}/g, matchedNat.emoji)
-          .replace(/{nationality}/g, matchedNat.name)
+          .replace(/{roles}/g, '@Unverified, @Elyos Fregion')
       );
     }
   });

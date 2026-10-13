@@ -67,8 +67,8 @@ let config = {
     'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
     '**How it works:**\n' +
     '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
-    '2. Enter your exact in-game character name and select your nationality flag.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]**, **[Elyos Fregion]**, and your regional nationality role, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+    '2. Enter your exact in-game character name.\n' +
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
   ),
   verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2',
   welcomeTitle: process.env.WELCOME_TITLE || '🎉 Welcome to {server}, {ign}!',
@@ -81,7 +81,7 @@ let config = {
   welcomeFooter: process.env.WELCOME_FOOTER || '{server} • AION 2 Elyos Legion',
   welcomeAnnouncementChannelId: '',
   enableWelcomeAnnouncement: true,
-  welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!',
+  welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!',
   nationalityRoles: [
     { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
     { code: 'jp', name: 'Japan', emoji: '🇯🇵', roleId: '' },
@@ -255,8 +255,8 @@ function createVerifyMessage(guild) {
     'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
     '**How it works:**\n' +
     '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
-    '2. Enter your exact in-game character name and specify your nationality flag.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]**, **[Elyos Fregion]**, and your regional nationality role, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+    '2. Enter your exact in-game character name.\n' +
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
   );
   const description = rawDescription.replace(/{server}/g, guild.name);
   const footer = config.verifyFooter || 'Maiev Verification System • AION 2';
@@ -403,34 +403,18 @@ client.on('interactionCreate', async (interaction) => {
       if (interaction.customId === 'btn_open_ign_modal') {
         const modal = new ModalBuilder()
           .setCustomId('modal_aion2_verify')
-          .setTitle('AION 2 IGN & Nationality');
+          .setTitle('AION 2 IGN Verification');
 
         const ignInput = new TextInputBuilder()
           .setCustomId('input_aion_ign')
-          .setLabel('AION 2 Character Name (IGN)')
+          .setLabel('Enter your AION 2 Character Name (IGN)')
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('e.g. DaevaLegend, ShadowWing, etc.')
           .setMinLength(2)
           .setMaxLength(32)
           .setRequired(true);
 
-        const flagSample = (config.nationalityRoles || [])
-          .slice(0, 5)
-          .map(n => `${n.emoji} ${n.code.toUpperCase()}`)
-          .join(', ');
-
-        const nationalityInput = new TextInputBuilder()
-          .setCustomId('input_nationality')
-          .setLabel('Nationality Flag / Code')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder(flagSample ? `e.g. ${flagSample} (or 🌐 Global)` : 'e.g. 🇵🇭 PH, 🇯🇵 JP, or 🌐 Global')
-          .setMaxLength(32)
-          .setRequired(false);
-
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(ignInput),
-          new ActionRowBuilder().addComponents(nationalityInput)
-        );
+        modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
 
         try {
           await interaction.showModal(modal);
@@ -494,11 +478,6 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isModalSubmit()) {
       if (interaction.customId === 'modal_aion2_verify') {
         const ign = interaction.fields.getTextInputValue('input_aion_ign').trim();
-        let nationalityInput = '';
-        try {
-          nationalityInput = interaction.fields.getTextInputValue('input_nationality')?.trim() || '';
-        } catch (_) {}
-
         const botMember = guild.members.me;
 
         if (!botMember.permissions.has(PermissionFlagsBits.ManageNicknames)) {
@@ -536,38 +515,11 @@ client.on('interactionCreate', async (interaction) => {
           if (fregion) rolesToAdd.push(fregion);
         }
 
-        // Check & match Nationality Role if entered
-        let assignedNationality = null;
-        if (nationalityInput) {
-          const matchedNat = matchNationality(nationalityInput, config.nationalityRoles);
-          if (matchedNat) {
-            const natRole = await resolveRole(guild, matchedNat.roleId, [matchedNat.name, `${matchedNat.emoji} ${matchedNat.name}`, matchedNat.code.toUpperCase()]);
-            if (natRole) {
-              rolesToAdd.push(natRole);
-              assignedNationality = { ...matchedNat, role: natRole };
-            } else {
-              assignedNationality = { ...matchedNat, role: null };
-            }
-          }
-        } else {
-          // If left blank, default to Global / Other if configured
-          const globalEntry = (config.nationalityRoles || []).find(n => n.code === 'global' || (n.emoji && n.emoji.includes('🌐')));
-          if (globalEntry) {
-            const natRole = await resolveRole(guild, globalEntry.roleId, [globalEntry.name, 'Global']);
-            if (natRole) {
-              rolesToAdd.push(natRole);
-              assignedNationality = { ...globalEntry, role: natRole };
-            } else {
-              assignedNationality = { ...globalEntry, role: null };
-            }
-          }
-        }
-
         // Add roles
         const addedNames = [];
         for (const role of rolesToAdd) {
           if (botMember.roles.highest.position > role.position) {
-            await member.roles.add(role, 'AION 2 IGN registered & nationality assigned');
+            await member.roles.add(role, 'AION 2 IGN registered');
             addedNames.push(`@${role.name}`);
           }
         }
@@ -602,11 +554,6 @@ client.on('interactionCreate', async (interaction) => {
           .replace(/{server}/g, serverName)
           .replace(/{ign}/g, ign);
 
-        let natDetailsText = '';
-        if (assignedNationality) {
-          natDetailsText = `\n• **Nationality:** ${assignedNationality.emoji} **${assignedNationality.name}**` + (assignedNationality.role ? ` (Role: **@${assignedNationality.role.name}**)` : '');
-        }
-
         const welcomeDescription = (config.welcomeContent || (
           'Your AION 2 IGN has been successfully registered as **{ign}**!\n\n' +
           '• **Roles Granted:** **{roles}**\n' +
@@ -616,10 +563,7 @@ client.on('interactionCreate', async (interaction) => {
           .replace(/{server}/g, serverName)
           .replace(/{ign}/g, ign)
           .replace(/{roles}/g, rolesText)
-          .replace(/{nationalityRole}/g, assignedNationality?.role ? `@${assignedNationality.role.name}` : (assignedNationality?.name || 'Regional Member'))
-          .replace(/{flag}/g, assignedNationality?.emoji || '🌐')
-          .replace(/{nationality}/g, assignedNationality?.name || 'International')
-          .replace(/{user}/g, `<@${member.id}>`) + (natDetailsText && !config.welcomeContent?.includes('{nationality') ? natDetailsText : '');
+          .replace(/{user}/g, `<@${member.id}>`);
 
         const welcomeFooterText = (config.welcomeFooter || '{server} • AION 2 Elyos Legion')
           .replace(/{server}/g, serverName)
@@ -634,12 +578,8 @@ client.on('interactionCreate', async (interaction) => {
           .setFooter({ text: welcomeFooterText, iconURL: serverIcon })
           .setTimestamp();
 
-        // Optional quick nationality flag buttons on the ephemeral response
-        const natButtonRows = createNationalityButtonRows((config.nationalityRoles || []).slice(0, 8));
-
         await interaction.reply({
           embeds: [welcomeEmbed],
-          components: natButtonRows.slice(0, 2),
           ephemeral: true
         });
 
@@ -650,14 +590,12 @@ client.on('interactionCreate', async (interaction) => {
           try {
             const welcomeChan = await resolveChannel(guild, config.welcomeAnnouncementChannelId, /welcome|announcement|general/i);
             if (welcomeChan && welcomeChan.isTextBased()) {
-              const defaultPublicTemplate = "👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!";
+              const defaultPublicTemplate = "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
               const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
               const publicMessage = rawPublicTemplate
                 .replace(/{user}/g, `<@${member.id}>`)
                 .replace(/{ign}/g, ign)
                 .replace(/{server}/g, guild.name)
-                .replace(/{flag}/g, assignedNationality?.emoji || '🌐')
-                .replace(/{nationality}/g, assignedNationality?.name || 'International')
                 .replace(/{roles}/g, rolesText);
 
               const publicEmbed = new EmbedBuilder()
@@ -682,6 +620,7 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
     }
+
 
     // 3. SLASH COMMANDS
     if (interaction.isChatInputCommand()) {
@@ -957,7 +896,7 @@ app.post('/api/test-welcome', async (req, res) => {
     }
     const serverName = guild?.name || 'AION 2 Server';
     const serverIcon = guild?.iconURL({ dynamic: true, size: 256 }) || undefined;
-    const template = message || config.welcomeAnnouncementMessage || "👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!";
+    const template = message || config.welcomeAnnouncementMessage || "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
     
     const formatted = template
       .replace(/{user}/g, client.user ? `<@${client.user.id}>` : '@NewPlayer')

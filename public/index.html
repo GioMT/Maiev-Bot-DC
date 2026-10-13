@@ -362,7 +362,7 @@
                 <span class="stage-num">4</span>
                 <div>
                   <h3 class="stage-title">🌍 Nationality Flag Roles Manager</h3>
-                  <p class="stage-desc">Configure only the flags you support and link each one to its server role. Members select their flag in the modal or via flag reaction buttons to unlock their regional channel.</p>
+                  <p class="stage-desc">Configure only the flags you support and link each one to its server role. You can post the interactive flag reaction embed into your dedicated nationality channel so members can react to an emoji to unlock their regional channel.</p>
                 </div>
               </div>
 
@@ -536,8 +536,8 @@
                         To proceed, please register your <strong>AION 2 In-Game Name (IGN)</strong>:<br><br>
                         <strong>How it works:</strong><br>
                         1. Click the <strong>"🎮 Set AION 2 IGN & Verify"</strong> button below.<br>
-                        2. Enter your exact in-game character name and choose your flag.<br>
-                        3. Maiev will update your nickname, assign your nationality role, grant <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Onboarded]</strong>!
+                        2. Enter your exact in-game character name.<br>
+                        3. Maiev will update your nickname, grant <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Onboarded]</strong>!
                       </div>
                       <div class="embed-footer" id="sim-verify-footer">Maiev Verification System • AION 2</div>
                     </div>
@@ -627,7 +627,7 @@
   <div class="modal-backdrop hidden" id="sim-modal-backdrop">
     <div class="discord-modal">
       <div class="modal-header">
-        <h3 class="modal-title">AION 2 IGN & Nationality</h3>
+        <h3 class="modal-title">AION 2 IGN Verification</h3>
         <button class="modal-close" id="sim-modal-close">&times;</button>
       </div>
       <div class="modal-body">
@@ -637,17 +637,6 @@
           </label>
           <input type="text" id="sim-modal-ign-input" class="modal-input" placeholder="e.g. DaevaLegend, ShadowWing, etc." maxlength="32" value="DaevaLegend">
           <span class="modal-hint">Max 32 characters. This will become your server nickname.</span>
-        </div>
-
-        <div class="modal-form-group mt-3">
-          <label class="modal-label" for="sim-modal-nat-input">
-            NATIONALITY FLAG (E.G. 🇵🇭, 🇯🇵 OR 🌐 GLOBAL)
-          </label>
-          <input type="text" id="sim-modal-nat-input" class="modal-input" placeholder="e.g. 🇵🇭, 🇯🇵, or 🌐 Global (if not listed)" maxlength="32" value="🇵🇭">
-          <span class="modal-hint">Select from the configured server flags below or type 🌐 Global if your flag is not listed:</span>
-          <div id="sim-flag-pills-container" class="flag-picker-pills mt-2">
-            <!-- Dynamic flag pills generated from configured nationalityRoles -->
-          </div>
         </div>
       </div>
       <div class="modal-footer">
