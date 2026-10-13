@@ -1,11 +1,16 @@
 {
-  "onboardedRoleId": "",
-  "ignRolesToAdd": [],
-  "ignRolesToRemove": [],
-  "rulesChannelId": "",
-  "verifyChannelId": "",
+  "onboardedRoleId": "1559242680561569842",
+  "ignRolesToAdd": [
+    "1559238369089683567",
+    "1559207325011677186"
+  ],
+  "ignRolesToRemove": [
+    "1559242680561569842"
+  ],
+  "rulesChannelId": "1559205186088472596",
+  "verifyChannelId": "1559238059801706648",
   "rulesTitle": "📜 Server Rules & Guidelines",
-  "rulesContent": "Welcome to the community! Before proceeding, please review our core server rules:\n\n**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.\n**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.\n**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.\n**4. Listen to Staff** — Follow moderator instructions at all times.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!",
+  "rulesContent": "Welcome to the community! Before proceeding, please review our core server rules:\n\n**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.\n**2. No Discrimination or Hate Speech** — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.\n**3. No Threats or Intimidation** — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.\n**4. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.\n**5. No Illegal Content** — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.\n**6. No Advertisements or Spam** — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.\n**7. Server Language Policy** — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.\n**8. No Political or Religious Debates** — Political and religious discussions or arguments are prohibited on this server.\n**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.\n**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!",
   "rulesFooter": "Acknowledge the rules below to proceed",
   "verifyTitle": "🛡️ Maiev — AION 2 IGN Verification",
   "verifyContent": "Welcome to **{server}**!\n\nTo proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n**How it works:**\n1. Click the **\"🎮 Set AION 2 IGN & Verify\"** button below.\n2. Enter your exact in-game character name.\n3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!",
@@ -16,13 +21,86 @@
   "welcomeAnnouncementChannelId": "",
   "enableWelcomeAnnouncement": true,
   "welcomeAnnouncementMessage": "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!",
-  "nationalityTitle": "🌍 Choose Your Nationality",
+  "nationalityChannelId": "1559205186088472596",
+  "nationalityTitle": "🌍 Choose Your Region",
   "nationalityContent": "",
   "nationalityFooter": "React with a flag emoji below to toggle your role",
-  "nationalityMessageIds": [],
+  "nationalityMessageIds": [
+    {
+      "messageId": "1559545015619817524",
+      "channelId": "1559205186088472596"
+    },
+    {
+      "messageId": "1559556029979697197",
+      "channelId": "1559205186088472596"
+    }
+  ],
   "nationalityRoles": [
-    { "code": "ph", "name": "Philippines", "emoji": "🇵🇭", "roleId": "" },
-    { "code": "jp", "name": "Japan", "emoji": "🇯🇵", "roleId": "" },
-    { "code": "global", "name": "Global / Other", "emoji": "🌐", "roleId": "" }
+    {
+      "code": "ph",
+      "name": "Philippines",
+      "emoji": "🇵🇭",
+      "roleId": "1559232244088836176"
+    },
+    {
+      "code": "kr",
+      "name": "South Korea",
+      "emoji": "🇰🇷",
+      "roleId": "1559232319037116546"
+    },
+    {
+      "code": "jp",
+      "name": "Japan",
+      "emoji": "🇯🇵",
+      "roleId": "1559232359264555078"
+    },
+    {
+      "code": "id",
+      "name": "Indonesia",
+      "emoji": "🇮🇩",
+      "roleId": "1559232387249082379"
+    },
+    {
+      "code": "th",
+      "name": "Thailand",
+      "emoji": "🇹🇭",
+      "roleId": "1559232416667668600"
+    },
+    {
+      "code": "tw",
+      "name": "Taiwan",
+      "emoji": "🇹🇼",
+      "roleId": "1559232441137500161"
+    },
+    {
+      "code": "cn",
+      "name": "China",
+      "emoji": "🇨🇳",
+      "roleId": "1559232615847035010"
+    },
+    {
+      "code": "au",
+      "name": "Australia",
+      "emoji": "🇦🇺",
+      "roleId": "1559232573236846722"
+    },
+    {
+      "code": "my",
+      "name": "Malaysia",
+      "emoji": "🇲🇾",
+      "roleId": "1559232647916560476"
+    },
+    {
+      "code": "vn",
+      "name": "Vietnam",
+      "emoji": "🇻🇳",
+      "roleId": "1559232859401748663"
+    },
+    {
+      "code": "intl",
+      "name": "International",
+      "emoji": "🌏",
+      "roleId": "1559235056235585566"
+    }
   ]
 }

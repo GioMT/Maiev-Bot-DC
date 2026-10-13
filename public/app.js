@@ -7,10 +7,16 @@ const DEFAULT_RULES_TEMPLATE = {
   title: '📜 Server Rules & Guidelines',
   content: `Welcome to the community! Before proceeding, please review our core server rules:
 
-**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.
-**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.
-**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.
-**4. Listen to Staff** — Follow moderator instructions at all times.
+**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.
+**2. No Discrimination or Hate Speech** — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.
+**3. No Threats or Intimidation** — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.
+**4. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.
+**5. No Illegal Content** — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.
+**6. No Advertisements or Spam** — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.
+**7. Server Language Policy** — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.
+**8. No Political or Religious Debates** — Political and religious discussions or arguments are prohibited on this server.
+**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.
+**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 **Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!`,
@@ -54,8 +60,13 @@ let currentNationalityRoles = [];
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
+  renderRulesEditor({});
+  renderVerifyEditor({});
+  renderWelcomeEditor({});
+  renderWelcomeAnnouncementEditor({});
   fetchServerState();
   setupEventListeners();
+  setupRealtimeSync();
 });
 
 // Fetch complete bot & server status from API
@@ -179,11 +190,15 @@ function renderChannelDropdowns(data) {
   if (welcomeSelect) welcomeSelect.innerHTML = '<option value="">-- Select Welcome Channel --</option>';
   if (natRolesSelect) natRolesSelect.innerHTML = '<option value="">-- Select Channel --</option>';
 
+  const norm = (s) => (s || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
   channels.forEach(ch => {
+    const nName = norm(ch.name);
+
     const optRules = document.createElement('option');
     optRules.value = ch.id;
     optRules.textContent = `#${ch.name}`;
-    if (ch.id === currentConfig.rulesChannelId || (!currentConfig.rulesChannelId && /rules/i.test(ch.name))) {
+    if (ch.id === currentConfig.rulesChannelId || (!currentConfig.rulesChannelId && (nName.includes('rule') || nName.includes('intro')))) {
       optRules.selected = true;
     }
     rulesSelect.appendChild(optRules);
@@ -191,7 +206,7 @@ function renderChannelDropdowns(data) {
     const optVerify = document.createElement('option');
     optVerify.value = ch.id;
     optVerify.textContent = `#${ch.name}`;
-    if (ch.id === currentConfig.verifyChannelId || (!currentConfig.verifyChannelId && /verify/i.test(ch.name))) {
+    if (ch.id === currentConfig.verifyChannelId || (!currentConfig.verifyChannelId && (nName.includes('verify') || nName.includes('identit')))) {
       optVerify.selected = true;
     }
     verifySelect.appendChild(optVerify);
@@ -200,7 +215,7 @@ function renderChannelDropdowns(data) {
       const optWelcome = document.createElement('option');
       optWelcome.value = ch.id;
       optWelcome.textContent = `#${ch.name}`;
-      if (ch.id === currentConfig.welcomeAnnouncementChannelId || (!currentConfig.welcomeAnnouncementChannelId && /welcome/i.test(ch.name))) {
+      if (ch.id === currentConfig.welcomeAnnouncementChannelId || (!currentConfig.welcomeAnnouncementChannelId && (nName.includes('welcome') || nName.includes('announc')))) {
         optWelcome.selected = true;
       }
       welcomeSelect.appendChild(optWelcome);
@@ -210,7 +225,7 @@ function renderChannelDropdowns(data) {
       const optNat = document.createElement('option');
       optNat.value = ch.id;
       optNat.textContent = `#${ch.name}`;
-      if (/role/i.test(ch.name)) {
+      if (ch.id === currentConfig.nationalityChannelId || (!currentConfig.nationalityChannelId && (nName.includes('intro') || nName.includes('role') || nName.includes('region') || nName.includes('nation')))) {
         optNat.selected = true;
       }
       natRolesSelect.appendChild(optNat);
@@ -325,11 +340,7 @@ function updateWelcomeAnnouncementPreview() {
 function renderNationalityRolesManager(data) {
   currentNationalityRoles = Array.isArray(data.config?.nationalityRoles)
     ? [...data.config.nationalityRoles]
-    : [
-        { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
-        { code: 'jp', name: 'Japan', emoji: '🇯🇵', roleId: '' },
-        { code: 'global', name: 'Global / Other', emoji: '🌐', roleId: '' }
-      ];
+    : [{ code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' }];
 
   // Populate Add Custom Nationality role dropdown
   const newRoleSelect = document.getElementById('new-nat-role');
@@ -382,7 +393,7 @@ function updateNationalityPreview() {
     const list = (currentNationalityRoles || []).filter(n => n && n.name);
     const listStr = list.length > 0
       ? list.map(n => `${n.emoji} <strong>${n.name}</strong> (<code>${(n.code || '').toUpperCase()}</code>)`).join('<br>')
-      : '🇵🇭 <strong>Philippines</strong> (<code>PH</code>)<br>🇯🇵 <strong>Japan</strong> (<code>JP</code>)<br>🌐 <strong>Global / Other</strong> (<code>GLOBAL</code>)';
+      : '*(No nationality flags configured yet)*';
 
     descHtml = `Welcome to <strong>${serverName}</strong>!<br><br>` +
       `Please select your nationality flag below to unlock access to your regional legion channels:<br><br>` +
@@ -460,15 +471,17 @@ function renderNationalityRolesList() {
     const selectEl = card.querySelector('.nat-role-select');
     selectEl.addEventListener('change', (e) => {
       currentNationalityRoles[index].roleId = e.target.value;
+      autoSaveNationalityRoles();
     });
 
     // Delete button listener
     const delBtn = card.querySelector('.btn-del-nat');
     delBtn.addEventListener('click', () => {
-      currentNationalityRoles.splice(index, 1);
+      const removed = currentNationalityRoles.splice(index, 1);
       renderNationalityRolesList();
       renderSimFlagPills();
       updateNationalityPreview();
+      autoSaveNationalityRoles();
       showToast(`Removed flag ${item.emoji} ${item.name}`, 'success');
     });
 
@@ -526,6 +539,18 @@ function renderDiagnostics(data) {
   } else {
     rolesDiag.querySelector('.diag-status').textContent = '❌';
     rolesDiag.querySelector('.diag-subtext').textContent = 'Warning: Enable "Manage Roles" on Maiev in Server Settings > Roles.';
+  }
+
+  // Manage Messages
+  const msgsDiag = document.getElementById('diag-manage-messages');
+  if (msgsDiag) {
+    if (perms.hasManageMessages) {
+      msgsDiag.querySelector('.diag-status').textContent = '✅';
+      msgsDiag.querySelector('.diag-subtext').textContent = 'Healthy: Maiev can remove reactions when members leave.';
+    } else {
+      msgsDiag.querySelector('.diag-status').textContent = '⚠️';
+      msgsDiag.querySelector('.diag-subtext').textContent = 'Warning: Enable "Manage Messages" on Maiev to remove former members’ reactions.';
+    }
   }
 
   // Manage Nicknames
@@ -635,6 +660,34 @@ function setupEventListeners() {
     });
   }
 
+  // Helper: Extract 2-letter ISO country code from Unicode Regional Indicator flag emoji
+  function extractFlagIsoCode(emoji) {
+    if (!emoji) return null;
+    try {
+      const chars = [...emoji.trim()];
+      if (chars.length === 2) {
+        const cp1 = chars[0].codePointAt(0);
+        const cp2 = chars[1].codePointAt(0);
+        if (cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF && cp2 >= 0x1F1E6 && cp2 <= 0x1F1FF) {
+          return String.fromCharCode(cp1 - 0x1F1E6 + 65, cp2 - 0x1F1E6 + 65).toLowerCase();
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // Auto-detect short code when pasting or typing a flag emoji in Web UI
+  const emojiInputEl = document.getElementById('new-nat-emoji');
+  const codeInputEl = document.getElementById('new-nat-code');
+  if (emojiInputEl && codeInputEl) {
+    emojiInputEl.addEventListener('input', () => {
+      const iso = extractFlagIsoCode(emojiInputEl.value.trim());
+      if (iso && !codeInputEl.value.trim()) {
+        codeInputEl.value = iso;
+      }
+    });
+  }
+
   // Add Custom Nationality Button
   const btnAddNat = document.getElementById('btn-add-nationality');
   if (btnAddNat) {
@@ -646,7 +699,8 @@ function setupEventListeners() {
 
       const emoji = emojiInput.value.trim();
       const name = nameInput.value.trim();
-      const code = (codeInput.value.trim() || name.slice(0, 3)).toLowerCase();
+      const autoIso = extractFlagIsoCode(emoji);
+      const code = (codeInput.value.trim() || autoIso || (name.length <= 4 ? name : name.slice(0, 3))).toLowerCase();
       const roleId = roleSelect.value;
 
       if (!emoji || !name) {
@@ -663,7 +717,8 @@ function setupEventListeners() {
       renderNationalityRolesList();
       renderSimFlagPills();
       updateNationalityPreview();
-      showToast(`Added ${emoji} ${name}! Click Save Configuration to apply.`, 'success');
+      autoSaveNationalityRoles();
+      showToast(`Added ${emoji} ${name}! Saved and synced with Discord.`, 'success');
     });
   }
 
@@ -692,7 +747,7 @@ function setupEventListeners() {
     });
   }
 
-  // Post Nationality Roles Card Button
+  // Post Nationality Roles Card Button (sends fresh embed with all flag emoji reactions)
   const btnPostNatRoles = document.getElementById('btn-post-nationality-roles-channel');
   if (btnPostNatRoles) {
     btnPostNatRoles.addEventListener('click', async () => {
@@ -701,7 +756,103 @@ function setupEventListeners() {
         showToast('Please select a channel to post the nationality reaction embed.', 'error');
         return;
       }
-      postEmbed('/api/post-nationality-roles', channelId, 'Nationality reaction roles embed posted to Discord!');
+
+      btnPostNatRoles.disabled = true;
+      btnPostNatRoles.textContent = '🚀 Posting...';
+
+      try {
+        const res = await fetch('/api/post-nationality-roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelId,
+            nationalityRoles: currentNationalityRoles,
+            nationalityTitle: document.getElementById('nationality-title-input')?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.title,
+            nationalityContent: document.getElementById('nationality-content-input')?.value.trim() || '',
+            nationalityFooter: document.getElementById('nationality-footer-input')?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.footer,
+            forceNew: true
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`🎉 Nationality reaction roles embed posted to #${data.channelName || 'channel'} with all flag reactions!`, 'success');
+        } else {
+          showToast(`❌ Error: ${data.error || 'Failed to post embed'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+      } finally {
+        btnPostNatRoles.disabled = false;
+        btnPostNatRoles.textContent = '🚀 Post Flag Roles Embed';
+      }
+    });
+  }
+
+  // Update Active Nationality Roles Card in-place (without sending duplicate messages)
+  const btnUpdateNatRoles = document.getElementById('btn-update-nationality-roles-channel');
+  if (btnUpdateNatRoles) {
+    btnUpdateNatRoles.addEventListener('click', async () => {
+      const channelId = document.getElementById('select-nationality-roles-channel').value;
+      if (!channelId) {
+        showToast('Please select a channel to update the nationality reaction embed.', 'error');
+        return;
+      }
+
+      btnUpdateNatRoles.disabled = true;
+      btnUpdateNatRoles.textContent = '🔄 Updating...';
+
+      try {
+        const res = await fetch('/api/post-nationality-roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelId,
+            nationalityRoles: currentNationalityRoles,
+            nationalityTitle: document.getElementById('nationality-title-input')?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.title,
+            nationalityContent: document.getElementById('nationality-content-input')?.value.trim() || '',
+            nationalityFooter: document.getElementById('nationality-footer-input')?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.footer,
+            forceNew: false
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.updated ? '🔄 Active nationality card updated in-place with all flag reactions!' : `✅ Nationality embed posted to #${data.channelName || 'channel'} with all flag reactions!`, 'success');
+        } else {
+          showToast(`❌ Error: ${data.error || 'Failed to update embed'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+      } finally {
+        btnUpdateNatRoles.disabled = false;
+        btnUpdateNatRoles.textContent = '🔄 Update Active Card';
+      }
+    });
+  }
+
+  // Clean Ghost Reactions Button
+  const btnCleanReactions = document.getElementById('btn-clean-ghost-reactions');
+  if (btnCleanReactions) {
+    btnCleanReactions.addEventListener('click', async () => {
+      btnCleanReactions.disabled = true;
+      btnCleanReactions.textContent = '⏳ Cleaning...';
+      try {
+        const res = await fetch('/api/clean-reactions', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (data.totalPurged === 0) {
+            showToast(`✨ All clean! Inspected ${data.messagesInspected} message(s) and found 0 ghost reactions.`, 'success');
+          } else {
+            showToast(`🧹 Purged ${data.totalPurged} ghost reaction(s) from ${data.purgedMembers?.length || 0} former member(s)!`, 'success');
+          }
+        } else {
+          showToast(`⚠️ ${data.error || 'Failed to clean reactions'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+      } finally {
+        btnCleanReactions.disabled = false;
+        btnCleanReactions.textContent = '🧹 Clean Ghost Reactions';
+      }
     });
   }
 
@@ -756,6 +907,7 @@ function setupEventListeners() {
     const enableWelcomeAnnouncement = document.getElementById('check-enable-welcome-announcement')?.checked !== false;
     const welcomeAnnouncementMessage = document.getElementById('welcome-announcement-input')?.value.trim() || '';
 
+    const nationalityChannelId = document.getElementById('select-nationality-roles-channel')?.value || '';
     const nationalityTitle = natTitleInput?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.title;
     const nationalityContent = natContentInput?.value.trim() || '';
     const nationalityFooter = natFooterInput?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.footer;
@@ -782,6 +934,7 @@ function setupEventListeners() {
           welcomeAnnouncementChannelId,
           enableWelcomeAnnouncement,
           welcomeAnnouncementMessage,
+          nationalityChannelId,
           nationalityTitle,
           nationalityContent,
           nationalityFooter,
@@ -980,5 +1133,69 @@ function updateFunnelLabels() {
   const onboardedText = document.getElementById('select-onboarded-role').selectedOptions[0]?.text;
   if (onboardedText && onboardedText !== '-- Select Onboarded Role --') {
     document.getElementById('funnel-onboarded-label').textContent = onboardedText;
+  }
+}
+
+// Auto-save nationality roles to server immediately
+async function autoSaveNationalityRoles() {
+  try {
+    await fetch('/api/nationality-roles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nationalityRoles: currentNationalityRoles })
+    });
+  } catch (err) {
+    console.error('Failed to auto-save nationality roles:', err);
+  }
+}
+
+// Setup real-time bidirectional synchronization between Discord & Web UI
+function setupRealtimeSync() {
+  // 1. Server-Sent Events (SSE) for instantaneous real-time sync (< 50ms)
+  if (typeof EventSource !== 'undefined') {
+    const eventSource = new EventSource('/api/events');
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'config_updated' && data.config) {
+          applyRemoteNationalitySync(data.config);
+        }
+      } catch (_) {}
+    };
+  }
+
+  // 2. Periodic polling backup (every 4 seconds)
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.config) {
+          applyRemoteNationalitySync(data.config);
+        }
+      }
+    } catch (_) {}
+  }, 4000);
+}
+
+// Apply remote config updates to Web UI without interrupting user typing
+function applyRemoteNationalitySync(remoteConfig) {
+  if (!remoteConfig || !Array.isArray(remoteConfig.nationalityRoles)) return;
+
+  // If user is currently focused/typing in the "Add Flag" inputs, don't interrupt them
+  const activeEl = document.activeElement;
+  if (activeEl && ['new-nat-emoji', 'new-nat-name', 'new-nat-code', 'new-nat-role'].includes(activeEl.id)) {
+    return;
+  }
+
+  const currentJson = JSON.stringify(currentNationalityRoles || []);
+  const remoteJson = JSON.stringify(remoteConfig.nationalityRoles || []);
+
+  if (currentJson !== remoteJson) {
+    currentNationalityRoles = [...remoteConfig.nationalityRoles];
+    renderNationalityRolesList();
+    renderSimFlagPills();
+    updateNationalityPreview();
+    showToast('🔄 Real-time sync: Nationality flags updated from Discord!', 'info');
   }
 }

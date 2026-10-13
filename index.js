@@ -53,10 +53,16 @@ let config = {
   rulesTitle: process.env.RULES_TITLE || '📜 Server Rules & Guidelines',
   rulesContent: process.env.RULES_CONTENT || (
     'Welcome to the community! Before proceeding, please review our core server rules:\n\n' +
-    '**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.\n' +
-    '**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.\n' +
-    '**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.\n' +
-    '**4. Listen to Staff** — Follow moderator instructions at all times.\n\n' +
+    '**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.\n' +
+    '**2. No Discrimination or Hate Speech** — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.\n' +
+    '**3. No Threats or Intimidation** — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.\n' +
+    '**4. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.\n' +
+    '**5. No Illegal Content** — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.\n' +
+    '**6. No Advertisements or Spam** — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.\n' +
+    '**7. Server Language Policy** — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.\n' +
+    '**8. No Political or Religious Debates** — Political and religious discussions or arguments are prohibited on this server.\n' +
+    '**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.\n' +
+    '**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.\n\n' +
     '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
     '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
   ),
@@ -82,14 +88,13 @@ let config = {
   welcomeAnnouncementChannelId: '',
   enableWelcomeAnnouncement: true,
   welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!',
+  nationalityChannelId: process.env.NATIONALITY_CHANNEL_ID || '',
   nationalityTitle: '🌍 Choose Your Nationality',
   nationalityContent: '',
   nationalityFooter: 'React with a flag emoji below to toggle your role',
   nationalityMessageIds: [],
   nationalityRoles: [
-    { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
-    { code: 'jp', name: 'Japan', emoji: '🇯🇵', roleId: '' },
-    { code: 'global', name: 'Global / Other', emoji: '🌐', roleId: '' }
+    { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' }
   ]
 };
 
@@ -103,6 +108,35 @@ try {
   console.warn('⚠️ Could not read config.json, using defaults:', err.message);
 }
 
+// Active SSE clients for real-time Web UI synchronization
+const sseClients = new Set();
+
+function broadcastConfigUpdate() {
+  const payload = JSON.stringify({
+    type: 'config_updated',
+    config,
+    timestamp: Date.now()
+  });
+  for (const clientRes of sseClients) {
+    try {
+      clientRes.write(`data: ${payload}\n\n`);
+    } catch (_) {
+      sseClients.delete(clientRes);
+    }
+  }
+}
+
+// Keep-alive heartbeat every 25s
+setInterval(() => {
+  for (const clientRes of sseClients) {
+    try {
+      clientRes.write(': keepalive\n\n');
+    } catch (_) {
+      sseClients.delete(clientRes);
+    }
+  }
+}, 25000);
+
 // Save config helper
 function saveConfig(newConfig) {
   config = { ...config, ...newConfig };
@@ -111,6 +145,107 @@ function saveConfig(newConfig) {
   } catch (err) {
     console.error('⚠️ Failed to save config.json:', err.message);
   }
+  broadcastConfigUpdate();
+}
+
+// ──────────────────────────────────────────
+// PERSISTENT REACTION TRACKING (FOR LEAVE PURGE)
+// ──────────────────────────────────────────
+const REACTIONS_FILE = path.join(__dirname, 'reactions-tracker.json');
+let trackedReactions = {}; // { [userId]: [ { guildId, channelId, messageId, emoji } ] }
+
+function loadTrackedReactions() {
+  try {
+    if (fs.existsSync(REACTIONS_FILE)) {
+      const raw = fs.readFileSync(REACTIONS_FILE, 'utf-8');
+      trackedReactions = JSON.parse(raw);
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not read reactions-tracker.json, initializing empty:', err.message);
+    trackedReactions = {};
+  }
+}
+loadTrackedReactions();
+
+let saveReactionsTimeout = null;
+function saveTrackedReactionsDebounced() {
+  if (saveReactionsTimeout) clearTimeout(saveReactionsTimeout);
+  saveReactionsTimeout = setTimeout(() => {
+    try {
+      fs.writeFileSync(REACTIONS_FILE, JSON.stringify(trackedReactions, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('⚠️ Failed to save reactions-tracker.json:', err.message);
+    }
+  }, 1000);
+}
+
+function trackUserReaction(guildId, userId, channelId, messageId, emojiIdentifier) {
+  if (!userId || !messageId) return;
+  if (!trackedReactions[userId]) trackedReactions[userId] = [];
+  const exists = trackedReactions[userId].some(
+    r => r.messageId === messageId && r.emoji === emojiIdentifier
+  );
+  if (!exists) {
+    trackedReactions[userId].push({ guildId, channelId, messageId, emoji: emojiIdentifier });
+    saveTrackedReactionsDebounced();
+  }
+}
+
+function untrackUserReaction(guildId, userId, channelId, messageId, emojiIdentifier) {
+  if (!userId || !trackedReactions[userId]) return;
+  trackedReactions[userId] = trackedReactions[userId].filter(
+    r => !(r.messageId === messageId && r.emoji === emojiIdentifier)
+  );
+  if (trackedReactions[userId].length === 0) {
+    delete trackedReactions[userId];
+  }
+  saveTrackedReactionsDebounced();
+}
+
+function getUserTrackedReactions(userId) {
+  return trackedReactions[userId] || [];
+}
+
+function clearUserTrackedReactions(userId) {
+  if (trackedReactions[userId]) {
+    delete trackedReactions[userId];
+    saveTrackedReactionsDebounced();
+  }
+}
+
+// Helper: Resolve emoji string, custom <:name:id>, or shortcode (:flag_ph:, :earth_asia:) to a reactable Discord emoji identifier
+function resolveEmojiToReactable(emojiStr) {
+  if (!emojiStr) return null;
+  const s = emojiStr.trim();
+
+  // Custom Discord emoji: <:name:12345> or <a:name:12345> -> extract ID
+  const customMatch = s.match(/:(\d+)>$/);
+  if (customMatch) return customMatch[1];
+
+  // Raw numeric custom emoji ID
+  if (/^\d+$/.test(s)) return s;
+
+  // Flag shortcode: :flag_xx: (e.g. :flag_ph:, :flag_kr:, :flag_jp:, etc.)
+  const flagMatch = s.match(/^:flag_([a-z]{2}):$/i);
+  if (flagMatch) {
+    const code = flagMatch[1].toUpperCase();
+    const c1 = 0x1F1E6 + code.charCodeAt(0) - 65;
+    const c2 = 0x1F1E6 + code.charCodeAt(1) - 65;
+    return String.fromCodePoint(c1, c2);
+  }
+
+  // Common named shortcodes
+  const shortcodeMap = {
+    ':earth_asia:': '🌏',
+    ':earth_americas:': '🌎',
+    ':earth_africa:': '🌍',
+    ':globe_with_meridians:': '🌐'
+  };
+  if (shortcodeMap[s.toLowerCase()]) {
+    return shortcodeMap[s.toLowerCase()];
+  }
+
+  return s;
 }
 
 // Helper: Match emoji (Unicode or Custom) to a configured nationality role
@@ -122,37 +257,99 @@ function findNationalityByEmoji(emoji, nationalityRoles = []) {
 
   return nationalityRoles.find(n => {
     if (!n) return false;
-    // 1. Exact emoji string match (e.g. "🇵🇭" === "🇵🇭")
+    const nEmojiResolved = resolveEmojiToReactable(n.emoji) || n.emoji;
+
+    // 1. Exact emoji string match
+    if (nEmojiResolved && (nEmojiResolved === emojiName || nEmojiResolved === emojiString)) return true;
     if (n.emoji && (n.emoji === emojiName || n.emoji === emojiString)) return true;
 
     // 2. Custom Discord emoji ID match <:name:id>
     if (emojiId && n.emoji && n.emoji.includes(emojiId)) return true;
 
-    // 3. Normalized Unicode match (flags composed of regional indicators)
-    if (n.emoji && emojiName && (n.emoji.includes(emojiName) || emojiName.includes(n.emoji))) return true;
+    // 3. Normalized Unicode match
+    if (nEmojiResolved && emojiName && (nEmojiResolved.includes(emojiName) || emojiName.includes(nEmojiResolved))) return true;
 
-    // 4. Code match (e.g. emoji "ph" matches code "ph")
-    if (emojiName && n.code && emojiName.toLowerCase() === n.code.toLowerCase()) return true;
+    // 4. Code match (e.g. emoji "ph" matches code "ph", or flag_ph matches "ph")
+    const cleanEmojiName = emojiName.toLowerCase().replace(/^flag_/, '').replace(/:/g, '');
+    if (cleanEmojiName && n.code && cleanEmojiName === n.code.toLowerCase()) return true;
 
-    // 5. Country name match (e.g. emoji "philippines" matches name "philippines")
+    // 5. Country name match
     if (emojiName && n.name && emojiName.toLowerCase() === n.name.toLowerCase()) return true;
 
     return false;
   }) || null;
 }
 
+// Helper: Extract 2-letter ISO country code from Unicode Regional Indicator flag emoji
+function extractFlagIsoCode(emoji) {
+  if (!emoji) return null;
+  try {
+    const chars = [...emoji.trim()];
+    if (chars.length === 2) {
+      const cp1 = chars[0].codePointAt(0);
+      const cp2 = chars[1].codePointAt(0);
+      if (cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF && cp2 >= 0x1F1E6 && cp2 <= 0x1F1FF) {
+        return String.fromCharCode(cp1 - 0x1F1E6 + 65, cp2 - 0x1F1E6 + 65).toLowerCase();
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
 // Helper: Safely react to a message with Unicode or Custom emoji
 async function safelyReact(message, emojiStr) {
   if (!emojiStr || !message) return;
+  const reactable = resolveEmojiToReactable(emojiStr);
+  if (!reactable) return;
   try {
-    const customMatch = emojiStr.match(/:(\d+)>$/);
-    if (customMatch) {
-      await message.react(customMatch[1]);
-    } else {
-      await message.react(emojiStr.trim());
-    }
+    const alreadyReacted = message.reactions?.cache?.some(r => {
+      if (r.me) {
+        if (r.emoji.id && r.emoji.id === reactable) return true;
+        if (r.emoji.name && (r.emoji.name === reactable || r.emoji.name === emojiStr.trim())) return true;
+      }
+      return false;
+    });
+    if (alreadyReacted) return;
+
+    await message.react(reactable);
   } catch (err) {
     console.warn(`[Reaction Roles] Could not auto-react with ${emojiStr}:`, err.message);
+  }
+}
+
+// Helper: React to a nationality message with all configured flag emojis in order
+async function reactToNationalityCard(message) {
+  if (!message) return;
+  const emojisToReact = [];
+
+  // 1. All configured nationality roles (in configured list order)
+  for (const n of (config.nationalityRoles || [])) {
+    if (n && n.emoji) {
+      const r = resolveEmojiToReactable(n.emoji);
+      if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
+    }
+  }
+
+  // 2. Scan embed description only (not title) for any additional flag emojis or shortcodes
+  if (Array.isArray(message.embeds)) {
+    for (const emb of message.embeds) {
+      const text = emb.description || '';
+      // Flag shortcodes
+      const scMatches = text.match(/:(flag_[a-z]{2}|earth_asia|earth_americas|earth_africa|globe_with_meridians):/gi) || [];
+      for (const sc of scMatches) {
+        const r = resolveEmojiToReactable(sc);
+        if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
+      }
+      // Unicode regional indicator flags
+      const flagMatches = text.match(/\p{Regional_Indicator}{2}/gu) || [];
+      for (const fl of flagMatches) {
+        if (!emojisToReact.includes(fl)) emojisToReact.push(fl);
+      }
+    }
+  }
+
+  for (const em of emojisToReact) {
+    await safelyReact(message, em);
   }
 }
 
@@ -216,7 +413,7 @@ function createNationalityMessage(guild) {
   const activeNats = (config.nationalityRoles || []).filter(n => n && n.name);
   const formattedList = activeNats.length > 0
     ? activeNats.map(n => `${n.emoji} **${n.name}** (\`${n.code.toUpperCase()}\`)`).join('\n')
-    : '🇵🇭 **Philippines** (`PH`)\n🇯🇵 **Japan** (`JP`)\n🌐 **Global / Other** (`GLOBAL`)';
+    : '*(No nationality flags configured yet)*';
 
   const title = config.nationalityTitle || '🌍 Choose Your Nationality';
   const rawDesc = config.nationalityContent || (
@@ -263,26 +460,294 @@ async function resolveRole(guild, roleId, fallbackNames = []) {
     const role = await guild.roles.fetch(roleId).catch(() => null);
     if (role) return role;
   }
-  return guild.roles.cache.find(r => {
+  // Ensure all roles are fetched so cache is fully populated
+  const roles = await guild.roles.fetch().catch(() => guild.roles.cache);
+  return roles.find(r => {
     const cleanRoleName = r.name.replace(/[[\]]/g, '').trim().toLowerCase();
     return fallbackNames.some(name => {
       const cleanTarget = name.replace(/[[\]]/g, '').trim().toLowerCase();
-      return cleanRoleName === cleanTarget || cleanRoleName.includes(cleanTarget);
+      return cleanRoleName === cleanTarget || cleanRoleName.includes(cleanTarget) || cleanTarget.includes(cleanRoleName);
     });
   }) || null;
 }
 
 // Helper: Resolve channel by ID or Name
-async function resolveChannel(guild, channelId, fallbackPattern = /verify/i) {
+async function resolveChannel(guild, channelId, fallbackPattern = /verif/i) {
   if (channelId) {
     const ch = await guild.channels.fetch(channelId).catch(() => null);
     if (ch && ch.isTextBased()) return ch;
   }
-  return guild.channels.cache.find(ch => 
-    ch.type === ChannelType.GuildText && 
-    fallbackPattern.test(ch.name)
-  ) || null;
+  const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+  return channels.find(ch => {
+    if (!ch || !ch.isTextBased()) return false;
+    const n = (ch.name || '').normalize('NFKD');
+    return fallbackPattern.test(ch.name) || fallbackPattern.test(n);
+  }) || null;
 }
+
+// Helper: Check if member already completed verification / has access roles beyond onboarding
+async function hasCompletedVerification(guild, member) {
+  if (!member || !member.roles) return false;
+
+  // 1. Check configured roles to add on IGN verification (e.g. [Unverified], [Elyos Fregion])
+  if (Array.isArray(config.ignRolesToAdd) && config.ignRolesToAdd.length > 0) {
+    for (const roleId of config.ignRolesToAdd) {
+      if (roleId && member.roles.cache.has(roleId)) return true;
+    }
+  }
+
+  // 2. Check role names that indicate completed IGN verification or staff access
+  const accessKeywords = ['unverified', 'verified', 'elyos fregion', 'legion leader', 'moderator'];
+  const hasAccessName = member.roles.cache.some(r => {
+    const cleanName = r.name.replace(/[[\]]/g, '').trim().toLowerCase();
+    return accessKeywords.some(keyword => cleanName === keyword || cleanName.includes(keyword));
+  });
+  if (hasAccessName) return true;
+
+  return false;
+}
+
+// Helper: Find a message across channels in the guild
+async function findMessageAcrossGuild(guild, messageId, hintChannelId = null) {
+  if (hintChannelId) {
+    const channel = await guild.channels.fetch(hintChannelId).catch(() => null);
+    if (channel && channel.isTextBased()) {
+      const msg = await channel.messages.fetch(messageId).catch(() => null);
+      if (msg) return msg;
+    }
+  }
+
+  const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+  for (const channel of channels.values()) {
+    if (!channel || !channel.isTextBased()) continue;
+    const perms = channel.permissionsFor(guild.members.me);
+    if (!perms || !perms.has(PermissionFlagsBits.ViewChannel)) continue;
+    const msg = await channel.messages.fetch(messageId).catch(() => null);
+    if (msg) return msg;
+  }
+  return null;
+}
+
+// Core: Remove all reactions of a user when they leave the server
+async function cleanupUserReactionsOnLeave(guild, userId, userTag = '') {
+  let removedCount = 0;
+  const scannedMessageIds = new Set();
+  const botMember = guild.members.me;
+
+  const hasManageMessages = botMember.permissions.has(PermissionFlagsBits.ManageMessages);
+  if (!hasManageMessages) {
+    console.warn(`[Reaction Cleanup] ⚠️ Bot lacks 'Manage Messages' permission in server "${guild.name}". It must have 'Manage Messages' to delete other users' reactions.`);
+  }
+
+  const candidateMessages = [];
+
+  // 1. Check messages from persistent reaction tracker
+  const tracked = getUserTrackedReactions(userId);
+  for (const item of tracked) {
+    if (item.guildId && item.guildId !== guild.id) continue;
+    if (scannedMessageIds.has(item.messageId)) continue;
+    scannedMessageIds.add(item.messageId);
+
+    try {
+      const channel = await guild.channels.fetch(item.channelId).catch(() => null);
+      if (channel && channel.isTextBased()) {
+        const msg = await channel.messages.fetch(item.messageId).catch(() => null);
+        if (msg) candidateMessages.push(msg);
+      }
+    } catch (_) {}
+  }
+
+  // 2. Check tracked nationality messages from config
+  if (Array.isArray(config.nationalityMessageIds)) {
+    for (const item of config.nationalityMessageIds) {
+      const msgId = typeof item === 'object' && item?.messageId ? item.messageId : item;
+      const chId = typeof item === 'object' && item?.channelId ? item.channelId : null;
+      if (scannedMessageIds.has(msgId)) continue;
+      scannedMessageIds.add(msgId);
+      const msg = await findMessageAcrossGuild(guild, msgId, chId);
+      if (msg) candidateMessages.push(msg);
+    }
+  }
+
+  // 3. Check configured channels (rules, verify, welcome)
+  const channelIdsToCheck = [
+    config.rulesChannelId,
+    config.verifyChannelId,
+    config.welcomeAnnouncementChannelId
+  ].filter(Boolean);
+
+  for (const chId of channelIdsToCheck) {
+    try {
+      const ch = await guild.channels.fetch(chId).catch(() => null);
+      if (ch && ch.isTextBased()) {
+        const recent = await ch.messages.fetch({ limit: 15 }).catch(() => null);
+        if (recent) {
+          for (const msg of recent.values()) {
+            if (!scannedMessageIds.has(msg.id) && msg.reactions.cache.size > 0) {
+              scannedMessageIds.add(msg.id);
+              candidateMessages.push(msg);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 4. Scan text channels for nationality reaction cards created by the bot
+  const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+  for (const channel of channels.values()) {
+    if (!channel || !channel.isTextBased()) continue;
+    const perms = channel.permissionsFor(botMember);
+    if (!perms || !perms.has(PermissionFlagsBits.ViewChannel)) continue;
+    try {
+      const recent = await channel.messages.fetch({ limit: 10 }).catch(() => null);
+      if (recent) {
+        for (const msg of recent.values()) {
+          const isRoleCard = msg.author?.id === client.user?.id && (
+            msg.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+            config.nationalityMessageIds?.some(id => (typeof id === 'object' ? id.messageId : id) === msg.id)
+          );
+          if (isRoleCard && !scannedMessageIds.has(msg.id)) {
+            scannedMessageIds.add(msg.id);
+            candidateMessages.push(msg);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 5. Remove user's reactions
+  for (const msg of candidateMessages) {
+    const channel = msg.channel;
+    const botPerms = channel.permissionsFor(botMember);
+    if (!botPerms || !botPerms.has(PermissionFlagsBits.ManageMessages)) {
+      console.warn(`[Reaction Cleanup] ⚠️ Cannot remove reactions on msg ${msg.id} in #${channel.name}: Missing 'Manage Messages' permission.`);
+      continue;
+    }
+
+    for (const reaction of msg.reactions.cache.values()) {
+      try {
+        let after = undefined;
+        let hasUserReacted = false;
+        while (!hasUserReacted) {
+          const users = await reaction.users.fetch({ limit: 100, after });
+          if (!users || users.size === 0) break;
+          if (users.has(userId)) {
+            hasUserReacted = true;
+            break;
+          }
+          if (users.size < 100) break;
+          after = users.lastKey();
+        }
+
+        if (hasUserReacted) {
+          await reaction.users.remove(userId);
+          removedCount++;
+          console.log(`[Reaction Cleanup] 🗑️ Removed ${reaction.emoji.name} from msg ${msg.id} in #${channel.name} for former member ${userTag || userId}`);
+        }
+      } catch (rxErr) {
+        console.warn(`[Reaction Cleanup] Failed to remove ${reaction.emoji.name} from msg ${msg.id}:`, rxErr.message);
+      }
+    }
+  }
+
+  clearUserTrackedReactions(userId);
+  return { removedCount, messagesScanned: candidateMessages.length };
+}
+
+// Purge reactions from former members who already left
+async function purgeGhostReactions(guild, targetChannel = null) {
+  let totalPurged = 0;
+  const purgedMembers = new Map();
+  const botMember = guild.members.me;
+
+  const messagesToInspect = [];
+
+  if (targetChannel && targetChannel.isTextBased()) {
+    const recent = await targetChannel.messages.fetch({ limit: 50 }).catch(() => null);
+    if (recent) {
+      for (const m of recent.values()) {
+        if (m.reactions.cache.size > 0) messagesToInspect.push(m);
+      }
+    }
+  } else {
+    if (Array.isArray(config.nationalityMessageIds)) {
+      for (const item of config.nationalityMessageIds) {
+        const msgId = typeof item === 'object' && item?.messageId ? item.messageId : item;
+        const chId = typeof item === 'object' && item?.channelId ? item.channelId : null;
+        const msg = await findMessageAcrossGuild(guild, msgId, chId);
+        if (msg) messagesToInspect.push(msg);
+      }
+    }
+    const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+    for (const ch of channels.values()) {
+      if (!ch || !ch.isTextBased()) continue;
+      const perms = ch.permissionsFor(botMember);
+      if (!perms || !perms.has(PermissionFlagsBits.ViewChannel)) continue;
+      const recent = await ch.messages.fetch({ limit: 15 }).catch(() => null);
+      if (recent) {
+        for (const m of recent.values()) {
+          const isBotCard = m.author?.id === client.user?.id && (
+            m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+            config.nationalityMessageIds?.some(id => (typeof id === 'object' ? id.messageId : id) === m.id)
+          );
+          if (isBotCard && !messagesToInspect.some(existing => existing.id === m.id)) {
+            messagesToInspect.push(m);
+          }
+        }
+      }
+    }
+  }
+
+  // Ensure member cache is loaded
+  await guild.members.fetch().catch(() => null);
+
+  for (const msg of messagesToInspect) {
+    const channel = msg.channel;
+    const botPerms = channel.permissionsFor(botMember);
+    if (!botPerms || !botPerms.has(PermissionFlagsBits.ManageMessages)) {
+      console.warn(`[Reaction Purge] ⚠️ Missing 'Manage Messages' permission in #${channel.name}.`);
+      continue;
+    }
+
+    for (const reaction of msg.reactions.cache.values()) {
+      try {
+        let after = undefined;
+        let done = false;
+        while (!done) {
+          const users = await reaction.users.fetch({ limit: 100, after });
+          if (!users || users.size === 0) break;
+
+          for (const user of users.values()) {
+            if (user.bot) continue;
+
+            const isCurrentMember = guild.members.cache.has(user.id);
+            if (!isCurrentMember) {
+              await reaction.users.remove(user.id).catch(() => null);
+              totalPurged++;
+              const existing = purgedMembers.get(user.id) || { tag: user.tag || user.username || user.id, count: 0 };
+              existing.count++;
+              purgedMembers.set(user.id, existing);
+              console.log(`[Reaction Purge] 🗑️ Purged ghost reaction ${reaction.emoji.name} from former member ${user.tag} (${user.id})`);
+            }
+          }
+
+          if (users.size < 100) break;
+          after = users.lastKey();
+        }
+      } catch (err) {
+        console.warn(`[Reaction Purge] Error on reaction ${reaction.emoji.name}:`, err.message);
+      }
+    }
+  }
+
+  return {
+    totalPurged,
+    purgedMembers: Array.from(purgedMembers.values()),
+    messagesInspected: messagesToInspect.length
+  };
+}
+
 
 // Build: Server Rules Embed & Acceptance Button
 function createRulesMessage() {
@@ -292,10 +757,16 @@ function createRulesMessage() {
     .setDescription(
       config.rulesContent ||
       'Welcome to the community! Before proceeding, please review our core server rules:\n\n' +
-      '**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, racism, or toxicity.\n' +
-      '**2. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW or offensive content.\n' +
-      '**3. Follow Game Terms of Service** — No exploits, account selling, or unapproved third-party software.\n' +
-      '**4. Listen to Staff** — Follow moderator instructions at all times.\n\n' +
+      '**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.\n' +
+      '**2. No Discrimination or Hate Speech** — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.\n' +
+      '**3. No Threats or Intimidation** — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.\n' +
+      '**4. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.\n' +
+      '**5. No Illegal Content** — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.\n' +
+      '**6. No Advertisements or Spam** — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.\n' +
+      '**7. Server Language Policy** — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.\n' +
+      '**8. No Political or Religious Debates** — Political and religious discussions or arguments are prohibited on this server.\n' +
+      '**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.\n' +
+      '**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.\n\n' +
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
       '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
     )
@@ -391,7 +862,13 @@ const slashCommands = [
     .addStringOption(option =>
       option
         .setName('country')
-        .setDescription('Country name (e.g. United States, Korea)')
+        .setDescription('Country name (e.g. South Korea, United States, Japan)')
+        .setRequired(false)
+    )
+    .addStringOption(option =>
+      option
+        .setName('short_code')
+        .setDescription('Short country code (e.g. kr, ph, us) — auto-detected from flag if omitted')
         .setRequired(false)
     ),
 
@@ -444,6 +921,17 @@ const slashCommands = [
         .setDescription('The new nickname (max 32 characters)')
         .setRequired(false)
         .setMaxLength(32)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('clean-reactions')
+    .setDescription('Purge ghost reactions on messages from members who left the server (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addChannelOption(option =>
+      option
+        .setName('channel')
+        .setDescription('Specific channel to clean (defaults to all reaction cards)')
+        .setRequired(false)
     )
 ];
 
@@ -463,11 +951,31 @@ async function registerSlashCommands() {
   }
 }
 
+// Update any existing tracked nationality messages in Discord to match latest config
+async function updateTrackedNationalityMessages() {
+  if (!Array.isArray(config.nationalityMessageIds) || config.nationalityMessageIds.length === 0) return;
+  for (const guild of client.guilds.cache.values()) {
+    try {
+      const payload = createNationalityMessage(guild);
+      for (const item of config.nationalityMessageIds) {
+        const msgId = typeof item === 'object' && item?.messageId ? item.messageId : item;
+        const chId = typeof item === 'object' && item?.channelId ? item.channelId : null;
+        const msg = await findMessageAcrossGuild(guild, msgId, chId);
+        if (msg && msg.author?.id === client.user?.id) {
+          await msg.edit({ embeds: payload.embeds, components: [] }).catch(() => null);
+          await reactToNationalityCard(msg);
+        }
+      }
+    } catch (_) {}
+  }
+}
+
 // Client Ready Event
 client.once('ready', async () => {
   console.log(`🤖 Maiev Bot logged in as ${client.user.tag}!`);
   console.log(`📡 Connected to ${client.guilds.cache.size} guild(s).`);
   await registerSlashCommands();
+  await updateTrackedNationalityMessages();
 });
 
 // ──────────────────────────────────────────
@@ -483,39 +991,86 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isButton()) {
       // Step A: Member clicks "I Agree to Rules"
       if (interaction.customId === 'btn_accept_rules') {
+        // Defer ephemeral reply immediately so Discord interaction never times out
+        if (!interaction.deferred && !interaction.replied) {
+          try {
+            await interaction.deferReply({ ephemeral: true });
+          } catch (deferErr) {
+            if (deferErr.code === 40060) return; // Already acknowledged
+            console.error('[Rules Button] deferReply failed:', deferErr);
+            return;
+          }
+        }
+
         const botMember = guild.members.me;
 
         if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
-          await interaction.reply({
-            content: '❌ **Bot Permission Error:** Maiev lacks the **Manage Roles** permission. Please go to **Server Settings > Roles > Maiev > Permissions** and enable **Manage Roles**.',
-            ephemeral: true
+          await interaction.editReply({
+            content: '❌ **Bot Permission Error:** Maiev lacks the **Manage Roles** permission. Please go to **Server Settings > Roles > Maiev > Permissions** and enable **Manage Roles**.'
           });
           return;
         }
 
-        const onboardedRole = await resolveRole(guild, config.onboardedRoleId, ['Onboarded', 'Rules Acknowledged']);
-        const verifyChannel = await resolveChannel(guild, config.verifyChannelId, /verify/i);
+        let onboardedRole = await resolveRole(guild, config.onboardedRoleId, [
+          'Onboarded',
+          '[Onboarded]',
+          'Rules Acknowledged',
+          'Acknowledge Rules'
+        ]);
 
         if (!onboardedRole) {
-          await interaction.reply({
-            content: '⚠️ Could not find a role named **Onboarded** (or `[Onboarded]`). Please create it or configure it in the web dashboard!',
-            ephemeral: true
+          // Additional fallback check for any role containing 'onboard'
+          const allRoles = await guild.roles.fetch().catch(() => guild.roles.cache);
+          onboardedRole = allRoles.find(r => /onboard/i.test(r.name));
+        }
+
+        const verifyChannel = await resolveChannel(guild, config.verifyChannelId, /verif|identity/i);
+
+        if (!onboardedRole) {
+          await interaction.editReply({
+            content: '⚠️ Could not find a role named **[Onboarded]** (or `Onboarded`) in the server. Please ensure the role exists or configure it in the web dashboard!'
           });
           return;
         }
 
         if (botMember.roles.highest.position <= onboardedRole.position) {
-          await interaction.reply({
-            content: `⚠️ **Role Hierarchy Error:** The **Maiev** role must be dragged **above** the **@${onboardedRole.name}** role in **Server Settings > Roles**.`,
-            ephemeral: true
+          await interaction.editReply({
+            content: `⚠️ **Role Hierarchy Error:** The **Maiev** role must be dragged **above** the **@${onboardedRole.name}** role in **Server Settings > Roles**.`
           });
           return;
         }
 
-        await member.roles.add(onboardedRole, 'Acknowledged server rules');
+        const targetMember = await guild.members.fetch({ user: interaction.user.id, force: true }).catch(() => member);
 
-        // Acknowledge the interaction silently without sending ANY message to the channel
-        await interaction.deferUpdate();
+        // Guardrail 1: Check if user already completed verification and has server channel access
+        const alreadyVerified = await hasCompletedVerification(guild, targetMember);
+        if (alreadyVerified) {
+          await interaction.editReply({
+            content: '🔒 **Access Already Granted:** You have already acknowledged the rules, completed verification, and have access to the server channels. You cannot acknowledge the rules again.'
+          });
+          return;
+        }
+
+        // Guardrail 2: Check if user already has the [Onboarded] role (pending IGN verification)
+        if (targetMember.roles.cache.has(onboardedRole.id)) {
+          await interaction.editReply({
+            content: `ℹ️ **Rules Already Acknowledged:** You already have the **@${onboardedRole.name}** role!${verifyChannel ? `\n\n👉 Proceed to <#${verifyChannel.id}> to set your AION 2 IGN with **Maiev**!` : ''}`
+          });
+          return;
+        }
+
+        try {
+          await targetMember.roles.add(onboardedRole, 'Acknowledged server rules');
+          console.log(`[Rules] Granted @${onboardedRole.name} to ${targetMember.user.tag}`);
+          await interaction.editReply({
+            content: `✅ **Rules Acknowledged!** You have been granted the **@${onboardedRole.name}** role!${verifyChannel ? `\n\n👉 **Next Step:** Proceed to <#${verifyChannel.id}> to set your AION 2 In-Game Name with **Maiev**!` : ''}`
+          });
+        } catch (addErr) {
+          console.error('[Rules] Failed to add onboarded role:', addErr);
+          await interaction.editReply({
+            content: `❌ **Failed to assign role:** ${addErr.message}. Please verify bot permissions and role hierarchy in Server Settings.`
+          });
+        }
         return;
       }
 
@@ -771,8 +1326,11 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       if (commandName === 'post-nationality' || commandName === 'post-nationality-roles') {
-        await interaction.deferReply({ ephemeral: true });
         try {
+          if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply({ ephemeral: true }).catch(() => null);
+          }
+
           const forceNew = interaction.options.getBoolean('force_new') || false;
           const payload = createNationalityMessage(guild);
 
@@ -781,15 +1339,17 @@ client.on('interactionCreate', async (interaction) => {
           if (!forceNew) {
             // 1. Try to find an existing nationality message in this channel by stored IDs
             if (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.length > 0) {
-              for (const msgId of config.nationalityMessageIds) {
-                try {
-                  const fetched = await interaction.channel.messages.fetch(msgId);
-                  if (fetched && fetched.author?.id === client.user?.id) {
-                    targetMsg = fetched;
-                    break;
-                  }
-                } catch (_) {
-                  // Message not in this channel or deleted
+              for (const item of config.nationalityMessageIds) {
+                const msgId = typeof item === 'object' && item?.messageId ? item.messageId : item;
+                const chId = typeof item === 'object' && item?.channelId ? item.channelId : null;
+                if (!chId || chId === interaction.channelId) {
+                  try {
+                    const fetched = await interaction.channel.messages.fetch(msgId);
+                    if (fetched && fetched.author?.id === client.user?.id) {
+                      targetMsg = fetched;
+                      break;
+                    }
+                  } catch (_) {}
                 }
               }
             }
@@ -810,42 +1370,53 @@ client.on('interactionCreate', async (interaction) => {
 
           let wasUpdated = false;
           if (targetMsg) {
-            // Edit the existing message in-place: removes text buttons, updates embed, and KEEPS all existing user reactions intact!
             await targetMsg.edit({ embeds: payload.embeds, components: [] });
             wasUpdated = true;
           } else {
             targetMsg = await interaction.channel.send(payload);
           }
 
-          // Ensure message ID is tracked
+          // Ensure message ID is tracked with channelId
           if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
-          if (!config.nationalityMessageIds.includes(targetMsg.id)) {
-            config.nationalityMessageIds.push(targetMsg.id);
+          const alreadyTracked = config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === targetMsg.id);
+          if (!alreadyTracked) {
+            config.nationalityMessageIds.push({ messageId: targetMsg.id, channelId: interaction.channelId });
             saveConfig(config);
           }
 
           // Automatically react with configured flag emojis (skips already reacted ones)
-          const activeNats = (config.nationalityRoles || []).filter(n => n && n.emoji);
-          for (const item of activeNats) {
-            await safelyReact(targetMsg, item.emoji);
-          }
+          await reactToNationalityCard(targetMsg);
 
           const responseText = wasUpdated
             ? '✅ Existing nationality card updated in-place! **All previous user reactions and roles are preserved**, old text buttons were removed, and any new flag emojis were added.'
             : '✅ Nationality role card posted successfully! Flag emoji reactions are now active in this channel.';
 
-          await interaction.editReply({ content: responseText });
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: responseText }).catch(() => null);
+          } else {
+            await interaction.reply({ content: responseText, ephemeral: true }).catch(() => null);
+          }
         } catch (sendErr) {
-          await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
+          console.error('Error executing /post-nationality:', sendErr);
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` }).catch(() => null);
+          }
         }
         return;
       }
 
       if (commandName === 'add-flag-role') {
+        await interaction.deferReply({ ephemeral: true });
         const emoji = interaction.options.getString('flag').trim();
         const targetRole = interaction.options.getRole('role');
         const country = interaction.options.getString('country')?.trim() || targetRole.name.replace(/[[\]]/g, '').trim();
-        const code = country.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'role';
+        const rawInputCode = (interaction.options.getString('short_code') || interaction.options.getString('code'))?.trim();
+        const autoIso = extractFlagIsoCode(emoji);
+        const code = (
+          rawInputCode ||
+          autoIso ||
+          (country.length <= 4 ? country : targetRole.name.replace(/[[\]]/g, '').trim().length <= 4 ? targetRole.name.replace(/[[\]]/g, '').trim() : country.slice(0, 5))
+        ).toLowerCase().replace(/[^a-z0-9]/g, '') || 'role';
 
         if (!Array.isArray(config.nationalityRoles)) config.nationalityRoles = [];
 
@@ -888,7 +1459,7 @@ client.on('interactionCreate', async (interaction) => {
             if (activeMsg) {
               const updatedPayload = createNationalityMessage(guild);
               await activeMsg.edit({ embeds: updatedPayload.embeds, components: [] }).catch(() => null);
-              await safelyReact(activeMsg, emoji);
+              await reactToNationalityCard(activeMsg);
               cardUpdated = true;
             }
           }
@@ -898,14 +1469,14 @@ client.on('interactionCreate', async (interaction) => {
           ? `\n\n• The nationality card in this channel was **automatically updated** and reacted with ${emoji} (all previous reactions preserved)!`
           : `\n\n• Run \`/post-nationality\` to post or update the card in this channel.`;
 
-        await interaction.reply({
-          content: `✅ Successfully linked ${emoji} **${country}** to role **@${targetRole.name}**!${updateNote}`,
-          ephemeral: true
+        await interaction.editReply({
+          content: `✅ Successfully linked ${emoji} **${country}** (\`${code.toUpperCase()}\`) to role **@${targetRole.name}**!${updateNote}`
         });
         return;
       }
 
       if (commandName === 'remove-flag-role') {
+        await interaction.deferReply({ ephemeral: true });
         const query = interaction.options.getString('flag').trim().toLowerCase();
         if (!Array.isArray(config.nationalityRoles)) config.nationalityRoles = [];
 
@@ -936,9 +1507,9 @@ client.on('interactionCreate', async (interaction) => {
             }
           } catch (_) {}
 
-          await interaction.reply({ content: `✅ Removed flag option \`${query}\`. The nationality card has been updated.`, ephemeral: true });
+          await interaction.editReply({ content: `✅ Removed flag option \`${query}\`. The nationality card has been updated.` });
         } else {
-          await interaction.reply({ content: `⚠️ Could not find a configured flag matching \`${query}\`.`, ephemeral: true });
+          await interaction.editReply({ content: `⚠️ Could not find a configured flag matching \`${query}\`.` });
         }
         return;
       }
@@ -1007,9 +1578,59 @@ client.on('interactionCreate', async (interaction) => {
         }
         return;
       }
+
+      if (commandName === 'clean-reactions') {
+        await interaction.deferReply({ ephemeral: true });
+        const targetChannel = interaction.options.getChannel('channel');
+
+        const botMember = guild.members.me;
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageMessages)) {
+          await interaction.editReply({
+            content: '⚠️ **Missing Permission:** Maiev needs the **Manage Messages** permission to remove reactions of former members. Please grant **Manage Messages** in Server Settings or Channel Permissions.'
+          });
+          return;
+        }
+
+        const result = await purgeGhostReactions(guild, targetChannel);
+
+        if (result.totalPurged === 0) {
+          await interaction.editReply({
+            content: `✨ **All clean!** Inspected ${result.messagesInspected} message(s) and found 0 ghost reactions from former members.`
+          });
+        } else {
+          const memberList = result.purgedMembers.slice(0, 5).map(m => `• **${m.tag}** (${m.count} reaction${m.count > 1 ? 's' : ''})`).join('\n');
+          const moreText = result.purgedMembers.length > 5 ? `\n...and ${result.purgedMembers.length - 5} more.` : '';
+
+          await interaction.editReply({
+            content: `🧹 **Reaction Purge Complete!**\n\nRemoved **${result.totalPurged}** ghost reaction(s) across **${result.messagesInspected}** message(s) from **${result.purgedMembers.length}** former member(s) who left the server:\n\n${memberList}${moreText}`
+          });
+        }
+        return;
+      }
     }
   } catch (err) {
     console.error('Unhandled interaction error:', err);
+  }
+});
+
+// ──────────────────────────────────────────
+// AUTOMATIC ATTACHMENT ON CARD POST (messageCreate)
+// ──────────────────────────────────────────
+client.on('messageCreate', async (message) => {
+  try {
+    if (message.author?.id !== client.user?.id) return;
+    const isNationalityCard = message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title));
+    if (isNationalityCard) {
+      if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
+      const alreadyTracked = config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
+      if (!alreadyTracked) {
+        config.nationalityMessageIds.push({ messageId: message.id, channelId: message.channelId });
+        saveConfig(config);
+      }
+      await reactToNationalityCard(message);
+    }
+  } catch (err) {
+    console.error('Error auto-reacting on messageCreate:', err);
   }
 });
 
@@ -1040,13 +1661,26 @@ client.on('messageReactionAdd', async (reaction, user) => {
     const guild = message.guild;
     if (!guild) return;
 
+    // Track user reaction for automatic cleanup if they leave the server
+    trackUserReaction(guild.id, user.id, message.channelId, message.id, emoji.identifier || emoji.name);
+
     // Check if this message is a nationality message
     const isNatMessage =
-      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.includes(message.id)) ||
+      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
       (message.author?.id === client.user?.id && (
         message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
         message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
       ));
+
+    if (isNatMessage) {
+      // Auto-save this message ID into config if not already tracked
+      if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
+      const alreadyTracked = config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
+      if (!alreadyTracked) {
+        config.nationalityMessageIds.push({ messageId: message.id, channelId: message.channelId });
+        saveConfig(config);
+      }
+    }
 
     if (!isNatMessage) return;
 
@@ -1105,8 +1739,11 @@ client.on('messageReactionRemove', async (reaction, user) => {
     const guild = message.guild;
     if (!guild) return;
 
+    // Untrack user reaction
+    untrackUserReaction(guild.id, user.id, message.channelId, message.id, emoji.identifier || emoji.name);
+
     const isNatMessage =
-      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.includes(message.id)) ||
+      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
       (message.author?.id === client.user?.id && (
         message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
         message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
@@ -1138,6 +1775,41 @@ client.on('messageReactionRemove', async (reaction, user) => {
     }
   } catch (err) {
     console.error('[Reaction Role] Error handling messageReactionRemove:', err);
+  }
+});
+
+// ──────────────────────────────────────────
+// MEMBER LEAVE EVENT (REACTION PURGE & CACHE EVICTION)
+// ──────────────────────────────────────────
+client.on('guildMemberRemove', async (member) => {
+  try {
+    const guild = member.guild;
+    if (!guild) return;
+    const userId = member.id;
+    const userTag = member.user?.tag || member.user?.username || userId;
+
+    console.log(`[Member Leave] 🚪 ${userTag} (${userId}) has left ${guild.name}. Cleaning up their reactions and cache...`);
+    const result = await cleanupUserReactionsOnLeave(guild, userId, userTag);
+    console.log(`[Member Leave] ✅ Cleaned up ${result.removedCount} reaction(s) across ${result.messagesScanned} message(s) for ${userTag}.`);
+
+    // Evict from guild member cache so if they rejoin, they start with a completely fresh state
+    guild.members.cache.delete(userId);
+  } catch (err) {
+    console.error('[Member Leave] Error handling guildMemberRemove:', err);
+  }
+});
+
+// ──────────────────────────────────────────
+// MEMBER JOIN EVENT (FRESH ONBOARDING)
+// ──────────────────────────────────────────
+client.on('guildMemberAdd', async (member) => {
+  try {
+    const userTag = member.user?.tag || member.user?.username || member.id;
+    console.log(`[Member Join] 👋 ${userTag} (${member.id}) joined ${member.guild.name}. Must complete rules acknowledgement and IGN verification.`);
+    // Ensure no stale roles are cached for this user
+    member.roles.cache.clear();
+  } catch (err) {
+    console.error('[Member Join] Error handling guildMemberAdd:', err);
   }
 });
 
@@ -1183,6 +1855,7 @@ app.get('/api/status', (req, res) => {
     permissions: botMember ? {
       hasManageRoles: botMember.permissions.has(PermissionFlagsBits.ManageRoles),
       hasManageNicknames: botMember.permissions.has(PermissionFlagsBits.ManageNicknames),
+      hasManageMessages: botMember.permissions.has(PermissionFlagsBits.ManageMessages),
       rolePosition: botMember.roles.highest.position
     } : null
   });
@@ -1208,6 +1881,7 @@ app.post('/api/config', (req, res) => {
     welcomeAnnouncementChannelId,
     enableWelcomeAnnouncement,
     welcomeAnnouncementMessage,
+    nationalityChannelId,
     nationalityTitle,
     nationalityContent,
     nationalityFooter,
@@ -1232,6 +1906,7 @@ app.post('/api/config', (req, res) => {
     welcomeAnnouncementChannelId: welcomeAnnouncementChannelId !== undefined ? welcomeAnnouncementChannelId : config.welcomeAnnouncementChannelId,
     enableWelcomeAnnouncement: enableWelcomeAnnouncement !== undefined ? enableWelcomeAnnouncement : config.enableWelcomeAnnouncement,
     welcomeAnnouncementMessage: welcomeAnnouncementMessage !== undefined ? welcomeAnnouncementMessage : config.welcomeAnnouncementMessage,
+    nationalityChannelId: nationalityChannelId !== undefined ? nationalityChannelId : config.nationalityChannelId,
     nationalityTitle: nationalityTitle !== undefined ? nationalityTitle : config.nationalityTitle,
     nationalityContent: nationalityContent !== undefined ? nationalityContent : config.nationalityContent,
     nationalityFooter: nationalityFooter !== undefined ? nationalityFooter : config.nationalityFooter,
@@ -1275,32 +1950,123 @@ app.post('/api/post-verify', async (req, res) => {
   }
 });
 
-// API: Trigger Post Nationality Roles Embed
+// API: Server-Sent Events stream for real-time Web UI synchronization
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  res.write(`data: ${JSON.stringify({ type: 'connected', config, timestamp: Date.now() })}\n\n`);
+  sseClients.add(res);
+
+  req.on('close', () => {
+    sseClients.delete(res);
+  });
+});
+
+// API: Instantly Save Nationality Roles from Web UI (add/remove/reorder/bind role)
+app.post('/api/nationality-roles', (req, res) => {
+  try {
+    const { nationalityRoles } = req.body;
+    if (!Array.isArray(nationalityRoles)) {
+      return res.status(400).json({ error: 'nationalityRoles must be an array' });
+    }
+    config.nationalityRoles = nationalityRoles;
+    saveConfig(config);
+    res.json({ success: true, count: config.nationalityRoles.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Trigger Post Nationality Roles Embed (posts fresh embed or updates in-place if forceNew=false)
 app.post('/api/post-nationality-roles', async (req, res) => {
   try {
-    const { channelId } = req.body;
+    const {
+      channelId,
+      nationalityRoles,
+      nationalityTitle,
+      nationalityContent,
+      nationalityFooter,
+      forceNew = true
+    } = req.body;
+
     const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
     const channel = await guild?.channels.fetch(channelId).catch(() => null);
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
-    const payload = createNationalityMessage(guild);
-    const sentMsg = await channel.send(payload);
 
-    // Auto-react with configured flag emojis
-    const activeNats = (config.nationalityRoles || []).filter(n => n && n.emoji);
-    for (const item of activeNats) {
-      await safelyReact(sentMsg, item.emoji);
+    // Persist any updated nationality parameters passed from Web UI
+    if (Array.isArray(nationalityRoles)) {
+      config.nationalityRoles = nationalityRoles;
+    }
+    if (nationalityTitle !== undefined && nationalityTitle !== null) config.nationalityTitle = nationalityTitle;
+    if (nationalityContent !== undefined && nationalityContent !== null) config.nationalityContent = nationalityContent;
+    if (nationalityFooter !== undefined && nationalityFooter !== null) config.nationalityFooter = nationalityFooter;
+    config.nationalityChannelId = channel.id;
+    saveConfig(config);
+
+    const payload = createNationalityMessage(guild);
+
+    let targetMsg = null;
+    let wasUpdated = false;
+
+    if (!forceNew) {
+      // Look for existing nationality card in this channel to edit in-place
+      if (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.length > 0) {
+        for (const item of config.nationalityMessageIds) {
+          const msgId = typeof item === 'object' && item?.messageId ? item.messageId : item;
+          const chId = typeof item === 'object' && item?.channelId ? item.channelId : null;
+          if (!chId || chId === channel.id) {
+            const m = await channel.messages.fetch(msgId).catch(() => null);
+            if (m && m.author?.id === client.user?.id) {
+              targetMsg = m;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!targetMsg) {
+        const recent = await channel.messages.fetch({ limit: 15 }).catch(() => null);
+        targetMsg = recent?.find(m =>
+          m.author?.id === client.user?.id && (
+            m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+            config.nationalityMessageIds?.some(id => (typeof id === 'object' ? id.messageId : id) === m.id)
+          )
+        );
+      }
     }
 
+    if (targetMsg) {
+      await targetMsg.edit({ embeds: payload.embeds, components: [] });
+      wasUpdated = true;
+    } else {
+      targetMsg = await channel.send(payload);
+    }
+
+    // Ensure message ID is tracked with channelId
     if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
-    if (!config.nationalityMessageIds.includes(sentMsg.id)) {
-      config.nationalityMessageIds.push(sentMsg.id);
+    const alreadyTracked = config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === targetMsg.id);
+    if (!alreadyTracked) {
+      config.nationalityMessageIds.push({ messageId: targetMsg.id, channelId: channel.id });
       saveConfig(config);
     }
 
-    res.json({ success: true });
+    // Auto-react with all configured & embed flag emojis
+    await reactToNationalityCard(targetMsg);
+
+    res.json({
+      success: true,
+      updated: wasUpdated,
+      posted: !wasUpdated,
+      messageId: targetMsg.id,
+      channelName: channel.name
+    });
   } catch (err) {
+    console.error('Error in /api/post-nationality-roles:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1336,6 +2102,18 @@ app.post('/api/test-welcome', async (req, res) => {
 
     await channel.send({ content: client.user ? `<@${client.user.id}>` : undefined, embeds: [embed] });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Trigger Ghost Reaction Purge for Former Members
+app.post('/api/clean-reactions', async (req, res) => {
+  try {
+    const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
+    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const result = await purgeGhostReactions(guild);
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
