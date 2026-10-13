@@ -43,6 +43,12 @@ const DEFAULT_WELCOME_TEMPLATE = {
 
 const DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE = "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
 
+const DEFAULT_NATIONALITY_TEMPLATE = {
+  title: '🌍 Choose Your Nationality',
+  content: '',
+  footer: 'Click a flag button or react with an emoji to toggle your role'
+};
+
 let serverState = null;
 let currentNationalityRoles = [];
 
@@ -341,6 +347,91 @@ function renderNationalityRolesManager(data) {
 
   renderNationalityRolesList();
   renderSimFlagPills();
+
+  // Populate Nationality Embed Editor
+  const natTitleInput = document.getElementById('nationality-title-input');
+  const natContentInput = document.getElementById('nationality-content-input');
+  const natFooterInput = document.getElementById('nationality-footer-input');
+  if (natTitleInput) natTitleInput.value = data.config?.nationalityTitle || DEFAULT_NATIONALITY_TEMPLATE.title;
+  if (natContentInput) natContentInput.value = data.config?.nationalityContent || '';
+  if (natFooterInput) natFooterInput.value = data.config?.nationalityFooter || DEFAULT_NATIONALITY_TEMPLATE.footer;
+
+  updateNationalityPreview();
+}
+
+// Update the Nationality Embed simulator preview in real-time
+function updateNationalityPreview() {
+  const title = document.getElementById('nationality-title-input')?.value || DEFAULT_NATIONALITY_TEMPLATE.title;
+  const rawContent = document.getElementById('nationality-content-input')?.value || '';
+  const footer = document.getElementById('nationality-footer-input')?.value || DEFAULT_NATIONALITY_TEMPLATE.footer;
+  const serverName = serverState?.guild?.name || 'AION 2 Server';
+
+  const simTitle = document.getElementById('sim-nationality-title');
+  const simDesc = document.getElementById('sim-nationality-desc');
+  const simFooter = document.getElementById('sim-nationality-footer');
+  const simButtons = document.getElementById('sim-nationality-buttons-container');
+  const simReactions = document.getElementById('sim-nationality-reactions-container');
+
+  if (simTitle) simTitle.textContent = title;
+  if (simFooter) simFooter.textContent = footer;
+
+  let descHtml = '';
+  if (rawContent && rawContent.trim()) {
+    descHtml = formatDiscordMarkdown(rawContent.replace(/{server}/g, serverName));
+  } else {
+    const list = (currentNationalityRoles || []).filter(n => n && n.name);
+    const listStr = list.length > 0
+      ? list.map(n => `${n.emoji} <strong>${n.name}</strong> (<code>${(n.code || '').toUpperCase()}</code>)`).join('<br>')
+      : '🇵🇭 <strong>Philippines</strong> (<code>PH</code>)<br>🇯🇵 <strong>Japan</strong> (<code>JP</code>)<br>🌐 <strong>Global / Other</strong> (<code>GLOBAL</code>)';
+
+    descHtml = `Welcome to <strong>${serverName}</strong>!<br><br>` +
+      `Please select your nationality flag below to unlock access to your regional legion channels:<br><br>` +
+      `${listStr}<br><br>` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>` +
+      `👉 <strong>React with your flag emoji below</strong> or <strong>click the button</strong> to receive your nationality role!`;
+  }
+  if (simDesc) simDesc.innerHTML = descHtml;
+
+  // Render buttons in simulator
+  if (simButtons) {
+    simButtons.innerHTML = '';
+    const activeNats = (currentNationalityRoles || []).filter(n => n && n.name);
+    activeNats.forEach(item => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'discord-btn discord-btn-secondary';
+      btn.textContent = `${item.emoji || ''} ${item.name}`.trim();
+      btn.addEventListener('click', () => {
+        const feedback = document.getElementById('sim-nationality-feedback');
+        if (feedback) {
+          feedback.classList.remove('hidden');
+          feedback.innerHTML = `✅ <strong>[Simulated Response]</strong> Clicked button <strong>${item.emoji} ${item.name}</strong>! Role assigned and regional channel unlocked!`;
+        }
+      });
+      simButtons.appendChild(btn);
+    });
+  }
+
+  // Render emoji reaction pills in simulator
+  if (simReactions) {
+    simReactions.innerHTML = '';
+    const activeNats = (currentNationalityRoles || []).filter(n => n && n.emoji);
+    activeNats.forEach(item => {
+      const pill = document.createElement('span');
+      pill.className = 'sim-emoji-reaction';
+      pill.style.cssText = 'background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer; user-select: none;';
+      pill.textContent = `${item.emoji} 1`;
+      pill.title = `Click to simulate reacting with ${item.emoji}`;
+      pill.addEventListener('click', () => {
+        const feedback = document.getElementById('sim-nationality-feedback');
+        if (feedback) {
+          feedback.classList.remove('hidden');
+          feedback.innerHTML = `✅ <strong>[Simulated Response]</strong> Reacted with ${item.emoji}! Role for <strong>${item.name}</strong> assigned!`;
+        }
+      });
+      simReactions.appendChild(pill);
+    });
+  }
 }
 
 // Render the grid list of configured nationalities
@@ -397,6 +488,7 @@ function renderNationalityRolesList() {
       currentNationalityRoles.splice(index, 1);
       renderNationalityRolesList();
       renderSimFlagPills();
+      updateNationalityPreview();
       showToast(`Removed flag ${item.emoji} ${item.name}`, 'success');
     });
 
@@ -590,6 +682,7 @@ function setupEventListeners() {
 
       renderNationalityRolesList();
       renderSimFlagPills();
+      updateNationalityPreview();
       showToast(`Added ${emoji} ${name}! Click Save Configuration to apply.`, 'success');
     });
   }
@@ -638,6 +731,26 @@ function setupEventListeners() {
     showToast('Refreshed live data from Discord!', 'success');
   });
 
+  // Live input listening on personalized nationality embed fields
+  const natTitleInput = document.getElementById('nationality-title-input');
+  const natContentInput = document.getElementById('nationality-content-input');
+  const natFooterInput = document.getElementById('nationality-footer-input');
+  if (natTitleInput) natTitleInput.addEventListener('input', updateNationalityPreview);
+  if (natContentInput) natContentInput.addEventListener('input', updateNationalityPreview);
+  if (natFooterInput) natFooterInput.addEventListener('input', updateNationalityPreview);
+
+  // Reset Nationality Template Button
+  const btnResetNat = document.getElementById('btn-reset-nationality-template');
+  if (btnResetNat) {
+    btnResetNat.addEventListener('click', () => {
+      if (natTitleInput) natTitleInput.value = DEFAULT_NATIONALITY_TEMPLATE.title;
+      if (natContentInput) natContentInput.value = DEFAULT_NATIONALITY_TEMPLATE.content;
+      if (natFooterInput) natFooterInput.value = DEFAULT_NATIONALITY_TEMPLATE.footer;
+      updateNationalityPreview();
+      showToast('Reset nationality embed editor to standard template!', 'success');
+    });
+  }
+
   // Save Configuration (includes rules, verification, welcome popup, public announcement, and nationality roles!)
   document.getElementById('btn-save-config').addEventListener('click', async () => {
     const onboardedRoleId = document.getElementById('select-onboarded-role').value;
@@ -663,6 +776,10 @@ function setupEventListeners() {
     const enableWelcomeAnnouncement = document.getElementById('check-enable-welcome-announcement')?.checked !== false;
     const welcomeAnnouncementMessage = document.getElementById('welcome-announcement-input')?.value.trim() || '';
 
+    const nationalityTitle = natTitleInput?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.title;
+    const nationalityContent = natContentInput?.value.trim() || '';
+    const nationalityFooter = natFooterInput?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.footer;
+
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
@@ -685,6 +802,9 @@ function setupEventListeners() {
           welcomeAnnouncementChannelId,
           enableWelcomeAnnouncement,
           welcomeAnnouncementMessage,
+          nationalityTitle,
+          nationalityContent,
+          nationalityFooter,
           nationalityRoles: currentNationalityRoles
         })
       });
@@ -722,18 +842,23 @@ function setupEventListeners() {
   const rulesTab = document.getElementById('tab-rules-btn');
   const verifyTab = document.getElementById('tab-verify-btn');
   const welcomeTab = document.getElementById('tab-welcome-announcement-btn');
+  const natTab = document.getElementById('tab-nationality-btn');
+
   const rulesView = document.getElementById('sim-rules-view');
   const verifyView = document.getElementById('sim-verify-view');
   const welcomeView = document.getElementById('sim-welcome-announcement-view');
+  const natView = document.getElementById('sim-nationality-view');
   const simChanName = document.getElementById('sim-channel-name');
 
   rulesTab.addEventListener('click', () => {
     rulesTab.classList.add('active');
     verifyTab.classList.remove('active');
     if (welcomeTab) welcomeTab.classList.remove('active');
+    if (natTab) natTab.classList.remove('active');
     rulesView.classList.remove('hidden');
     verifyView.classList.add('hidden');
     if (welcomeView) welcomeView.classList.add('hidden');
+    if (natView) natView.classList.add('hidden');
     simChanName.textContent = 'rules';
   });
 
@@ -741,9 +866,11 @@ function setupEventListeners() {
     verifyTab.classList.add('active');
     rulesTab.classList.remove('active');
     if (welcomeTab) welcomeTab.classList.remove('active');
+    if (natTab) natTab.classList.remove('active');
     verifyView.classList.remove('hidden');
     rulesView.classList.add('hidden');
     if (welcomeView) welcomeView.classList.add('hidden');
+    if (natView) natView.classList.add('hidden');
     simChanName.textContent = 'verify-ign';
   });
 
@@ -752,10 +879,26 @@ function setupEventListeners() {
       welcomeTab.classList.add('active');
       rulesTab.classList.remove('active');
       verifyTab.classList.remove('active');
+      if (natTab) natTab.classList.remove('active');
       if (welcomeView) welcomeView.classList.remove('hidden');
       rulesView.classList.add('hidden');
       verifyView.classList.add('hidden');
+      if (natView) natView.classList.add('hidden');
       simChanName.textContent = 'welcome';
+    });
+  }
+
+  if (natTab) {
+    natTab.addEventListener('click', () => {
+      natTab.classList.add('active');
+      rulesTab.classList.remove('active');
+      verifyTab.classList.remove('active');
+      if (welcomeTab) welcomeTab.classList.remove('active');
+      if (natView) natView.classList.remove('hidden');
+      rulesView.classList.add('hidden');
+      verifyView.classList.add('hidden');
+      if (welcomeView) welcomeView.classList.add('hidden');
+      simChanName.textContent = 'nationality-roles';
     });
   }
 

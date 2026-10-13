@@ -82,6 +82,10 @@ let config = {
   welcomeAnnouncementChannelId: '',
   enableWelcomeAnnouncement: true,
   welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!',
+  nationalityTitle: '🌍 Choose Your Nationality',
+  nationalityContent: '',
+  nationalityFooter: 'Click a flag button or react with an emoji to toggle your role',
+  nationalityMessageIds: [],
   nationalityRoles: [
     { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
     { code: 'jp', name: 'Japan', emoji: '🇯🇵', roleId: '' },
@@ -106,6 +110,49 @@ function saveConfig(newConfig) {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
   } catch (err) {
     console.error('⚠️ Failed to save config.json:', err.message);
+  }
+}
+
+// Helper: Match emoji (Unicode or Custom) to a configured nationality role
+function findNationalityByEmoji(emoji, nationalityRoles = []) {
+  if (!emoji || !Array.isArray(nationalityRoles)) return null;
+  const emojiName = emoji.name ? emoji.name.trim() : '';
+  const emojiId = emoji.id || '';
+  const emojiString = emoji.toString ? emoji.toString() : '';
+
+  return nationalityRoles.find(n => {
+    if (!n) return false;
+    // 1. Exact emoji string match (e.g. "🇵🇭" === "🇵🇭")
+    if (n.emoji && (n.emoji === emojiName || n.emoji === emojiString)) return true;
+
+    // 2. Custom Discord emoji ID match <:name:id>
+    if (emojiId && n.emoji && n.emoji.includes(emojiId)) return true;
+
+    // 3. Normalized Unicode match (flags composed of regional indicators)
+    if (n.emoji && emojiName && (n.emoji.includes(emojiName) || emojiName.includes(n.emoji))) return true;
+
+    // 4. Code match (e.g. emoji "ph" matches code "ph")
+    if (emojiName && n.code && emojiName.toLowerCase() === n.code.toLowerCase()) return true;
+
+    // 5. Country name match (e.g. emoji "philippines" matches name "philippines")
+    if (emojiName && n.name && emojiName.toLowerCase() === n.name.toLowerCase()) return true;
+
+    return false;
+  }) || null;
+}
+
+// Helper: Safely react to a message with Unicode or Custom emoji
+async function safelyReact(message, emojiStr) {
+  if (!emojiStr || !message) return;
+  try {
+    const customMatch = emojiStr.match(/:(\d+)>$/);
+    if (customMatch) {
+      await message.react(customMatch[1]);
+    } else {
+      await message.react(emojiStr.trim());
+    }
+  } catch (err) {
+    console.warn(`[Reaction Roles] Could not auto-react with ${emojiStr}:`, err.message);
   }
 }
 
@@ -166,18 +213,28 @@ function createNationalityButtonRows(nationalityRoles = []) {
 
 // Helper: Build Nationality Reaction Roles Message
 function createNationalityMessage(guild) {
+  const activeNats = (config.nationalityRoles || []).filter(n => n && n.name);
+  const formattedList = activeNats.length > 0
+    ? activeNats.map(n => `${n.emoji} **${n.name}** (\`${n.code.toUpperCase()}\`)`).join('\n')
+    : '🇵🇭 **Philippines** (`PH`)\n🇯🇵 **Japan** (`JP`)\n🌐 **Global / Other** (`GLOBAL`)';
+
+  const title = config.nationalityTitle || '🌍 Choose Your Nationality';
+  const rawDesc = config.nationalityContent || (
+    `Welcome to **{server}**!\n\n` +
+    `Please select your nationality flag below to unlock access to your regional legion channels:\n\n` +
+    `${formattedList}\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `👉 **React with your flag emoji below** or **click the button** to receive your nationality role!`
+  );
+  const description = rawDesc.replace(/{server}/g, guild.name);
+  const footer = config.nationalityFooter || 'Click a flag button or react with an emoji to toggle your role';
+
   const embed = new EmbedBuilder()
     .setColor(0x00d2ff)
-    .setTitle('🌍 Regional & Nationality Role Selection')
-    .setDescription(
-      `Welcome to **${guild.name}**!\n\n` +
-      `Click the flag buttons below to assign your nationality role and unlock access to your regional legion channels:\n\n` +
-      (config.nationalityRoles || [])
-        .map(n => `${n.emoji} **${n.name}** (\`${n.code.toUpperCase()}\`)`)
-        .join(' • ')
-    )
+    .setTitle(title)
+    .setDescription(description)
     .setThumbnail(guild.iconURL({ dynamic: true }) || undefined)
-    .setFooter({ text: 'Click any flag button to toggle your role • Instant access' });
+    .setFooter({ text: footer });
 
   const rows = createNationalityButtonRows(config.nationalityRoles || []);
   return { embeds: [embed], components: rows };
@@ -190,9 +247,15 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions
   ],
-  partials: [Partials.GuildMember, Partials.User]
+  partials: [
+    Partials.GuildMember,
+    Partials.User,
+    Partials.Message,
+    Partials.Reaction
+  ]
 });
 
 // Helper: Resolve or find role by ID or Name
@@ -289,6 +352,11 @@ const slashCommands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('post-nationality')
+    .setDescription('Post nationality role selection card with flag emoji reactions and buttons (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
     .setName('post-nationality-roles')
     .setDescription('Post interactive flag reaction roles for nationality channels (Admin only)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
@@ -349,6 +417,13 @@ async function registerSlashCommands() {
     console.error('⚠️ Warning: Failed to register slash commands:', error.message);
   }
 }
+
+// Client Ready Event
+client.once('ready', async () => {
+  console.log(`🤖 Maiev Bot logged in as ${client.user.tag}!`);
+  console.log(`📡 Connected to ${client.guilds.cache.size} guild(s).`);
+  await registerSlashCommands();
+});
 
 // ──────────────────────────────────────────
 // INTERACTION HANDLERS (BUTTONS, MODALS, COMMANDS)
@@ -650,12 +725,25 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      if (commandName === 'post-nationality-roles') {
+      if (commandName === 'post-nationality' || commandName === 'post-nationality-roles') {
         await interaction.deferReply({ ephemeral: true });
         try {
           const payload = createNationalityMessage(guild);
-          await interaction.channel.send(payload);
-          await interaction.editReply({ content: '✅ Nationality reaction roles card posted successfully in this channel!' });
+          const sentMsg = await interaction.channel.send(payload);
+
+          // Automatically react with configured flag emojis so members can react directly!
+          const activeNats = (config.nationalityRoles || []).filter(n => n && n.emoji);
+          for (const item of activeNats) {
+            await safelyReact(sentMsg, item.emoji);
+          }
+
+          if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
+          if (!config.nationalityMessageIds.includes(sentMsg.id)) {
+            config.nationalityMessageIds.push(sentMsg.id);
+            saveConfig(config);
+          }
+
+          await interaction.editReply({ content: '✅ Nationality role card posted successfully! Flag emoji reactions and interactive buttons are now active in this channel.' });
         } catch (sendErr) {
           await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
         }
@@ -700,7 +788,7 @@ client.on('interactionCreate', async (interaction) => {
         } else {
           const modal = new ModalBuilder()
             .setCustomId('modal_aion2_verify')
-            .setTitle('AION 2 IGN & Nationality');
+            .setTitle('AION 2 IGN Verification');
           const ignInput = new TextInputBuilder()
             .setCustomId('input_aion_ign')
             .setLabel('Desired AION 2 In-Game Name')
@@ -709,17 +797,9 @@ client.on('interactionCreate', async (interaction) => {
             .setMinLength(2)
             .setMaxLength(32)
             .setRequired(true);
-          const nationalityInput = new TextInputBuilder()
-            .setCustomId('input_nationality')
-            .setLabel('Nationality Flag / Code')
-            .setStyle(TextInputStyle.Short)
-            .setPlaceholder('e.g. 🇵🇭 PH, 🇯🇵 JP, or 🌐 Global')
-            .setMaxLength(32)
-            .setRequired(false);
-          modal.addComponents(
-            new ActionRowBuilder().addComponents(ignInput),
-            new ActionRowBuilder().addComponents(nationalityInput)
-          );
+
+          modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
+
           try {
             await interaction.showModal(modal);
           } catch (modalErr) {
@@ -737,6 +817,134 @@ client.on('interactionCreate', async (interaction) => {
     }
   } catch (err) {
     console.error('Unhandled interaction error:', err);
+  }
+});
+
+// ──────────────────────────────────────────
+// REACTION ROLES HANDLERS (EMOJI REACTIONS)
+// ──────────────────────────────────────────
+client.on('messageReactionAdd', async (reaction, user) => {
+  try {
+    if (user.bot) return;
+
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch (err) {
+        return;
+      }
+    }
+
+    if (reaction.message.partial) {
+      try {
+        await reaction.message.fetch();
+      } catch (err) {
+        return;
+      }
+    }
+
+    const { message, emoji } = reaction;
+    const guild = message.guild;
+    if (!guild) return;
+
+    // Check if this message is a nationality message
+    const isNatMessage =
+      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.includes(message.id)) ||
+      (message.author?.id === client.user?.id && (
+        message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+        message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
+      ));
+
+    if (!isNatMessage) return;
+
+    const natConfig = findNationalityByEmoji(emoji, config.nationalityRoles);
+    if (!natConfig) return;
+
+    const targetRole = await resolveRole(guild, natConfig.roleId, [
+      natConfig.name,
+      `${natConfig.emoji} ${natConfig.name}`,
+      natConfig.code.toUpperCase()
+    ]);
+    if (!targetRole) {
+      console.warn(`[Reaction Role] Role for ${natConfig.name} not found in guild.`);
+      return;
+    }
+
+    const member = await guild.members.fetch(user.id).catch(() => null);
+    if (!member) return;
+
+    const botMember = guild.members.me;
+    if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles) || botMember.roles.highest.position <= targetRole.position) {
+      console.warn(`[Reaction Role] Bot cannot assign role @${targetRole.name} (permissions or hierarchy).`);
+      return;
+    }
+
+    if (!member.roles.cache.has(targetRole.id)) {
+      await member.roles.add(targetRole, `Nationality reaction role: ${emoji.name}`);
+      console.log(`[Reaction Role] Added role @${targetRole.name} to ${member.user.tag} (reacted ${emoji.name})`);
+    }
+  } catch (err) {
+    console.error('[Reaction Role] Error handling messageReactionAdd:', err);
+  }
+});
+
+client.on('messageReactionRemove', async (reaction, user) => {
+  try {
+    if (user.bot) return;
+
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch (err) {
+        return;
+      }
+    }
+
+    if (reaction.message.partial) {
+      try {
+        await reaction.message.fetch();
+      } catch (err) {
+        return;
+      }
+    }
+
+    const { message, emoji } = reaction;
+    const guild = message.guild;
+    if (!guild) return;
+
+    const isNatMessage =
+      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.includes(message.id)) ||
+      (message.author?.id === client.user?.id && (
+        message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+        message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
+      ));
+
+    if (!isNatMessage) return;
+
+    const natConfig = findNationalityByEmoji(emoji, config.nationalityRoles);
+    if (!natConfig) return;
+
+    const targetRole = await resolveRole(guild, natConfig.roleId, [
+      natConfig.name,
+      `${natConfig.emoji} ${natConfig.name}`,
+      natConfig.code.toUpperCase()
+    ]);
+    if (!targetRole) return;
+
+    const member = await guild.members.fetch(user.id).catch(() => null);
+    if (!member) return;
+
+    const botMember = guild.members.me;
+    if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles) || botMember.roles.highest.position <= targetRole.position) {
+      return;
+    }
+
+    if (member.roles.cache.has(targetRole.id)) {
+      await member.roles.remove(targetRole, `Nationality reaction role removed: ${emoji.name}`);
+      console.log(`[Reaction Role] Removed role @${targetRole.name} from ${member.user.tag} (unreacted ${emoji.name})`);
+    }
+  } catch (err) {
+    console.error('[Reaction Role] Error handling messageReactionRemove:', err);
   }
 });
 
@@ -807,6 +1015,9 @@ app.post('/api/config', (req, res) => {
     welcomeAnnouncementChannelId,
     enableWelcomeAnnouncement,
     welcomeAnnouncementMessage,
+    nationalityTitle,
+    nationalityContent,
+    nationalityFooter,
     nationalityRoles
   } = req.body;
 
@@ -828,6 +1039,9 @@ app.post('/api/config', (req, res) => {
     welcomeAnnouncementChannelId: welcomeAnnouncementChannelId !== undefined ? welcomeAnnouncementChannelId : config.welcomeAnnouncementChannelId,
     enableWelcomeAnnouncement: enableWelcomeAnnouncement !== undefined ? enableWelcomeAnnouncement : config.enableWelcomeAnnouncement,
     welcomeAnnouncementMessage: welcomeAnnouncementMessage !== undefined ? welcomeAnnouncementMessage : config.welcomeAnnouncementMessage,
+    nationalityTitle: nationalityTitle !== undefined ? nationalityTitle : config.nationalityTitle,
+    nationalityContent: nationalityContent !== undefined ? nationalityContent : config.nationalityContent,
+    nationalityFooter: nationalityFooter !== undefined ? nationalityFooter : config.nationalityFooter,
     nationalityRoles: Array.isArray(nationalityRoles) ? nationalityRoles : config.nationalityRoles
   });
   console.log('⚙️ Configuration updated via Web UI:', config);
@@ -878,7 +1092,20 @@ app.post('/api/post-nationality-roles', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
     const payload = createNationalityMessage(guild);
-    await channel.send(payload);
+    const sentMsg = await channel.send(payload);
+
+    // Auto-react with configured flag emojis
+    const activeNats = (config.nationalityRoles || []).filter(n => n && n.emoji);
+    for (const item of activeNats) {
+      await safelyReact(sentMsg, item.emoji);
+    }
+
+    if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
+    if (!config.nationalityMessageIds.includes(sentMsg.id)) {
+      config.nationalityMessageIds.push(sentMsg.id);
+      saveConfig(config);
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

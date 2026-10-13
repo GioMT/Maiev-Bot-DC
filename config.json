@@ -16,6 +16,10 @@
   "welcomeAnnouncementChannelId": "",
   "enableWelcomeAnnouncement": true,
   "welcomeAnnouncementMessage": "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!",
+  "nationalityTitle": "🌍 Choose Your Nationality",
+  "nationalityContent": "",
+  "nationalityFooter": "Click a flag button or react with an emoji to toggle your role",
+  "nationalityMessageIds": [],
   "nationalityRoles": [
     { "code": "ph", "name": "Philippines", "emoji": "🇵🇭", "roleId": "" },
     { "code": "jp", "name": "Japan", "emoji": "🇯🇵", "roleId": "" },

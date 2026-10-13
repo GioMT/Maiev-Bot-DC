@@ -393,10 +393,42 @@
                 <span class="form-hint">Enter the flag emoji, country name, short code, and select the server role that grants access to that nationality's exclusive channel.</span>
               </div>
 
+              <!-- Personalized Nationality Embed Editor -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge">🌍 CUSTOMIZABLE /post-nationality EMBED</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-nationality-template" title="Reset to standard nationality template">
+                    ↺ Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="nationality-title-input" class="form-label">
+                    Nationality Embed Title:
+                  </label>
+                  <input type="text" id="nationality-title-input" class="form-input" placeholder="🌍 Choose Your Nationality" value="🌍 Choose Your Nationality">
+                </div>
+
+                <div class="form-group">
+                  <label for="nationality-content-input" class="form-label">
+                    Personalized Instructions Content:
+                  </label>
+                  <textarea id="nationality-content-input" class="form-textarea" rows="4" placeholder="Leave blank to use default instructions and automatic flag list, or write custom text..."></textarea>
+                  <span class="form-hint">Supports Discord Markdown. Leave blank to automatically format all configured flags. Available tag: <strong>{server}</strong>.</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="nationality-footer-input" class="form-label">
+                    Nationality Footer Note:
+                  </label>
+                  <input type="text" id="nationality-footer-input" class="form-input" placeholder="Click a flag button or react with an emoji to toggle your role" value="Click a flag button or react with an emoji to toggle your role">
+                </div>
+              </div>
+
               <div class="form-row mt-3">
                 <div class="form-group flex-1">
                   <label for="select-nationality-roles-channel" class="form-label">
-                    Post Nationality Reaction Roles Card To Channel (Optional):
+                    Post Nationality Reaction Roles Card To Channel (or use <code>/post-nationality</code> in Discord):
                   </label>
                   <select id="select-nationality-roles-channel" class="form-select">
                     <option value="">Loading channels...</option>
@@ -466,6 +498,7 @@
               <button class="tab-btn active" id="tab-rules-btn">Rules Embed</button>
               <button class="tab-btn" id="tab-verify-btn">Verify Embed</button>
               <button class="tab-btn" id="tab-welcome-announcement-btn">Public Welcome</button>
+              <button class="tab-btn" id="tab-nationality-btn">Nationality Embed</button>
             </div>
           </div>
 
@@ -581,6 +614,51 @@
                         AION 2 Elyos Legion • Welcome Channel
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Nationality Reaction Roles Channel Preview -->
+              <div id="sim-nationality-view" class="discord-message-group hidden">
+                <div class="discord-message">
+                  <img class="discord-author-avatar" id="sim-bot-avatar-4" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                  <div class="discord-message-content">
+                    <div class="discord-author-row">
+                      <span class="discord-author-name">Maiev</span>
+                      <span class="discord-bot-badge">BOT</span>
+                      <span class="discord-timestamp">Today at 7:03 AM</span>
+                    </div>
+
+                    <div class="discord-embed cyan-embed" style="border-left-color: #00d2ff;">
+                      <div class="embed-title" id="sim-nationality-title">🌍 Choose Your Nationality</div>
+                      <div class="embed-description" id="sim-nationality-desc">
+                        Welcome to <strong>AION 2 Server</strong>!<br><br>
+                        Please select your nationality flag below to unlock access to your regional legion channels:<br><br>
+                        🇵🇭 <strong>Philippines</strong> (<code>PH</code>)<br>
+                        🇯🇵 <strong>Japan</strong> (<code>JP</code>)<br>
+                        🌐 <strong>Global / Other</strong> (<code>GLOBAL</code>)<br><br>
+                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+                        👉 <strong>React with your flag emoji below</strong> or <strong>click the button</strong> to receive your nationality role!
+                      </div>
+                      <div class="embed-footer" id="sim-nationality-footer">Click a flag button or react with an emoji to toggle your role</div>
+                    </div>
+
+                    <!-- Simulated Flag Buttons -->
+                    <div class="discord-action-row mt-2" id="sim-nationality-buttons-container">
+                      <button class="discord-btn discord-btn-secondary">🇵🇭 Philippines</button>
+                      <button class="discord-btn discord-btn-secondary">🇯🇵 Japan</button>
+                      <button class="discord-btn discord-btn-secondary">🌐 Global / Other</button>
+                    </div>
+
+                    <!-- Simulated Discord Emoji Reactions -->
+                    <div class="discord-reactions-row mt-2" id="sim-nationality-reactions-container" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                      <span class="sim-emoji-reaction" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer;">🇵🇭 1</span>
+                      <span class="sim-emoji-reaction" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer;">🇯🇵 1</span>
+                      <span class="sim-emoji-reaction" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer;">🌐 1</span>
+                    </div>
+
+                    <!-- Simulation Result Feed -->
+                    <div id="sim-nationality-feedback" class="sim-feedback hidden"></div>
                   </div>
                 </div>
               </div>
