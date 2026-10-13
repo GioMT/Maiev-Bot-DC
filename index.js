@@ -67,8 +67,8 @@ let config = {
     'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
     '**How it works:**\n' +
     '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
-    '2. Enter your exact in-game character name.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+    '2. Enter your exact in-game character name and select your nationality flag.\n' +
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]**, **[Elyos Fregion]**, and your regional nationality role, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
   ),
   verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2',
   welcomeTitle: process.env.WELCOME_TITLE || '🎉 Welcome to {server}, {ign}!',
@@ -78,7 +78,15 @@ let config = {
     '• **Channel Updated:** **#verify-ign** has been closed\n\n' +
     '📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.'
   ),
-  welcomeFooter: process.env.WELCOME_FOOTER || '{server} • AION 2 Elyos Legion'
+  welcomeFooter: process.env.WELCOME_FOOTER || '{server} • AION 2 Elyos Legion',
+  welcomeAnnouncementChannelId: '',
+  enableWelcomeAnnouncement: true,
+  welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!',
+  nationalityRoles: [
+    { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
+    { code: 'jp', name: 'Japan', emoji: '🇯🇵', roleId: '' },
+    { code: 'global', name: 'Global / Other', emoji: '🌐', roleId: '' }
+  ]
 };
 
 // Load config.json if available
@@ -99,6 +107,80 @@ function saveConfig(newConfig) {
   } catch (err) {
     console.error('⚠️ Failed to save config.json:', err.message);
   }
+}
+
+// Helper: Match nationality input to configured nationality entry
+function matchNationality(input, nationalityRoles = []) {
+  if (!input || !Array.isArray(nationalityRoles) || nationalityRoles.length === 0) return null;
+  const cleanInput = input.trim().toLowerCase();
+
+  // 1. Emoji match
+  const emojiMatch = nationalityRoles.find(n => n.emoji && input.includes(n.emoji));
+  if (emojiMatch) return emojiMatch;
+
+  // 2. Exact code match (e.g. "ph", "jp", "us", "kr")
+  const codeMatch = nationalityRoles.find(n => n.code && n.code.toLowerCase() === cleanInput);
+  if (codeMatch) return codeMatch;
+
+  // 3. Name match or inclusion (e.g. "philippines", "japan")
+  const nameMatch = nationalityRoles.find(n => {
+    const cleanName = n.name.toLowerCase();
+    return cleanName === cleanInput || cleanInput.includes(cleanName) || cleanName.includes(cleanInput);
+  });
+  if (nameMatch) return nameMatch;
+
+  // 4. Word tokens match (e.g. "PH Elyos", "USA player")
+  const words = cleanInput.split(/[^a-z0-9]/).filter(Boolean);
+  const wordCodeMatch = nationalityRoles.find(n => words.includes(n.code.toLowerCase()));
+  if (wordCodeMatch) return wordCodeMatch;
+
+  // 5. Globe / Other aliases
+  if (['globe', 'world', 'other', 'international', 'none', 'all'].some(alias => cleanInput.includes(alias))) {
+    const globalEntry = nationalityRoles.find(n => n.code === 'global' || (n.emoji && n.emoji.includes('🌐')));
+    if (globalEntry) return globalEntry;
+  }
+
+  return null;
+}
+
+// Helper: Generate ActionRows with Nationality Buttons
+function createNationalityButtonRows(nationalityRoles = []) {
+  const activeNats = (nationalityRoles || []).filter(n => n && n.name);
+  const rows = [];
+  // Discord limit: Max 5 buttons per ActionRow, max 5 rows per message
+  for (let i = 0; i < activeNats.length && i < 25; i += 4) {
+    const chunk = activeNats.slice(i, i + 4);
+    const row = new ActionRowBuilder();
+    for (const item of chunk) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`btn_nat_${item.code}`)
+          .setLabel(`${item.emoji || ''} ${item.name}`.trim())
+          .setStyle(ButtonStyle.Secondary)
+      );
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+// Helper: Build Nationality Reaction Roles Message
+function createNationalityMessage(guild) {
+  const embed = new EmbedBuilder()
+    .setColor(0x00d2ff)
+    .setTitle('🌍 Regional & Nationality Role Selection')
+    .setDescription(
+      `Welcome to **${guild.name}**!\n\n` +
+      `Click the flag buttons below to assign your nationality role and unlock access to your regional legion channels:\n\n` +
+      (config.nationalityRoles || [])
+        .map(n => `${n.emoji} **${n.name}** (\`${n.code.toUpperCase()}\`)`)
+        .join(' • ')
+    )
+    .setThumbnail(guild.iconURL({ dynamic: true }) || undefined)
+    .setFooter({ text: 'Click any flag button to toggle your role • Instant access' });
+
+  const rows = createNationalityButtonRows(config.nationalityRoles || []);
+  return { embeds: [embed], components: rows };
 }
 
 // ──────────────────────────────────────────
@@ -173,8 +255,8 @@ function createVerifyMessage(guild) {
     'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
     '**How it works:**\n' +
     '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
-    '2. Enter your exact in-game character name.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+    '2. Enter your exact in-game character name and specify your nationality flag.\n' +
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]**, **[Elyos Fregion]**, and your regional nationality role, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
   );
   const description = rawDescription.replace(/{server}/g, guild.name);
   const footer = config.verifyFooter || 'Maiev Verification System • AION 2';
@@ -204,6 +286,11 @@ const slashCommands = [
   new SlashCommandBuilder()
     .setName('post-verify')
     .setDescription('Post Maiev’s AION 2 verification card with the IGN button (Admin only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('post-nationality-roles')
+    .setDescription('Post interactive flag reaction roles for nationality channels (Admin only)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
@@ -316,19 +403,79 @@ client.on('interactionCreate', async (interaction) => {
       if (interaction.customId === 'btn_open_ign_modal') {
         const modal = new ModalBuilder()
           .setCustomId('modal_aion2_verify')
-          .setTitle('AION 2 IGN Verification');
+          .setTitle('AION 2 IGN & Nationality');
 
         const ignInput = new TextInputBuilder()
           .setCustomId('input_aion_ign')
-          .setLabel('Enter your AION 2 Character Name (IGN)')
+          .setLabel('AION 2 Character Name (IGN)')
           .setStyle(TextInputStyle.Short)
           .setPlaceholder('e.g. DaevaLegend, ShadowWing, etc.')
           .setMinLength(2)
           .setMaxLength(32)
           .setRequired(true);
 
-        modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
+        const flagSample = (config.nationalityRoles || [])
+          .slice(0, 6)
+          .map(n => `${n.emoji} ${n.code.toUpperCase()}`)
+          .join(', ');
+
+        const nationalityInput = new TextInputBuilder()
+          .setCustomId('input_nationality')
+          .setLabel('Nationality Flag (e.g. 🇵🇭, 🇯🇵 or 🌐 Global)')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder(flagSample ? `e.g. ${flagSample} (use 🌐 if not listed)` : 'e.g. 🇵🇭, 🇯🇵, or 🌐 Global')
+          .setMinLength(1)
+          .setMaxLength(32)
+          .setRequired(false);
+
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(ignInput),
+          new ActionRowBuilder().addComponents(nationalityInput)
+        );
         await interaction.showModal(modal);
+        return;
+      }
+
+      // Step C: Member clicks any Nationality Flag Reaction Role Button
+      if (interaction.customId.startsWith('btn_nat_')) {
+        const code = interaction.customId.replace('btn_nat_', '');
+        const natConfig = (config.nationalityRoles || []).find(n => n.code.toLowerCase() === code.toLowerCase());
+        if (!natConfig) {
+          await interaction.reply({ content: '⚠️ Nationality option not found.', ephemeral: true });
+          return;
+        }
+
+        const targetRole = await resolveRole(guild, natConfig.roleId, [natConfig.name, `${natConfig.emoji} ${natConfig.name}`, natConfig.code.toUpperCase()]);
+        if (!targetRole) {
+          await interaction.reply({
+            content: `⚠️ The role for ${natConfig.emoji} **${natConfig.name}** hasn't been configured in the Web Dashboard yet. Please ask an admin to link this role!`,
+            ephemeral: true
+          });
+          return;
+        }
+
+        const botMember = guild.members.me;
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles) || botMember.roles.highest.position <= targetRole.position) {
+          await interaction.reply({
+            content: `⚠️ Maiev lacks permission or hierarchy to assign **@${targetRole.name}**. Ensure Maiev's role is higher in Server Settings > Roles!`,
+            ephemeral: true
+          });
+          return;
+        }
+
+        if (member.roles.cache.has(targetRole.id)) {
+          await member.roles.remove(targetRole, 'Nationality reaction role toggled off');
+          await interaction.reply({
+            content: `❌ Removed role **@${targetRole.name}** (${natConfig.emoji}).`,
+            ephemeral: true
+          });
+        } else {
+          await member.roles.add(targetRole, 'Nationality reaction role assigned');
+          await interaction.reply({
+            content: `✅ You received **@${targetRole.name}** ${natConfig.emoji} **${natConfig.name}**! Access to your nationality channel is now unlocked.`,
+            ephemeral: true
+          });
+        }
         return;
       }
     }
@@ -337,6 +484,11 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.isModalSubmit()) {
       if (interaction.customId === 'modal_aion2_verify') {
         const ign = interaction.fields.getTextInputValue('input_aion_ign').trim();
+        let nationalityInput = '';
+        try {
+          nationalityInput = interaction.fields.getTextInputValue('input_nationality')?.trim() || '';
+        } catch (_) {}
+
         const botMember = guild.members.me;
 
         if (!botMember.permissions.has(PermissionFlagsBits.ManageNicknames)) {
@@ -374,11 +526,38 @@ client.on('interactionCreate', async (interaction) => {
           if (fregion) rolesToAdd.push(fregion);
         }
 
+        // Check & match Nationality Role if entered
+        let assignedNationality = null;
+        if (nationalityInput) {
+          const matchedNat = matchNationality(nationalityInput, config.nationalityRoles);
+          if (matchedNat) {
+            const natRole = await resolveRole(guild, matchedNat.roleId, [matchedNat.name, `${matchedNat.emoji} ${matchedNat.name}`, matchedNat.code.toUpperCase()]);
+            if (natRole) {
+              rolesToAdd.push(natRole);
+              assignedNationality = { ...matchedNat, role: natRole };
+            } else {
+              assignedNationality = { ...matchedNat, role: null };
+            }
+          }
+        } else {
+          // If left blank, default to Global / Other if configured
+          const globalEntry = (config.nationalityRoles || []).find(n => n.code === 'global' || (n.emoji && n.emoji.includes('🌐')));
+          if (globalEntry) {
+            const natRole = await resolveRole(guild, globalEntry.roleId, [globalEntry.name, 'Global']);
+            if (natRole) {
+              rolesToAdd.push(natRole);
+              assignedNationality = { ...globalEntry, role: natRole };
+            } else {
+              assignedNationality = { ...globalEntry, role: null };
+            }
+          }
+        }
+
         // Add roles
         const addedNames = [];
         for (const role of rolesToAdd) {
           if (botMember.roles.highest.position > role.position) {
-            await member.roles.add(role, 'AION 2 IGN registered');
+            await member.roles.add(role, 'AION 2 IGN registered & nationality assigned');
             addedNames.push(`@${role.name}`);
           }
         }
@@ -413,15 +592,24 @@ client.on('interactionCreate', async (interaction) => {
           .replace(/{server}/g, serverName)
           .replace(/{ign}/g, ign);
 
+        let natDetailsText = '';
+        if (assignedNationality) {
+          natDetailsText = `\n• **Nationality:** ${assignedNationality.emoji} **${assignedNationality.name}**` + (assignedNationality.role ? ` (Role: **@${assignedNationality.role.name}**)` : '');
+        }
+
         const welcomeDescription = (config.welcomeContent || (
           'Your AION 2 IGN has been successfully registered as **{ign}**!\n\n' +
-          '• **Roles Granted:** **{roles}**\n\n' +
+          '• **Roles Granted:** **{roles}**\n' +
+          '• **Channel Updated:** **#verify-ign** has been closed\n\n' +
           '📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.'
         ))
           .replace(/{server}/g, serverName)
           .replace(/{ign}/g, ign)
           .replace(/{roles}/g, rolesText)
-          .replace(/{user}/g, `<@${member.id}>`);
+          .replace(/{nationalityRole}/g, assignedNationality?.role ? `@${assignedNationality.role.name}` : (assignedNationality?.name || 'Regional Member'))
+          .replace(/{flag}/g, assignedNationality?.emoji || '🌐')
+          .replace(/{nationality}/g, assignedNationality?.name || 'International')
+          .replace(/{user}/g, `<@${member.id}>`) + (natDetailsText && !config.welcomeContent?.includes('{nationality') ? natDetailsText : '');
 
         const welcomeFooterText = (config.welcomeFooter || '{server} • AION 2 Elyos Legion')
           .replace(/{server}/g, serverName)
@@ -436,12 +624,51 @@ client.on('interactionCreate', async (interaction) => {
           .setFooter({ text: welcomeFooterText, iconURL: serverIcon })
           .setTimestamp();
 
+        // Optional quick nationality flag buttons on the ephemeral response
+        const natButtonRows = createNationalityButtonRows((config.nationalityRoles || []).slice(0, 8));
+
         await interaction.reply({
           embeds: [welcomeEmbed],
+          components: natButtonRows.slice(0, 2),
           ephemeral: true
         });
 
         console.log(`[Verification] ${member.user.tag} set IGN to "${ign}". Granted: ${addedNames.join(', ')}`);
+
+        // Send PUBLIC Welcome Announcement in designated welcome channel
+        if (config.enableWelcomeAnnouncement !== false) {
+          try {
+            const welcomeChan = await resolveChannel(guild, config.welcomeAnnouncementChannelId, /welcome|announcement|general/i);
+            if (welcomeChan && welcomeChan.isTextBased()) {
+              const defaultPublicTemplate = "👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!";
+              const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
+              const publicMessage = rawPublicTemplate
+                .replace(/{user}/g, `<@${member.id}>`)
+                .replace(/{ign}/g, ign)
+                .replace(/{server}/g, guild.name)
+                .replace(/{flag}/g, assignedNationality?.emoji || '🌐')
+                .replace(/{nationality}/g, assignedNationality?.name || 'International')
+                .replace(/{roles}/g, rolesText);
+
+              const publicEmbed = new EmbedBuilder()
+                .setColor(0x00d2ff)
+                .setAuthor({ name: `${guild.name} • New Daeva Arrival`, iconURL: serverIcon })
+                .setDescription(publicMessage)
+                .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+                .setFooter({ text: `AION 2 Elyos Legion • Member #${guild.memberCount}`, iconURL: serverIcon })
+                .setTimestamp();
+
+              await welcomeChan.send({
+                content: `<@${member.id}>`,
+                embeds: [publicEmbed]
+              });
+              console.log(`[Welcome Announcement] Sent public welcome for ${member.user.tag} to #${welcomeChan.name}`);
+            }
+          } catch (pubErr) {
+            console.warn('[Welcome Announcement] Failed to post to welcome channel:', pubErr.message);
+          }
+        }
+
         return;
       }
     }
@@ -468,6 +695,18 @@ client.on('interactionCreate', async (interaction) => {
           const payload = createVerifyMessage(guild);
           await interaction.channel.send(payload);
           await interaction.editReply({ content: '✅ Maiev AION 2 verification card posted successfully!' });
+        } catch (sendErr) {
+          await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
+        }
+        return;
+      }
+
+      if (commandName === 'post-nationality-roles') {
+        await interaction.deferReply({ ephemeral: true });
+        try {
+          const payload = createNationalityMessage(guild);
+          await interaction.channel.send(payload);
+          await interaction.editReply({ content: '✅ Nationality reaction roles card posted successfully in this channel!' });
         } catch (sendErr) {
           await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
         }
@@ -512,7 +751,7 @@ client.on('interactionCreate', async (interaction) => {
         } else {
           const modal = new ModalBuilder()
             .setCustomId('modal_aion2_verify')
-            .setTitle('AION 2 IGN Verification');
+            .setTitle('AION 2 IGN & Nationality');
           const ignInput = new TextInputBuilder()
             .setCustomId('input_aion_ign')
             .setLabel('Desired AION 2 In-Game Name')
@@ -521,7 +760,18 @@ client.on('interactionCreate', async (interaction) => {
             .setMinLength(2)
             .setMaxLength(32)
             .setRequired(true);
-          modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
+          const nationalityInput = new TextInputBuilder()
+            .setCustomId('input_nationality')
+            .setLabel('Nationality Flag / Code (e.g. PH, JP, US)')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('e.g. 🇵🇭 PH, 🇯🇵 JP, 🇰🇷 KR, 🇺🇸 US, 🌐 Other')
+            .setMinLength(1)
+            .setMaxLength(32)
+            .setRequired(false);
+          modal.addComponents(
+            new ActionRowBuilder().addComponents(ignInput),
+            new ActionRowBuilder().addComponents(nationalityInput)
+          );
           await interaction.showModal(modal);
         }
         return;
@@ -595,7 +845,11 @@ app.post('/api/config', (req, res) => {
     verifyFooter,
     welcomeTitle,
     welcomeContent,
-    welcomeFooter
+    welcomeFooter,
+    welcomeAnnouncementChannelId,
+    enableWelcomeAnnouncement,
+    welcomeAnnouncementMessage,
+    nationalityRoles
   } = req.body;
 
   saveConfig({
@@ -612,7 +866,11 @@ app.post('/api/config', (req, res) => {
     verifyFooter: verifyFooter !== undefined ? verifyFooter : config.verifyFooter,
     welcomeTitle: welcomeTitle !== undefined ? welcomeTitle : config.welcomeTitle,
     welcomeContent: welcomeContent !== undefined ? welcomeContent : config.welcomeContent,
-    welcomeFooter: welcomeFooter !== undefined ? welcomeFooter : config.welcomeFooter
+    welcomeFooter: welcomeFooter !== undefined ? welcomeFooter : config.welcomeFooter,
+    welcomeAnnouncementChannelId: welcomeAnnouncementChannelId !== undefined ? welcomeAnnouncementChannelId : config.welcomeAnnouncementChannelId,
+    enableWelcomeAnnouncement: enableWelcomeAnnouncement !== undefined ? enableWelcomeAnnouncement : config.enableWelcomeAnnouncement,
+    welcomeAnnouncementMessage: welcomeAnnouncementMessage !== undefined ? welcomeAnnouncementMessage : config.welcomeAnnouncementMessage,
+    nationalityRoles: Array.isArray(nationalityRoles) ? nationalityRoles : config.nationalityRoles
   });
   console.log('⚙️ Configuration updated via Web UI:', config);
   res.json({ success: true, config });
@@ -646,6 +904,59 @@ app.post('/api/post-verify', async (req, res) => {
     }
     const payload = createVerifyMessage(guild);
     await channel.send(payload);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Trigger Post Nationality Roles Embed
+app.post('/api/post-nationality-roles', async (req, res) => {
+  try {
+    const { channelId } = req.body;
+    const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
+    const channel = await guild?.channels.fetch(channelId).catch(() => null);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({ error: 'Invalid or non-text channel specified' });
+    }
+    const payload = createNationalityMessage(guild);
+    await channel.send(payload);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Send Test Public Welcome Announcement
+app.post('/api/test-welcome', async (req, res) => {
+  try {
+    const { channelId, message } = req.body;
+    const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
+    const channel = await guild?.channels.fetch(channelId || config.welcomeAnnouncementChannelId).catch(() => null);
+    if (!channel || !channel.isTextBased()) {
+      return res.status(400).json({ error: 'Invalid or non-text channel specified' });
+    }
+    const serverName = guild?.name || 'AION 2 Server';
+    const serverIcon = guild?.iconURL({ dynamic: true, size: 256 }) || undefined;
+    const template = message || config.welcomeAnnouncementMessage || "👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!";
+    
+    const formatted = template
+      .replace(/{user}/g, client.user ? `<@${client.user.id}>` : '@NewPlayer')
+      .replace(/{ign}/g, 'DaevaLegend')
+      .replace(/{server}/g, serverName)
+      .replace(/{flag}/g, '🇵🇭')
+      .replace(/{nationality}/g, 'Philippines')
+      .replace(/{roles}/g, '@Unverified, @Elyos Fregion');
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00d2ff)
+      .setAuthor({ name: `${serverName} • New Daeva Arrival (Test)`, iconURL: serverIcon })
+      .setDescription(formatted)
+      .setThumbnail(serverIcon)
+      .setFooter({ text: `Maiev Verification Test • Member Count: ${guild?.memberCount || 1}`, iconURL: serverIcon })
+      .setTimestamp();
+
+    await channel.send({ content: client.user ? `<@${client.user.id}>` : undefined, embeds: [embed] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

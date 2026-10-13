@@ -1,5 +1,6 @@
 /**
  * Maiev Bot Control Center — Client Application
+ * Real-time management for AION 2 Verification, Welcome Announcements, and Nationality Flag Roles
  */
 
 const DEFAULT_RULES_TEMPLATE = {
@@ -24,8 +25,8 @@ To proceed, please register your **AION 2 In-Game Name (IGN)**:
 
 **How it works:**
 1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.
-2. Enter your exact in-game character name.
-3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`,
+2. Enter your exact in-game character name and select your nationality flag.
+3. Maiev will update your server nickname to your IGN, assign your nationality role, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`,
   footer: 'Maiev Verification System • AION 2'
 };
 
@@ -33,14 +34,17 @@ const DEFAULT_WELCOME_TEMPLATE = {
   title: '🎉 Welcome to {server}, {ign}!',
   content: `Your AION 2 IGN has been successfully registered as **{ign}**!
 
-• **Roles Granted:** **[Unverified]** and **[Elyos Fregion]**
+• **Roles Granted:** **[Unverified]**, **[Elyos Fregion]**, and **{nationalityRole}**
 • **Channel Updated:** **#verify-ign** has been closed
 
-📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.`,
+📸 **Next Step:** The exclusive community channels and your regional nationality channel are now unlocked! Please post your character screenshot in the verification channel for staff approval.`,
   footer: '{server} • AION 2 Elyos Legion'
 };
 
+const DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE = "👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!";
+
 let serverState = null;
+let currentNationalityRoles = [];
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
@@ -62,6 +66,8 @@ async function fetchServerState() {
     renderRulesEditor(data.config || {});
     renderVerifyEditor(data.config || {});
     renderWelcomeEditor(data.config || {});
+    renderWelcomeAnnouncementEditor(data.config || {});
+    renderNationalityRolesManager(data);
     renderDiagnostics(data);
     fetchMembers();
   } catch (err) {
@@ -76,6 +82,8 @@ function renderHeaderTelemetry(data) {
     document.getElementById('bot-avatar').src = data.avatar;
     document.getElementById('sim-bot-avatar-1').src = data.avatar;
     document.getElementById('sim-bot-avatar-2').src = data.avatar;
+    const simAvatar3 = document.getElementById('sim-bot-avatar-3');
+    if (simAvatar3) simAvatar3.src = data.avatar;
   }
   document.getElementById('bot-connection-string').textContent = `${data.botName} • Connected to Discord Gateway`;
   document.getElementById('ping-value').textContent = `${Math.max(data.ping, 1)} ms`;
@@ -157,9 +165,13 @@ function renderChannelDropdowns(data) {
 
   const rulesSelect = document.getElementById('select-rules-channel');
   const verifySelect = document.getElementById('select-verify-channel');
+  const welcomeSelect = document.getElementById('select-welcome-channel');
+  const natRolesSelect = document.getElementById('select-nationality-roles-channel');
 
   rulesSelect.innerHTML = '<option value="">-- Select Channel --</option>';
   verifySelect.innerHTML = '<option value="">-- Select Channel --</option>';
+  if (welcomeSelect) welcomeSelect.innerHTML = '<option value="">-- Select Welcome Channel --</option>';
+  if (natRolesSelect) natRolesSelect.innerHTML = '<option value="">-- Select Channel --</option>';
 
   channels.forEach(ch => {
     const optRules = document.createElement('option');
@@ -177,6 +189,26 @@ function renderChannelDropdowns(data) {
       optVerify.selected = true;
     }
     verifySelect.appendChild(optVerify);
+
+    if (welcomeSelect) {
+      const optWelcome = document.createElement('option');
+      optWelcome.value = ch.id;
+      optWelcome.textContent = `#${ch.name}`;
+      if (ch.id === currentConfig.welcomeAnnouncementChannelId || (!currentConfig.welcomeAnnouncementChannelId && /welcome/i.test(ch.name))) {
+        optWelcome.selected = true;
+      }
+      welcomeSelect.appendChild(optWelcome);
+    }
+
+    if (natRolesSelect) {
+      const optNat = document.createElement('option');
+      optNat.value = ch.id;
+      optNat.textContent = `#${ch.name}`;
+      if (/role/i.test(ch.name)) {
+        optNat.selected = true;
+      }
+      natRolesSelect.appendChild(optNat);
+    }
   });
 }
 
@@ -248,6 +280,148 @@ function renderWelcomeEditor(cfg) {
   document.getElementById('welcome-title-input').value = title;
   document.getElementById('welcome-content-input').value = content;
   document.getElementById('welcome-footer-input').value = footer;
+}
+
+// Render Public Welcome Channel Announcement Editor
+function renderWelcomeAnnouncementEditor(cfg) {
+  const check = document.getElementById('check-enable-welcome-announcement');
+  const textarea = document.getElementById('welcome-announcement-input');
+
+  if (check) check.checked = cfg.enableWelcomeAnnouncement !== false;
+  if (textarea) textarea.value = cfg.welcomeAnnouncementMessage || DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE;
+
+  updateWelcomeAnnouncementPreview();
+}
+
+// Update simulated public welcome announcement
+function updateWelcomeAnnouncementPreview() {
+  const textarea = document.getElementById('welcome-announcement-input');
+  const template = textarea?.value || DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE;
+  const serverName = serverState?.guild?.name || 'AION 2 Server';
+
+  const preview = template
+    .replace(/{server}/g, serverName)
+    .replace(/{user}/g, '@DaevaPlayer')
+    .replace(/{ign}/g, 'DaevaLegend')
+    .replace(/{flag}/g, '🇵🇭')
+    .replace(/{nationality}/g, 'Philippines');
+
+  const descEl = document.getElementById('sim-welcome-announcement-desc');
+  const authorEl = document.getElementById('sim-welcome-announcement-author');
+  const footerEl = document.getElementById('sim-welcome-announcement-footer');
+
+  if (descEl) descEl.innerHTML = formatDiscordMarkdown(preview);
+  if (authorEl) authorEl.textContent = `${serverName} • New Daeva Arrival`;
+  if (footerEl) footerEl.textContent = `${serverName} • Welcome Channel`;
+}
+
+// Render Nationality Roles Manager
+function renderNationalityRolesManager(data) {
+  currentNationalityRoles = Array.isArray(data.config?.nationalityRoles)
+    ? [...data.config.nationalityRoles]
+    : [
+        { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' },
+        { code: 'jp', name: 'Japan', emoji: '🇯🇵', roleId: '' },
+        { code: 'global', name: 'Global / Other', emoji: '🌐', roleId: '' }
+      ];
+
+  // Populate Add Custom Nationality role dropdown
+  const newRoleSelect = document.getElementById('new-nat-role');
+  if (newRoleSelect) {
+    newRoleSelect.innerHTML = '<option value="">-- Choose Role --</option>';
+    const roles = data.guild?.roles || [];
+    roles.forEach(r => {
+      if (r.name === '@everyone') return;
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = `@${r.name}`;
+      newRoleSelect.appendChild(opt);
+    });
+  }
+
+  renderNationalityRolesList();
+  renderSimFlagPills();
+}
+
+// Render the grid list of configured nationalities
+function renderNationalityRolesList() {
+  const container = document.getElementById('nationality-roles-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const roles = serverState?.guild?.roles || [];
+
+  if (currentNationalityRoles.length === 0) {
+    container.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; padding: 12px;">No nationality flags configured yet. Use the form below to add flags for the countries you support!</p>';
+    return;
+  }
+
+  currentNationalityRoles.forEach((item, index) => {
+    const card = document.createElement('div');
+    card.className = 'nat-card-item';
+
+    let roleOptionsHtml = '<option value="">-- Link Server Role --</option>';
+    roles.forEach(r => {
+      if (r.name === '@everyone') return;
+      const isSelected = r.id === item.roleId;
+      roleOptionsHtml += `<option value="${r.id}" ${isSelected ? 'selected' : ''}>@${r.name}</option>`;
+    });
+
+    card.innerHTML = `
+      <div class="nat-card-header">
+        <div class="nat-identity">
+          <span class="nat-flag">${item.emoji || '🌐'}</span>
+          <span class="nat-name">${item.name}</span>
+          <span class="nat-code">${(item.code || '').toUpperCase()}</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary btn-del-nat" title="Remove flag" style="padding: 2px 8px; font-size: 0.72rem; color: #ED4245;">
+          ✕
+        </button>
+      </div>
+      <div>
+        <select class="form-select nat-role-select">
+          ${roleOptionsHtml}
+        </select>
+      </div>
+    `;
+
+    // Role select change listener
+    const selectEl = card.querySelector('.nat-role-select');
+    selectEl.addEventListener('change', (e) => {
+      currentNationalityRoles[index].roleId = e.target.value;
+    });
+
+    // Delete button listener
+    const delBtn = card.querySelector('.btn-del-nat');
+    delBtn.addEventListener('click', () => {
+      currentNationalityRoles.splice(index, 1);
+      renderNationalityRolesList();
+      renderSimFlagPills();
+      showToast(`Removed flag ${item.emoji} ${item.name}`, 'success');
+    });
+
+    container.appendChild(card);
+  });
+}
+
+// Render flag pills inside the simulated Discord modal
+function renderSimFlagPills() {
+  const pillsContainer = document.getElementById('sim-flag-pills-container');
+  if (!pillsContainer) return;
+  pillsContainer.innerHTML = '';
+
+  currentNationalityRoles.forEach(item => {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'flag-pill';
+    pill.innerHTML = `<span>${item.emoji}</span> <span>${item.name}</span>`;
+    pill.addEventListener('click', () => {
+      document.getElementById('sim-modal-nat-input').value = item.emoji;
+      document.querySelectorAll('.flag-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+    pillsContainer.appendChild(pill);
+  });
 }
 
 // Format Discord Markdown to HTML
@@ -347,6 +521,12 @@ function setupEventListeners() {
   verifyContentInput.addEventListener('input', updateVerifyPreview);
   verifyFooterInput.addEventListener('input', updateVerifyPreview);
 
+  // Live input listening on public welcome announcement
+  const welcomeAnnounceInput = document.getElementById('welcome-announcement-input');
+  if (welcomeAnnounceInput) {
+    welcomeAnnounceInput.addEventListener('input', updateWelcomeAnnouncementPreview);
+  }
+
   // Reset Rules Template Button
   document.getElementById('btn-reset-rules-template').addEventListener('click', () => {
     titleInput.value = DEFAULT_RULES_TEMPLATE.title;
@@ -373,13 +553,92 @@ function setupEventListeners() {
     showToast('Reset welcome popup card to standard template!', 'success');
   });
 
+  // Reset Public Welcome Announcement Template Button
+  const btnResetAnnounce = document.getElementById('btn-reset-welcome-announcement-template');
+  if (btnResetAnnounce) {
+    btnResetAnnounce.addEventListener('click', () => {
+      document.getElementById('welcome-announcement-input').value = DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE;
+      updateWelcomeAnnouncementPreview();
+      showToast('Reset public welcome announcement to standard template!', 'success');
+    });
+  }
+
+  // Add Custom Nationality Button
+  const btnAddNat = document.getElementById('btn-add-nationality');
+  if (btnAddNat) {
+    btnAddNat.addEventListener('click', () => {
+      const emojiInput = document.getElementById('new-nat-emoji');
+      const nameInput = document.getElementById('new-nat-name');
+      const codeInput = document.getElementById('new-nat-code');
+      const roleSelect = document.getElementById('new-nat-role');
+
+      const emoji = emojiInput.value.trim();
+      const name = nameInput.value.trim();
+      const code = (codeInput.value.trim() || name.slice(0, 3)).toLowerCase();
+      const roleId = roleSelect.value;
+
+      if (!emoji || !name) {
+        showToast('Please provide at least a flag emoji and country name.', 'error');
+        return;
+      }
+
+      currentNationalityRoles.push({ emoji, name, code, roleId });
+      emojiInput.value = '';
+      nameInput.value = '';
+      codeInput.value = '';
+      roleSelect.value = '';
+
+      renderNationalityRolesList();
+      renderSimFlagPills();
+      showToast(`Added ${emoji} ${name}! Click Save Configuration to apply.`, 'success');
+    });
+  }
+
+  // Send Test Public Welcome Announcement Button
+  const btnTestWelcome = document.getElementById('btn-test-welcome-announcement');
+  if (btnTestWelcome) {
+    btnTestWelcome.addEventListener('click', async () => {
+      const channelId = document.getElementById('select-welcome-channel').value;
+      const message = document.getElementById('welcome-announcement-input').value.trim();
+      if (!channelId) {
+        showToast('Please select a welcome channel first.', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/api/test-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, message })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        showToast('🚀 Test welcome announcement sent to Discord!', 'success');
+      } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Post Nationality Roles Card Button
+  const btnPostNatRoles = document.getElementById('btn-post-nationality-roles-channel');
+  if (btnPostNatRoles) {
+    btnPostNatRoles.addEventListener('click', async () => {
+      const channelId = document.getElementById('select-nationality-roles-channel').value;
+      if (!channelId) {
+        showToast('Please select a channel to post the nationality reaction embed.', 'error');
+        return;
+      }
+      postEmbed('/api/post-nationality-roles', channelId, 'Nationality reaction roles embed posted to Discord!');
+    });
+  }
+
   // Refresh Button
   document.getElementById('btn-refresh').addEventListener('click', () => {
     fetchServerState();
     showToast('Refreshed live data from Discord!', 'success');
   });
 
-  // Save Configuration (includes rules, verification, and welcome popup embeds!)
+  // Save Configuration (includes rules, verification, welcome popup, public announcement, and nationality roles!)
   document.getElementById('btn-save-config').addEventListener('click', async () => {
     const onboardedRoleId = document.getElementById('select-onboarded-role').value;
     const rulesChannelId = document.getElementById('select-rules-channel').value;
@@ -400,6 +659,10 @@ function setupEventListeners() {
     const welcomeContent = document.getElementById('welcome-content-input').value.trim();
     const welcomeFooter = document.getElementById('welcome-footer-input').value.trim();
 
+    const welcomeAnnouncementChannelId = document.getElementById('select-welcome-channel')?.value || '';
+    const enableWelcomeAnnouncement = document.getElementById('check-enable-welcome-announcement')?.checked !== false;
+    const welcomeAnnouncementMessage = document.getElementById('welcome-announcement-input')?.value.trim() || '';
+
     try {
       const res = await fetch('/api/config', {
         method: 'POST',
@@ -418,13 +681,17 @@ function setupEventListeners() {
           verifyFooter,
           welcomeTitle,
           welcomeContent,
-          welcomeFooter
+          welcomeFooter,
+          welcomeAnnouncementChannelId,
+          enableWelcomeAnnouncement,
+          welcomeAnnouncementMessage,
+          nationalityRoles: currentNationalityRoles
         })
       });
 
       if (!res.ok) throw new Error('Save failed');
       const result = await res.json();
-      showToast('🎉 Configuration, Rules, & Welcome Popup Card saved successfully!', 'success');
+      showToast('🎉 All settings, welcome announcement & nationality roles saved successfully!', 'success');
       updateFunnelLabels();
     } catch (err) {
       showToast('❌ Error saving configuration.', 'error');
@@ -454,25 +721,43 @@ function setupEventListeners() {
   // Simulator Tab Switch
   const rulesTab = document.getElementById('tab-rules-btn');
   const verifyTab = document.getElementById('tab-verify-btn');
+  const welcomeTab = document.getElementById('tab-welcome-announcement-btn');
   const rulesView = document.getElementById('sim-rules-view');
   const verifyView = document.getElementById('sim-verify-view');
+  const welcomeView = document.getElementById('sim-welcome-announcement-view');
   const simChanName = document.getElementById('sim-channel-name');
 
   rulesTab.addEventListener('click', () => {
     rulesTab.classList.add('active');
     verifyTab.classList.remove('active');
+    if (welcomeTab) welcomeTab.classList.remove('active');
     rulesView.classList.remove('hidden');
     verifyView.classList.add('hidden');
+    if (welcomeView) welcomeView.classList.add('hidden');
     simChanName.textContent = 'rules';
   });
 
   verifyTab.addEventListener('click', () => {
     verifyTab.classList.add('active');
     rulesTab.classList.remove('active');
+    if (welcomeTab) welcomeTab.classList.remove('active');
     verifyView.classList.remove('hidden');
     rulesView.classList.add('hidden');
+    if (welcomeView) welcomeView.classList.add('hidden');
     simChanName.textContent = 'verify-ign';
   });
+
+  if (welcomeTab) {
+    welcomeTab.addEventListener('click', () => {
+      welcomeTab.classList.add('active');
+      rulesTab.classList.remove('active');
+      verifyTab.classList.remove('active');
+      if (welcomeView) welcomeView.classList.remove('hidden');
+      rulesView.classList.add('hidden');
+      verifyView.classList.add('hidden');
+      simChanName.textContent = 'welcome';
+    });
+  }
 
   // Simulator: Click "I Agree to Rules"
   document.getElementById('sim-btn-accept-rules').addEventListener('click', () => {
@@ -495,14 +780,27 @@ function setupEventListeners() {
   // Simulator: Submit Modal
   document.getElementById('sim-modal-submit').addEventListener('click', () => {
     const ign = document.getElementById('sim-modal-ign-input').value.trim() || 'DaevaLegend';
+    const natInput = document.getElementById('sim-modal-nat-input').value.trim();
     modalBackdrop.classList.add('hidden');
+
+    // Find matched nationality from current list
+    const cleanNat = natInput.toLowerCase();
+    const matchedNat = currentNationalityRoles.find(n => 
+      (n.emoji && natInput.includes(n.emoji)) || 
+      (n.code && cleanNat.includes(n.code.toLowerCase())) || 
+      (n.name && cleanNat.includes(n.name.toLowerCase()))
+    ) || currentNationalityRoles.find(n => n.code === 'global' || n.emoji === '🌐') || { emoji: '🌐', name: 'Global / Other' };
 
     const serverName = serverState?.guild?.name || 'AION 2 Server';
     const serverIcon = serverState?.guild?.icon || 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png';
     const welcomeTitle = (document.getElementById('welcome-title-input').value || DEFAULT_WELCOME_TEMPLATE.title)
       .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
     const welcomeBody = (document.getElementById('welcome-content-input').value || DEFAULT_WELCOME_TEMPLATE.content)
-      .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
+      .replace(/{server}/g, serverName)
+      .replace(/{ign}/g, ign)
+      .replace(/{nationalityRole}/g, `${matchedNat.emoji} ${matchedNat.name}`)
+      .replace(/{flag}/g, matchedNat.emoji)
+      .replace(/{nationality}/g, matchedNat.name);
     const welcomeFoot = (document.getElementById('welcome-footer-input').value || DEFAULT_WELCOME_TEMPLATE.footer)
       .replace(/{server}/g, serverName).replace(/{ign}/g, ign);
 
@@ -517,8 +815,25 @@ function setupEventListeners() {
         <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 6px;">${welcomeTitle}</div>
         <div style="line-height: 1.45; color: #dbdee1; font-size: 0.84rem;">${formatDiscordMarkdown(welcomeBody)}</div>
         <div style="font-size: 0.72rem; color: #949ba4; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">${welcomeFoot}</div>
+        <div style="margin-top: 8px; font-size: 0.76rem; color: #57F287;">
+          📢 <em>Public Welcome sent to #${document.getElementById('select-welcome-channel')?.selectedOptions[0]?.text || 'welcome'} mentioning you!</em>
+        </div>
       </div>
     `;
+
+    // Also update simulated welcome announcement view
+    const announceDesc = document.getElementById('sim-welcome-announcement-desc');
+    if (announceDesc) {
+      const template = document.getElementById('welcome-announcement-input')?.value || DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE;
+      announceDesc.innerHTML = formatDiscordMarkdown(
+        template
+          .replace(/{server}/g, serverName)
+          .replace(/{user}/g, '@DaevaPlayer')
+          .replace(/{ign}/g, ign)
+          .replace(/{flag}/g, matchedNat.emoji)
+          .replace(/{nationality}/g, matchedNat.name)
+      );
+    }
   });
 }
 

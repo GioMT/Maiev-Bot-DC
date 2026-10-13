@@ -303,6 +303,112 @@
                 </div>
               </div>
             </div>
+
+            <!-- Stage 3 Configuration: Public Welcome Channel Announcement -->
+            <div class="config-stage-box mt-4">
+              <div class="stage-header">
+                <span class="stage-num">3</span>
+                <div>
+                  <h3 class="stage-title">Public Welcome Channel Announcement</h3>
+                  <p class="stage-desc">Send a customized welcome message in your designated welcome channel mentioning new players when their IGN is set.</p>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-welcome-channel" class="form-label">
+                    Target Welcome Channel:
+                  </label>
+                  <select id="select-welcome-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                  <span class="form-hint">E.g. <strong>#welcome</strong> or <strong>#general</strong></span>
+                </div>
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
+                  <button type="button" class="btn btn-secondary" id="btn-test-welcome-announcement">
+                    🚀 Send Test Announcement
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group mt-2">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="check-enable-welcome-announcement" checked>
+                  <span>Enable Public Welcome Announcement in welcome channel upon IGN verification</span>
+                </label>
+              </div>
+
+              <div class="personalized-rules-box mt-3">
+                <div class="rules-editor-header">
+                  <span class="editor-badge">📢 CUSTOMIZABLE PUBLIC WELCOME MESSAGE</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-welcome-announcement-template">
+                    ↺ Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="welcome-announcement-input" class="form-label">
+                    Public Welcome Message:
+                  </label>
+                  <textarea id="welcome-announcement-input" class="form-textarea" rows="4" placeholder="👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!"></textarea>
+                  <span class="form-hint">Available tags: <strong>{user}</strong> (member mention), <strong>{ign}</strong> (in-game name), <strong>{flag}</strong> (flag emoji), <strong>{nationality}</strong> (country name), <strong>{server}</strong> (server name).</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 4 Configuration: Nationality Flag Roles Manager -->
+            <div class="config-stage-box mt-4">
+              <div class="stage-header">
+                <span class="stage-num">4</span>
+                <div>
+                  <h3 class="stage-title">🌍 Nationality Flag Roles Manager</h3>
+                  <p class="stage-desc">Configure only the flags you support and link each one to its server role. Members select their flag in the modal or via flag reaction buttons to unlock their regional channel.</p>
+                </div>
+              </div>
+
+              <!-- List of configured flags with role selectors -->
+              <div class="form-group">
+                <label class="form-label">
+                  Configured Nationality Flags & Mapped Roles:
+                </label>
+                <div id="nationality-roles-container" class="nationality-grid">
+                  <p class="text-muted">Loading nationality roles...</p>
+                </div>
+              </div>
+
+              <!-- Add custom nationality box -->
+              <div class="add-custom-nat-box">
+                <h4 style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 8px;">➕ Add Flag & Bind Server Role</h4>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                  <input type="text" id="new-nat-emoji" class="form-input" placeholder="Flag (e.g. 🇵🇭)" style="width: 100px;">
+                  <input type="text" id="new-nat-name" class="form-input" placeholder="Country (e.g. Philippines)" style="flex: 1; min-width: 140px;">
+                  <input type="text" id="new-nat-code" class="form-input" placeholder="Code (e.g. ph)" style="width: 100px;">
+                  <select id="new-nat-role" class="form-select" style="flex: 1; min-width: 160px;">
+                    <option value="">-- Choose Role --</option>
+                  </select>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-nationality" style="white-space: nowrap;">
+                    ➕ Add Flag
+                  </button>
+                </div>
+                <span class="form-hint">Enter the flag emoji, country name, short code, and select the server role that grants access to that nationality's exclusive channel.</span>
+              </div>
+
+              <div class="form-row mt-3">
+                <div class="form-group flex-1">
+                  <label for="select-nationality-roles-channel" class="form-label">
+                    Post Nationality Reaction Roles Card To Channel (Optional):
+                  </label>
+                  <select id="select-nationality-roles-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                </div>
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
+                  <button type="button" class="btn btn-secondary" id="btn-post-nationality-roles-channel">
+                    🚀 Post Flag Roles Embed
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -359,6 +465,7 @@
             <div class="tab-switch">
               <button class="tab-btn active" id="tab-rules-btn">Rules Embed</button>
               <button class="tab-btn" id="tab-verify-btn">Verify Embed</button>
+              <button class="tab-btn" id="tab-welcome-announcement-btn">Public Welcome</button>
             </div>
           </div>
 
@@ -429,8 +536,8 @@
                         To proceed, please register your <strong>AION 2 In-Game Name (IGN)</strong>:<br><br>
                         <strong>How it works:</strong><br>
                         1. Click the <strong>"🎮 Set AION 2 IGN & Verify"</strong> button below.<br>
-                        2. Enter your exact in-game character name.<br>
-                        3. Maiev will update your server nickname, grant you <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Onboarded]</strong>!
+                        2. Enter your exact in-game character name and choose your flag.<br>
+                        3. Maiev will update your nickname, assign your nationality role, grant <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Onboarded]</strong>!
                       </div>
                       <div class="embed-footer" id="sim-verify-footer">Maiev Verification System • AION 2</div>
                     </div>
@@ -447,6 +554,37 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Public Welcome Channel Preview -->
+              <div id="sim-welcome-announcement-view" class="discord-message-group hidden">
+                <div class="discord-message">
+                  <img class="discord-author-avatar" id="sim-bot-avatar-3" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                  <div class="discord-message-content">
+                    <div class="discord-author-row">
+                      <span class="discord-author-name">Maiev</span>
+                      <span class="discord-bot-badge">BOT</span>
+                      <span class="discord-timestamp">Today at 7:02 AM</span>
+                    </div>
+
+                    <div style="color: var(--accent-blurple); font-weight: 600; margin-bottom: 6px;">
+                      @DaevaPlayer
+                    </div>
+
+                    <div class="discord-embed cyan-embed" style="border-left-color: #00d2ff;">
+                      <div style="font-weight: 700; color: #00d2ff; font-size: 0.88rem; margin-bottom: 4px;" id="sim-welcome-announcement-author">
+                        Server • New Daeva Arrival
+                      </div>
+                      <div class="embed-description" id="sim-welcome-announcement-desc">
+                        👋 Welcome to **AION 2 Elyos Legion**, @DaevaPlayer! Registered as **DaevaLegend** 🇵🇭 (Philippines). Welcome to the Legion, Daeva!
+                      </div>
+                      <div class="embed-footer" id="sim-welcome-announcement-footer">
+                        AION 2 Elyos Legion • Welcome Channel
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -489,16 +627,27 @@
   <div class="modal-backdrop hidden" id="sim-modal-backdrop">
     <div class="discord-modal">
       <div class="modal-header">
-        <h3 class="modal-title">AION 2 IGN Verification</h3>
+        <h3 class="modal-title">AION 2 IGN & Nationality</h3>
         <button class="modal-close" id="sim-modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <div class="modal-form-group">
           <label class="modal-label" for="sim-modal-ign-input">
-            ENTER YOUR AION 2 CHARACTER NAME (IGN) <span class="required">*</span>
+            AION 2 CHARACTER NAME (IGN) <span class="required">*</span>
           </label>
           <input type="text" id="sim-modal-ign-input" class="modal-input" placeholder="e.g. DaevaLegend, ShadowWing, etc." maxlength="32" value="DaevaLegend">
           <span class="modal-hint">Max 32 characters. This will become your server nickname.</span>
+        </div>
+
+        <div class="modal-form-group mt-3">
+          <label class="modal-label" for="sim-modal-nat-input">
+            NATIONALITY FLAG (E.G. 🇵🇭, 🇯🇵 OR 🌐 GLOBAL)
+          </label>
+          <input type="text" id="sim-modal-nat-input" class="modal-input" placeholder="e.g. 🇵🇭, 🇯🇵, or 🌐 Global (if not listed)" maxlength="32" value="🇵🇭">
+          <span class="modal-hint">Select from the configured server flags below or type 🌐 Global if your flag is not listed:</span>
+          <div id="sim-flag-pills-container" class="flag-picker-pills mt-2">
+            <!-- Dynamic flag pills generated from configured nationalityRoles -->
+          </div>
         </div>
       </div>
       <div class="modal-footer">

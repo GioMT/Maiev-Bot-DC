@@ -879,3 +879,104 @@ body {
 .hidden { display: none !important; }
 .text-muted { color: var(--text-muted); }
 .text-center { text-align: center; }
+
+/* ==========================================================================
+   Nationality Roles & Welcome Announcement Components
+   ========================================================================== */
+.nationality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.nat-card-item {
+  background: rgba(16, 22, 34, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.nat-card-item:hover {
+  border-color: var(--border-accent);
+  background: rgba(22, 30, 48, 0.95);
+}
+.nat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nat-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nat-flag {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.nat-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+.nat-code {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-cyan);
+}
+.nat-role-select {
+  width: 100%;
+  font-size: 0.82rem;
+}
+.flag-picker-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.flag-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #dbdee1;
+  transition: all 0.15s ease;
+}
+.flag-pill:hover, .flag-pill.active {
+  background: rgba(88, 101, 242, 0.2);
+  border-color: var(--accent-blurple);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.add-custom-nat-box {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  user-select: none;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
