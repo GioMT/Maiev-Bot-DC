@@ -19,7 +19,7 @@ const DEFAULT_RULES_TEMPLATE = {
 **10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!`,
+**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Compliant]** role, unlocking the **#identity-verification** channel where you can set your AION 2 In-Game Name with **Maiev**!`,
   footer: 'Acknowledge the rules below to proceed'
 };
 
@@ -32,7 +32,7 @@ To proceed, please register your **AION 2 In-Game Name (IGN)**:
 **How it works:**
 1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.
 2. Enter your exact in-game character name.
-3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!`,
+3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Compliant]** so you can post your screenshot in the verification channel!`,
   footer: 'Maiev Verification System • AION 2'
 };
 
@@ -41,7 +41,7 @@ const DEFAULT_WELCOME_TEMPLATE = {
   content: `Your AION 2 IGN has been successfully registered as **{ign}**!
 
 • **Roles Granted:** **{roles}**
-• **Channel Updated:** **#verify-ign** has been closed
+• **Channel Updated:** **#identity-verification** has been closed
 
 📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval. Visit your regional channel to pick your nationality role!`,
   footer: '{server} • AION 2 Elyos Legion'
@@ -60,10 +60,16 @@ let currentNationalityRoles = [];
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
-  renderRulesEditor({});
-  renderVerifyEditor({});
-  renderWelcomeEditor({});
-  renderWelcomeAnnouncementEditor({});
+  let initialCfg = {};
+  try {
+    const cached = localStorage.getItem('maiev_config_cache');
+    if (cached) initialCfg = JSON.parse(cached);
+  } catch (_) {}
+
+  renderRulesEditor(initialCfg);
+  renderVerifyEditor(initialCfg);
+  renderWelcomeEditor(initialCfg);
+  renderWelcomeAnnouncementEditor(initialCfg);
   fetchServerState();
   setupEventListeners();
   setupRealtimeSync();
@@ -76,6 +82,12 @@ async function fetchServerState() {
     if (!res.ok) throw new Error('API request failed');
     const data = await res.json();
     serverState = data;
+
+    if (data.config) {
+      try {
+        localStorage.setItem('maiev_config_cache', JSON.stringify(data.config));
+      } catch (_) {}
+    }
 
     renderHeaderTelemetry(data);
     renderRoleDropdowns(data);
@@ -125,7 +137,7 @@ function renderRoleDropdowns(data) {
     const opt = document.createElement('option');
     opt.value = role.id;
     opt.textContent = `@${role.name}`;
-    if (role.id === currentConfig.onboardedRoleId || (!currentConfig.onboardedRoleId && /onboarded/i.test(role.name))) {
+    if (role.id === currentConfig.onboardedRoleId || (!currentConfig.onboardedRoleId && /compliant|onboard/i.test(role.name))) {
       opt.selected = true;
     }
     onboardedSelect.appendChild(opt);
@@ -162,7 +174,7 @@ function renderRoleDropdowns(data) {
     const removeItem = document.createElement('label');
     removeItem.className = 'role-checkbox-item';
     const isRemoveChecked = savedRemoveRoles.includes(role.id) || 
-      (savedRemoveRoles.length === 0 && /onboarded/i.test(role.name));
+      (savedRemoveRoles.length === 0 && /compliant|onboard/i.test(role.name));
 
     removeItem.innerHTML = `
       <input type="checkbox" name="role_remove" value="${role.id}" ${isRemoveChecked ? 'checked' : ''}>
@@ -944,6 +956,11 @@ function setupEventListeners() {
 
       if (!res.ok) throw new Error('Save failed');
       const result = await res.json();
+      if (result.config) {
+        try {
+          localStorage.setItem('maiev_config_cache', JSON.stringify(result.config));
+        } catch (_) {}
+      }
       showToast('🎉 All settings, welcome announcement & nationality roles saved successfully!', 'success');
       updateFunnelLabels();
     } catch (err) {
@@ -1040,7 +1057,7 @@ function setupEventListeners() {
     const onboardedRoleName = document.getElementById('select-onboarded-role').selectedOptions[0]?.text || '@Onboarded';
     const feedback = document.getElementById('sim-rules-feedback');
     feedback.classList.remove('hidden');
-    feedback.innerHTML = `✅ <strong>[Simulated Response]</strong> Rules Acknowledged! Member received <strong>${onboardedRoleName}</strong>. Channel <strong>#verify-ign</strong> is now unlocked!`;
+    feedback.innerHTML = `✅ <strong>[Simulated Response]</strong> Rules Acknowledged! Member received <strong>${onboardedRoleName}</strong>. Channel <strong>#identity-verification</strong> is now unlocked!`;
   });
 
   // Simulator: Open Modal

@@ -64,7 +64,7 @@ let config = {
     '**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.\n' +
     '**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.\n\n' +
     '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-    '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
+    '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Compliant]** role, unlocking the **#identity-verification** channel where you can set your AION 2 In-Game Name with **Maiev**!'
   ),
   rulesFooter: process.env.RULES_FOOTER || 'Acknowledge the rules below to proceed',
   verifyTitle: process.env.VERIFY_TITLE || '🛡️ Maiev — AION 2 IGN Verification',
@@ -74,7 +74,7 @@ let config = {
     '**How it works:**\n' +
     '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
     '2. Enter your exact in-game character name.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Compliant]** so you can post your screenshot in the verification channel!'
   ),
   verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2',
   welcomeTitle: process.env.WELCOME_TITLE || '🎉 Welcome to {server}, {ign}!',
@@ -768,7 +768,7 @@ function createRulesMessage() {
       '**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.\n' +
       '**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.\n\n' +
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-      '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Onboarded]** role, unlocking the **#verify-ign** channel where you can set your AION 2 In-Game Name with **Maiev**!'
+      '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Compliant]** role, unlocking the **#identity-verification** channel where you can set your AION 2 In-Game Name with **Maiev**!'
     )
     .setFooter({ text: config.rulesFooter || 'Acknowledge the rules below to proceed' });
 
@@ -789,7 +789,7 @@ function createVerifyMessage(guild) {
     '**How it works:**\n' +
     '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
     '2. Enter your exact in-game character name.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Onboarded]** so you can post your screenshot in the verification channel!'
+    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Compliant]** so you can post your screenshot in the verification channel!'
   );
   const description = rawDescription.replace(/{server}/g, guild.name);
   const footer = config.verifyFooter || 'Maiev Verification System • AION 2';
@@ -1012,6 +1012,8 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         let onboardedRole = await resolveRole(guild, config.onboardedRoleId, [
+          'Compliant',
+          '[Compliant]',
           'Onboarded',
           '[Onboarded]',
           'Rules Acknowledged',
@@ -1019,9 +1021,9 @@ client.on('interactionCreate', async (interaction) => {
         ]);
 
         if (!onboardedRole) {
-          // Additional fallback check for any role containing 'onboard'
+          // Additional fallback check for any role containing 'compliant' or 'onboard'
           const allRoles = await guild.roles.fetch().catch(() => guild.roles.cache);
-          onboardedRole = allRoles.find(r => /onboard/i.test(r.name));
+          onboardedRole = allRoles.find(r => /compliant|onboard/i.test(r.name));
         }
 
         const verifyChannel = await resolveChannel(guild, config.verifyChannelId, /verif|identity/i);
@@ -1208,7 +1210,7 @@ client.on('interactionCreate', async (interaction) => {
           }
         } else {
           // Fallback default
-          const onboarded = await resolveRole(guild, config.onboardedRoleId, ['Onboarded', 'Rules Acknowledged']);
+          const onboarded = await resolveRole(guild, config.onboardedRoleId, ['Compliant', '[Compliant]', 'Onboarded', 'Rules Acknowledged']);
           if (onboarded) rolesToRemove.push(onboarded);
         }
 
