@@ -415,16 +415,15 @@ client.on('interactionCreate', async (interaction) => {
           .setRequired(true);
 
         const flagSample = (config.nationalityRoles || [])
-          .slice(0, 6)
+          .slice(0, 5)
           .map(n => `${n.emoji} ${n.code.toUpperCase()}`)
           .join(', ');
 
         const nationalityInput = new TextInputBuilder()
           .setCustomId('input_nationality')
-          .setLabel('Nationality Flag (e.g. 🇵🇭, 🇯🇵 or 🌐 Global)')
+          .setLabel('Nationality Flag / Code')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder(flagSample ? `e.g. ${flagSample} (use 🌐 if not listed)` : 'e.g. 🇵🇭, 🇯🇵, or 🌐 Global')
-          .setMinLength(1)
+          .setPlaceholder(flagSample ? `e.g. ${flagSample} (or 🌐 Global)` : 'e.g. 🇵🇭 PH, 🇯🇵 JP, or 🌐 Global')
           .setMaxLength(32)
           .setRequired(false);
 
@@ -432,7 +431,18 @@ client.on('interactionCreate', async (interaction) => {
           new ActionRowBuilder().addComponents(ignInput),
           new ActionRowBuilder().addComponents(nationalityInput)
         );
-        await interaction.showModal(modal);
+
+        try {
+          await interaction.showModal(modal);
+        } catch (modalErr) {
+          console.error('Failed to show modal:', modalErr);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+              content: `⚠️ Failed to open verification modal: ${modalErr.message}`,
+              ephemeral: true
+            }).catch(() => null);
+          }
+        }
         return;
       }
 
@@ -762,17 +772,26 @@ client.on('interactionCreate', async (interaction) => {
             .setRequired(true);
           const nationalityInput = new TextInputBuilder()
             .setCustomId('input_nationality')
-            .setLabel('Nationality Flag / Code (e.g. PH, JP, US)')
+            .setLabel('Nationality Flag / Code')
             .setStyle(TextInputStyle.Short)
-            .setPlaceholder('e.g. 🇵🇭 PH, 🇯🇵 JP, 🇰🇷 KR, 🇺🇸 US, 🌐 Other')
-            .setMinLength(1)
+            .setPlaceholder('e.g. 🇵🇭 PH, 🇯🇵 JP, or 🌐 Global')
             .setMaxLength(32)
             .setRequired(false);
           modal.addComponents(
             new ActionRowBuilder().addComponents(ignInput),
             new ActionRowBuilder().addComponents(nationalityInput)
           );
-          await interaction.showModal(modal);
+          try {
+            await interaction.showModal(modal);
+          } catch (modalErr) {
+            console.error('Failed to show modal:', modalErr);
+            if (!interaction.replied && !interaction.deferred) {
+              await interaction.reply({
+                content: `⚠️ Failed to open modal: ${modalErr.message}`,
+                ephemeral: true
+              }).catch(() => null);
+            }
+          }
         }
         return;
       }
