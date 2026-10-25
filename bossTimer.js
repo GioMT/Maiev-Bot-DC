@@ -1,3 +1,6 @@
+// Load .env here: ES module imports are hoisted, so index.js's dotenv.config()
+// would otherwise run AFTER this module reads process.env below.
+import 'dotenv/config';
 import { EmbedBuilder } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -312,57 +315,72 @@ async function sendNewMessage(channel, payload) {
   return message;
 }
 
-// Set to track which boss respawns have already fired a 10-minute alert (prevents duplicate pings)
-const sentAlerts = new Set();
+// Tracks the last alerted spawn time per boss name (prevents duplicate pings).
+// Keyed by name only: Questlog can shift `time` by a few seconds between refreshes
+// and can list the same boss more than once, both of which caused double alerts.
+const sentAlerts = new Map(); // bossName -> spawn time (ms) that was alerted
+
+// Alert window: fire only when ~10 minutes remain. The window is 90s wide so a
+// 60s countdown tick (plus interval drift) always lands inside it exactly once.
+const ALERT_WINDOW_MAX_MS = 10 * 60 * 1000;
+const ALERT_WINDOW_MIN_MS = 8.5 * 60 * 1000;
+// Two spawn times closer than this are treated as the same respawn cycle
+const SAME_CYCLE_TOLERANCE_MS = 30 * 60 * 1000;
 
 /**
- * Checks if any major boss is respawning within 10 minutes and sends an @here notification
+ * Checks if any major boss is ~10 minutes from respawning and sends an @here notification
  * to the configured General Chat (ALERT_CHANNEL_ID).
  * Pings only once per boss respawn cycle.
  */
+let warnedNoAlertChannel = false;
 async function checkMajorBossAlerts(client, bosses) {
-  if (!ALERT_CHANNEL_ID || !Array.isArray(bosses)) return;
+  if (!ALERT_CHANNEL_ID) {
+    if (!warnedNoAlertChannel) {
+      console.warn('[BossTimer] ⚠️ BOSS_ALERT_CHANNEL_ID is not set — major boss @here alerts are DISABLED.');
+      warnedNoAlertChannel = true;
+    }
+    return;
+  }
+  if (!Array.isArray(bosses)) return;
   const now = Date.now();
 
-  const alertChannel = await client.channels.fetch(ALERT_CHANNEL_ID).catch((err) => {
-    console.error(`[BossTimer] Could not fetch alert channel ${ALERT_CHANNEL_ID}:`, err.message);
-    return null;
-  });
-  if (!alertChannel || !alertChannel.isTextBased()) return;
-
+  // Collect due bosses first so we only fetch the channel when there is something to send
+  const due = [];
   for (const boss of bosses) {
     if (!MAJOR_BOSSES.has(boss.name)) continue;
     if (boss.alive) continue;
+    if (boss.id >= 110000) continue; // Asmodian entries are excluded, same as the tracker embed
 
     const remainingMs = boss.time - now;
-    // Check if within the 10-minute window (<= 10 minutes and > 0)
-    if (remainingMs > 0 && remainingMs <= 10 * 60 * 1000) {
-      const alertKey = `${boss.name}_${boss.time}`;
-      if (!sentAlerts.has(alertKey)) {
-        sentAlerts.add(alertKey);
+    if (remainingMs <= ALERT_WINDOW_MIN_MS || remainingMs > ALERT_WINDOW_MAX_MS) continue;
 
-        const minutesLeft = Math.max(1, Math.ceil(remainingMs / 60000));
-        const formattedMinutes = String(minutesLeft).padStart(2, '0');
+    const lastAlerted = sentAlerts.get(boss.name);
+    if (lastAlerted && Math.abs(lastAlerted - boss.time) < SAME_CYCLE_TOLERANCE_MS) continue;
+
+    // Mark immediately (before any await) so overlapping calls can't double-send
+    sentAlerts.set(boss.name, boss.time);
+    due.push(boss);
+  }
+
+  if (due.length > 0) {
+    const alertChannel = await client.channels.fetch(ALERT_CHANNEL_ID).catch((err) => {
+      console.error(`[BossTimer] Could not fetch alert channel ${ALERT_CHANNEL_ID}:`, err.message);
+      return null;
+    });
+
+    if (alertChannel && alertChannel.isTextBased()) {
+      for (const boss of due) {
         const ts = Math.floor(boss.time / 1000);
-        const region = boss.id < 10000 ? 'Reshanta (Abyss)' : 'Elyos Overland';
 
+        // Single line in the description: embed titles can't render <t:...> timestamps
         const alertEmbed = new EmbedBuilder()
-          .setTitle(`⚔️ Major Boss Spawning Soon: ${boss.name}`)
           .setColor(0xe67e22)
-          .setDescription(
-            `🔔 **${boss.name}** is about to respawn in **${formattedMinutes}m**!\n\n` +
-            `📍 **Region:** ${region}\n` +
-            `⏳ **Expected Respawn:** <t:${ts}:R> (<t:${ts}:t>)\n\n` +
-            `⚔️ Rally your Legion members and get in position!`
-          )
+          .setDescription(`**Major Boss Spawning Soon: ${boss.name}** <t:${ts}:R> (<t:${ts}:t>)`)
           .setFooter({ text: 'Aion 2 Major Boss Alert' })
           .setTimestamp();
 
         try {
-          await alertChannel.send({
-            content: `@here ⚠️ **MAJOR BOSS ALERT:** **${boss.name}** is about to respawn in **${formattedMinutes}m**!`,
-            embeds: [alertEmbed]
-          });
+          await alertChannel.send({ content: '@here', embeds: [alertEmbed] });
           console.log(`[BossTimer] 🔔 Sent 10-minute alert for ${boss.name} in channel ${ALERT_CHANNEL_ID}`);
         } catch (err) {
           console.error(`[BossTimer] Failed to send alert for ${boss.name}:`, err.message);
@@ -371,12 +389,10 @@ async function checkMajorBossAlerts(client, bosses) {
     }
   }
 
-  // Prune expired alert keys older than 2 hours to keep memory tidy
-  for (const key of sentAlerts) {
-    const parts = key.split('_');
-    const spawnTime = Number(parts[parts.length - 1]);
-    if (spawnTime && spawnTime < now - 2 * 3600 * 1000) {
-      sentAlerts.delete(key);
+  // Prune alert records older than 2 hours to keep memory tidy
+  for (const [name, spawnTime] of sentAlerts) {
+    if (spawnTime < now - 2 * 3600 * 1000) {
+      sentAlerts.delete(name);
     }
   }
 }
@@ -414,14 +430,12 @@ export async function renderBossTimers(client) {
       }
       if (!trackedMessage) {
         await sendNewMessage(channel, payload);
-        await checkMajorBossAlerts(client, cachedBosses);
         return;
       }
     }
 
     try {
       await trackedMessage.edit(payload);
-      await checkMajorBossAlerts(client, cachedBosses);
     } catch (err) {
       if (err.code === 10008) {
         // Message deleted while running: recreate on the next tick
@@ -437,6 +451,11 @@ export async function renderBossTimers(client) {
   } finally {
     isRendering = false;
   }
+
+  // Alerts run independently so a failed embed edit never suppresses a ping
+  await checkMajorBossAlerts(client, cachedBosses).catch((err) => {
+    console.error('[BossTimer] ❌ Error checking major boss alerts:', err.message);
+  });
 }
 
 /**
