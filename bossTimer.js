@@ -1,4 +1,4 @@
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,8 @@ export const HEADERS = {
   'Sec-Fetch-Site': 'same-origin'
 };
 export const UPDATE_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+// Questlog's live (second-by-second) timer page, linked from the embed
+export const QUESTLOG_PAGE_URL = 'https://questlog.gg/aion-2/en/field-bosses';
 
 // High-value major bosses highlighted with a star ⭐
 export const MAJOR_BOSSES = new Set([
@@ -268,10 +270,21 @@ export async function updateBossTimers(client) {
       bosses: elyosBosses
     });
 
+    // Link button: opens Questlog in the browser. Link buttons never trigger
+    // interactionCreate, so they can't interfere with the nickname system.
+    const linkRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setStyle(ButtonStyle.Link)
+        .setLabel('View live timers on Questlog')
+        .setEmoji('⏱️')
+        .setURL(QUESTLOG_PAGE_URL)
+    );
+    const payload = { embeds: [abyssEmbed, elyosEmbed], components: [linkRow] };
+
     // 6. Handle Discord message posting or editing
     if (!MESSAGE_ID) {
       // First run: post a new message containing both embeds
-      const message = await channel.send({ embeds: [abyssEmbed, elyosEmbed] });
+      const message = await channel.send(payload);
       MESSAGE_ID = message.id;
       persistMessageId(MESSAGE_ID);
 
@@ -285,14 +298,14 @@ export async function updateBossTimers(client) {
       // Subsequent runs: update existing message in-place
       try {
         const message = await channel.messages.fetch(MESSAGE_ID);
-        await message.edit({ embeds: [abyssEmbed, elyosEmbed] });
+        await message.edit(payload);
         console.log(`[BossTimer] ✅ Updated boss timer message (${MESSAGE_ID}) at ${new Date().toLocaleTimeString()}`);
       } catch (err) {
         console.error(`[BossTimer] ❌ Failed to edit message (${MESSAGE_ID}):`, err.message);
         // If the message was deleted from Discord (DiscordAPIError 10008), recreate it
         if (err.code === 10008) {
           console.warn('[BossTimer] ⚠️ Previous message was deleted in Discord. Sending a fresh message...');
-          const newMessage = await channel.send({ embeds: [abyssEmbed, elyosEmbed] });
+          const newMessage = await channel.send(payload);
           MESSAGE_ID = newMessage.id;
           persistMessageId(MESSAGE_ID);
           console.log(`[BossTimer] 📌 New replacement MESSAGE_ID: ${MESSAGE_ID}`);
