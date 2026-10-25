@@ -20,6 +20,7 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { initBossTimer } from './bossTimer.js';
 
 dotenv.config();
 
@@ -976,6 +977,7 @@ client.once('ready', async () => {
   console.log(`📡 Connected to ${client.guilds.cache.size} guild(s).`);
   await registerSlashCommands();
   await updateTrackedNationalityMessages();
+  initBossTimer(client);
 });
 
 // ──────────────────────────────────────────
