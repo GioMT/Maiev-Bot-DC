@@ -138,17 +138,21 @@ export function processBossList(bossList) {
 }
 
 /**
- * Formats remaining milliseconds as "1h 07m 22s" / "7m 22s" / "22s".
+ * Formats remaining milliseconds:
+ * - If >= 1 day: DD:HH:MM (e.g. 04:22:45)
+ * - If < 1 day: HH:MM (e.g. 23:15, 00:04) - seconds removed
  */
 export function formatCountdown(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
   const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
   const pad = (n) => String(n).padStart(2, '0');
-  if (h > 0) return `${h}h ${pad(m)}m ${pad(s)}s`;
-  if (m > 0) return `${m}m ${pad(s)}s`;
-  return `${s}s`;
+
+  if (d > 0) {
+    return `${pad(d)}:${pad(h)}:${pad(m)}`;
+  }
+  return `${pad(h)}:${pad(m)}`;
 }
 
 /**
@@ -200,7 +204,6 @@ function buildBossTable(bosses, now) {
 export function createBossEmbed({ title, color, bosses, latestSeen, now }) {
   return new EmbedBuilder()
     .setTitle(title)
-    .setURL(QUESTLOG_PAGE_URL)
     .setColor(color)
     .setDescription(
       `📡 Data last synced: <t:${latestSeen}:R>\n` + buildBossTable(bosses, now)
@@ -241,7 +244,7 @@ function buildPayload(rawBosses, now = Date.now()) {
     bosses: processBossList(elyosRaw),
     latestSeen: latestSeenSeconds(elyosRaw),
     now
-  }).setFooter({ text: '● Alive  ○ Respawning  ★ Major boss  •  Countdown updates every 1m' });
+  }).setFooter({ text: '● Alive  ○ Respawning (DD:HH:MM / HH:MM)  ★ Major boss  •  Updates every 1m' });
 
   // Link button: opens Questlog in the browser. Link buttons never trigger
   // interactionCreate, so they can't interfere with the nickname system.
