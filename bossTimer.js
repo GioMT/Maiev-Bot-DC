@@ -44,8 +44,15 @@ export const MAJOR_BOSSES = new Set([
   'Eternal Gartua',
   'High Commander Lagta',
   'Soul Ruler Kashapa',
-  'Silent Dartan'
+  'Silent Dartan',
+  'Executor Tamasa',
+  'Executor Argo',
+  'Executor Kaira'
 ]);
+
+// Channel ID for 10-minute @here Major Boss respawn alert pings in General Chat.
+// Configure via BOSS_ALERT_CHANNEL_ID in .env or the bot-hosting panel.
+export let ALERT_CHANNEL_ID = process.env.BOSS_ALERT_CHANNEL_ID || null;
 
 // Persistence storage path for retaining message ID across bot restarts on bot-hosting.net
 const CONFIG_FILE = path.join(__dirname, 'bossTimerConfig.json');
@@ -68,16 +75,19 @@ let trackedMessage = null;
 // ============================================================================
 
 /**
- * Loads the persisted MESSAGE_ID from bossTimerConfig.json if not already in memory.
+ * Loads the persisted MESSAGE_ID and ALERT_CHANNEL_ID from bossTimerConfig.json if not already in memory.
  */
 function loadPersistedMessageId() {
-  if (MESSAGE_ID) return MESSAGE_ID;
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
-      if (data && data.messageId) {
+      if (data && data.messageId && !MESSAGE_ID) {
         MESSAGE_ID = data.messageId;
         console.log(`[BossTimer] Loaded persisted MESSAGE_ID: ${MESSAGE_ID}`);
+      }
+      if (data && data.alertChannelId && !ALERT_CHANNEL_ID) {
+        ALERT_CHANNEL_ID = data.alertChannelId;
+        console.log(`[BossTimer] Loaded persisted ALERT_CHANNEL_ID: ${ALERT_CHANNEL_ID}`);
       }
     }
   } catch (err) {
@@ -87,14 +97,24 @@ function loadPersistedMessageId() {
 }
 
 /**
- * Saves the active MESSAGE_ID to disk for survival across bot reboots.
+ * Saves the active MESSAGE_ID and ALERT_CHANNEL_ID to disk for survival across bot reboots.
  */
 function persistMessageId(id) {
   MESSAGE_ID = id;
   try {
+    const prev = fs.existsSync(CONFIG_FILE) ? JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8')) : {};
     fs.writeFileSync(
       CONFIG_FILE,
-      JSON.stringify({ messageId: id, updatedAt: new Date().toISOString() }, null, 2),
+      JSON.stringify(
+        {
+          ...prev,
+          messageId: id,
+          alertChannelId: ALERT_CHANNEL_ID,
+          updatedAt: new Date().toISOString()
+        },
+        null,
+        2
+      ),
       'utf-8'
     );
   } catch (err) {
@@ -299,9 +319,76 @@ async function sendNewMessage(channel, payload) {
   console.log('🎯 [BossTimer] New boss timer message posted successfully!');
   console.log(`📌 Generated MESSAGE_ID: ${MESSAGE_ID}`);
   console.log(`📡 Channel ID: ${CHANNEL_ID}`);
-  console.log('ℹ️ Saved to bossTimerConfig.json. Future runs will edit this message in-place.');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   return message;
+}
+
+// Set to track which boss respawns have already fired a 10-minute alert (prevents duplicate pings)
+const sentAlerts = new Set();
+
+/**
+ * Checks if any major boss is respawning within 10 minutes and sends an @here notification
+ * to the configured General Chat (ALERT_CHANNEL_ID).
+ * Pings only once per boss respawn cycle.
+ */
+async function checkMajorBossAlerts(client, bosses) {
+  if (!ALERT_CHANNEL_ID || !Array.isArray(bosses)) return;
+  const now = Date.now();
+
+  const alertChannel = await client.channels.fetch(ALERT_CHANNEL_ID).catch((err) => {
+    console.error(`[BossTimer] Could not fetch alert channel ${ALERT_CHANNEL_ID}:`, err.message);
+    return null;
+  });
+  if (!alertChannel || !alertChannel.isTextBased()) return;
+
+  for (const boss of bosses) {
+    if (!MAJOR_BOSSES.has(boss.name)) continue;
+    if (boss.alive) continue;
+
+    const remainingMs = boss.time - now;
+    // Check if within the 10-minute window (<= 10 minutes and > 0)
+    if (remainingMs > 0 && remainingMs <= 10 * 60 * 1000) {
+      const alertKey = `${boss.name}_${boss.time}`;
+      if (!sentAlerts.has(alertKey)) {
+        sentAlerts.add(alertKey);
+
+        const minutesLeft = Math.max(1, Math.ceil(remainingMs / 60000));
+        const formattedMinutes = String(minutesLeft).padStart(2, '0');
+        const ts = Math.floor(boss.time / 1000);
+        const region = boss.id < 10000 ? 'Reshanta (Abyss)' : 'Elyos Overland';
+
+        const alertEmbed = new EmbedBuilder()
+          .setTitle(`⚔️ Major Boss Spawning Soon: ${boss.name}`)
+          .setColor(0xe67e22)
+          .setDescription(
+            `🔔 **${boss.name}** is about to respawn in **${formattedMinutes}m**!\n\n` +
+            `📍 **Region:** ${region}\n` +
+            `⏳ **Expected Respawn:** <t:${ts}:R> (<t:${ts}:t>)\n\n` +
+            `⚔️ Rally your Legion members and get in position!`
+          )
+          .setFooter({ text: 'Aion 2 Major Boss Alert' })
+          .setTimestamp();
+
+        try {
+          await alertChannel.send({
+            content: `@here ⚠️ **MAJOR BOSS ALERT:** **${boss.name}** is about to respawn in **${formattedMinutes}m**!`,
+            embeds: [alertEmbed]
+          });
+          console.log(`[BossTimer] 🔔 Sent 10-minute alert for ${boss.name} in channel ${ALERT_CHANNEL_ID}`);
+        } catch (err) {
+          console.error(`[BossTimer] Failed to send alert for ${boss.name}:`, err.message);
+        }
+      }
+    }
+  }
+
+  // Prune expired alert keys older than 2 hours to keep memory tidy
+  for (const key of sentAlerts) {
+    const parts = key.split('_');
+    const spawnTime = Number(parts[parts.length - 1]);
+    if (spawnTime && spawnTime < now - 2 * 3600 * 1000) {
+      sentAlerts.delete(key);
+    }
+  }
 }
 
 /**
@@ -337,12 +424,14 @@ export async function renderBossTimers(client) {
       }
       if (!trackedMessage) {
         await sendNewMessage(channel, payload);
+        await checkMajorBossAlerts(client, cachedBosses);
         return;
       }
     }
 
     try {
       await trackedMessage.edit(payload);
+      await checkMajorBossAlerts(client, cachedBosses);
     } catch (err) {
       if (err.code === 10008) {
         // Message deleted while running: recreate on the next tick
