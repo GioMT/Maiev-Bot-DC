@@ -11,11 +11,22 @@ const __dirname = path.dirname(__filename);
 // ============================================================================
 export const SERVER_ID = 1507; // Fregion
 export const CHANNEL_ID = '1563876333623312394';
-export const API_URL = `https://questlog.gg/aion-2/api/trpc/fieldBoss.timers?input=${encodeURIComponent(
-  JSON.stringify({ server: SERVER_ID, language: 'en' })
-)}`;
+// BOSS_TIMER_API_URL lets you point at a relay/proxy if Questlog blocks the host's IP.
+export const API_URL = process.env.BOSS_TIMER_API_URL ||
+  `https://questlog.gg/aion-2/api/trpc/fieldBoss.timers?input=${encodeURIComponent(
+    JSON.stringify({ server: SERVER_ID, language: 'en' })
+  )}`;
+// Questlog is behind Cloudflare: a bare "Mozilla/5.0" UA gets 403'd from datacenter IPs,
+// so send a full, realistic browser header set.
 export const HEADERS = {
-  'User-Agent': 'Mozilla/5.0'
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://questlog.gg/aion-2/',
+  'Origin': 'https://questlog.gg',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'same-origin'
 };
 export const UPDATE_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
 
@@ -173,7 +184,14 @@ export function createBossEmbed({ title, color, description, bosses }) {
 export async function fetchBossData() {
   const response = await fetch(API_URL, { headers: HEADERS });
   if (!response.ok) {
-    throw new Error(`Questlog API error: ${response.status} ${response.statusText}`);
+    // Diagnostics: tells us whether Cloudflare is challenging or hard-blocking this host
+    const cfMitigated = response.headers.get('cf-mitigated') || 'none';
+    const cfRay = response.headers.get('cf-ray') || 'n/a';
+    const bodySnippet = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200);
+    throw new Error(
+      `Questlog API error: ${response.status} ${response.statusText} ` +
+      `(cf-mitigated: ${cfMitigated}, cf-ray: ${cfRay}) body: ${bodySnippet}`
+    );
   }
   const json = await response.json();
   const rawBosses = json.result?.data;
