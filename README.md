@@ -44,3 +44,17 @@ In your Discord server under **Server Settings > Roles**:
    ```
 
 Done! Your onboarding pipeline is now fully automated!
+
+---
+
+## ⏰ Aion 2 Field Boss & Abyss Tracker
+
+Maiev tracks live Aion 2 Field Boss and Abyss respawn timers for **Server 1507 (Fregion)**:
+- **Live Two-Column Status Table:** Live display for Reshanta (Abyss) and Elyos Overland field bosses.
+- **Auto-Updating Embeds:** Recalculates and updates remaining time every 1 minute.
+- **10-Minute @here Alert Pings:** Pings your General Chat when a major boss is 10 minutes away from respawning.
+- **Cloudflare Worker Relay:** Built-in bridge to bypass Cloudflare bot challenges seamlessly.
+
+👉 **For complete setup, architecture, and Cloudflare Worker instructions, read the [Aion 2 Boss Tracker Guide](AION2_BOSS_TRACKER_GUIDE.md).**
+
+
