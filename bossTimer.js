@@ -1,4 +1,4 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -266,17 +266,7 @@ function buildPayload(rawBosses, now = Date.now()) {
     now
   }).setFooter({ text: '● Alive  ○ Respawning (00d 00h 00m)  ★ Major boss  •  Updates every 1m' });
 
-  // Link button: opens Questlog in the browser. Link buttons never trigger
-  // interactionCreate, so they can't interfere with the nickname system.
-  const linkRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setStyle(ButtonStyle.Link)
-      .setLabel('View live timers on Questlog')
-      .setEmoji('⏱️')
-      .setURL(QUESTLOG_PAGE_URL)
-  );
-
-  return { embeds: [abyssEmbed, elyosEmbed], components: [linkRow] };
+  return { embeds: [abyssEmbed, elyosEmbed], components: [] };
 }
 
 // ============================================================================
