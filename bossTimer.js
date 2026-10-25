@@ -139,8 +139,8 @@ export function processBossList(bossList) {
 
 /**
  * Formats remaining milliseconds:
- * - If >= 1 day: DD:HH:MM (e.g. 04:22:45)
- * - If < 1 day: HH:MM (e.g. 23:15, 00:04) - seconds removed
+ * - If >= 1 day: 00d 00h 00m (e.g. 04d 22h 45m)
+ * - If < 1 day: 00h 00m (e.g. 23h 15m, 00h 04m)
  */
 export function formatCountdown(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -150,9 +150,9 @@ export function formatCountdown(ms) {
   const pad = (n) => String(n).padStart(2, '0');
 
   if (d > 0) {
-    return `${pad(d)}:${pad(h)}:${pad(m)}`;
+    return `${pad(d)}d ${pad(h)}h ${pad(m)}m`;
   }
-  return `${pad(h)}:${pad(m)}`;
+  return `${pad(h)}h ${pad(m)}m`;
 }
 
 /**
@@ -244,7 +244,7 @@ function buildPayload(rawBosses, now = Date.now()) {
     bosses: processBossList(elyosRaw),
     latestSeen: latestSeenSeconds(elyosRaw),
     now
-  }).setFooter({ text: '● Alive  ○ Respawning (DD:HH:MM / HH:MM)  ★ Major boss  •  Updates every 1m' });
+  }).setFooter({ text: '● Alive  ○ Respawning (00d 00h 00m)  ★ Major boss  •  Updates every 1m' });
 
   // Link button: opens Questlog in the browser. Link buttons never trigger
   // interactionCreate, so they can't interfere with the nickname system.
