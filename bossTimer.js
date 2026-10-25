@@ -319,6 +319,11 @@ export async function updateBossTimers(client) {
  */
 export function initBossTimer(client) {
   console.log('⏰ [BossTimer] Initializing Aion 2 Field Boss Tracker (3-minute update interval)...');
+  console.log(
+    process.env.BOSS_TIMER_API_URL
+      ? `🔁 [BossTimer] Using relay: ${API_URL.replace(/key=[^&]+/, 'key=***')}`
+      : '🌐 [BossTimer] Using Questlog directly (BOSS_TIMER_API_URL not set)'
+  );
 
   // Initial immediate run upon startup
   updateBossTimers(client).catch((err) => {
