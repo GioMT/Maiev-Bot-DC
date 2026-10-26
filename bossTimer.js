@@ -327,6 +327,86 @@ const ALERT_WINDOW_MIN_MS = 8.5 * 60 * 1000;
 // Two spawn times closer than this are treated as the same respawn cycle
 const SAME_CYCLE_TOLERANCE_MS = 30 * 60 * 1000;
 
+// How long after the boss spawns the alert message is automatically deleted
+export const ALERT_DELETE_AFTER_SPAWN_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Reads the pending alert deletions list from bossTimerConfig.json.
+ * @returns {Array<{ channelId: string, messageId: string, deleteAt: number }>}
+ */
+function readPendingDeletions() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      if (Array.isArray(data?.pendingAlertDeletions)) return data.pendingAlertDeletions;
+    }
+  } catch (err) {
+    console.warn('[BossTimer] Could not read pending alert deletions:', err.message);
+  }
+  return [];
+}
+
+/**
+ * Writes the pending alert deletions list to bossTimerConfig.json (keeps other keys intact).
+ */
+function writePendingDeletions(list) {
+  try {
+    const prev = fs.existsSync(CONFIG_FILE) ? JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8')) : {};
+    fs.writeFileSync(
+      CONFIG_FILE,
+      JSON.stringify({ ...prev, pendingAlertDeletions: list }, null, 2),
+      'utf-8'
+    );
+  } catch (err) {
+    console.warn('[BossTimer] Could not persist pending alert deletions:', err.message);
+  }
+}
+
+/**
+ * Schedules an alert message to be deleted at `deleteAt` (ms epoch).
+ * If `persist` is true, the job is saved to disk so it survives bot restarts.
+ */
+function scheduleAlertDeletion(client, channelId, messageId, deleteAt, persist = true) {
+  if (persist) {
+    const list = readPendingDeletions().filter((d) => d.messageId !== messageId);
+    list.push({ channelId, messageId, deleteAt });
+    writePendingDeletions(list);
+  }
+
+  const delay = Math.max(0, deleteAt - Date.now());
+  setTimeout(async () => {
+    try {
+      const channel = await client.channels.fetch(channelId);
+      const msg = await channel.messages.fetch(messageId);
+      await msg.delete();
+      console.log(`[BossTimer] 🗑️ Deleted expired boss alert message ${messageId}`);
+    } catch (err) {
+      // 10008 = Unknown Message (already deleted manually) — safe to ignore
+      if (err.code !== 10008) {
+        console.error(`[BossTimer] Failed to delete alert message ${messageId}:`, err.message);
+      }
+    } finally {
+      writePendingDeletions(readPendingDeletions().filter((d) => d.messageId !== messageId));
+    }
+  }, delay);
+}
+
+/**
+ * Re-schedules any alert deletions that were pending before the bot restarted.
+ * Overdue ones are deleted immediately.
+ */
+function restorePendingDeletions(client) {
+  const list = readPendingDeletions();
+  for (const d of list) {
+    if (d?.channelId && d?.messageId && typeof d.deleteAt === 'number') {
+      scheduleAlertDeletion(client, d.channelId, d.messageId, d.deleteAt, false);
+    }
+  }
+  if (list.length > 0) {
+    console.log(`[BossTimer] ♻️ Restored ${list.length} pending boss alert deletion(s).`);
+  }
+}
+
 /**
  * Checks if any major boss is ~10 minutes from respawning and sends an @here notification
  * to the configured General Chat (ALERT_CHANNEL_ID).
@@ -380,8 +460,11 @@ async function checkMajorBossAlerts(client, bosses) {
           .setTimestamp();
 
         try {
-          await alertChannel.send({ content: '@here', embeds: [alertEmbed] });
+          const alertMsg = await alertChannel.send({ content: '@here', embeds: [alertEmbed] });
           console.log(`[BossTimer] 🔔 Sent 10-minute alert for ${boss.name} in channel ${ALERT_CHANNEL_ID}`);
+
+          // Auto-delete the alert 10 minutes after the boss spawns
+          scheduleAlertDeletion(client, alertChannel.id, alertMsg.id, boss.time + ALERT_DELETE_AFTER_SPAWN_MS);
         } catch (err) {
           console.error(`[BossTimer] Failed to send alert for ${boss.name}:`, err.message);
         }
@@ -502,6 +585,9 @@ export function initBossTimer(client) {
       ? `🔁 [BossTimer] Using relay: ${API_URL.replace(/key=[^&]+/, 'key=***')}`
       : '🌐 [BossTimer] Using Questlog directly (BOSS_TIMER_API_URL not set)'
   );
+
+  // Resume any alert auto-deletions that were pending before a restart
+  restorePendingDeletions(client);
 
   // Initial immediate run upon startup
   updateBossTimers(client).catch((err) => {
