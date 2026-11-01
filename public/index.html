@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maiev Bot Control Center — AION 2 Verification Dashboard</title>
-  <meta name="description" content="Professional web dashboard for Maiev Discord Bot. Manage rules acknowledgment roles, AION 2 IGN verification pipeline, and live member tracking.">
+  <title>Maiev Bot Control Center — AION 2 Dashboard</title>
+  <meta name="description" content="Professional web dashboard for Maiev Discord Bot. Manage rules onboarding, character verification, welcome announcements, and customizable reaction roles.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="lucide.min.js"></script>
 </head>
 <body>
   <!-- Ambient background glow elements -->
@@ -28,7 +29,7 @@
         <div class="brand-text">
           <div class="brand-title-row">
             <h1 class="brand-title">MAIEV CONTROL CENTER</h1>
-            <span class="badge badge-accent">AION 2 ELYOS</span>
+            <span class="badge badge-accent">AION 2</span>
           </div>
           <p class="brand-subtitle" id="bot-connection-string">Connecting to Discord Gateway...</p>
         </div>
@@ -36,22 +37,29 @@
 
       <div class="header-telemetry">
         <div class="telemetry-pill">
-          <span class="telemetry-icon">📡</span>
+          <i data-lucide="activity"></i>
           <span class="telemetry-label">Gateway Ping</span>
           <span class="telemetry-value" id="ping-value">-- ms</span>
         </div>
-        <div class="telemetry-pill">
-          <span class="telemetry-icon">🏰</span>
+        <div class="telemetry-pill telemetry-pill-server" title="Click to edit Server Name">
+          <i data-lucide="server"></i>
           <span class="telemetry-label">Server</span>
-          <span class="telemetry-value" id="server-name">Loading...</span>
+          <div class="server-editable-container">
+            <input type="text" id="server-name-input" class="telemetry-server-input" value="Asia Fregion" placeholder="Asia Fregion" spellcheck="false" title="Click to edit Server Name" autocomplete="off" />
+            <i data-lucide="pencil" class="server-edit-badge-icon" title="Edit Server Name"></i>
+          </div>
+          <span id="server-name" style="display:none;">Asia Fregion</span>
         </div>
         <div class="telemetry-pill">
-          <span class="telemetry-icon">👥</span>
+          <i data-lucide="users"></i>
           <span class="telemetry-label">Members</span>
           <span class="telemetry-value" id="member-count">--</span>
         </div>
         <button class="btn btn-secondary btn-sm" id="btn-refresh" title="Refresh Live Data">
-          🔄 Refresh
+          <i data-lucide="refresh-cw"></i> Refresh
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-global-save" title="Save All Configuration Changes">
+          <i data-lucide="save"></i> Save Settings
         </button>
       </div>
     </header>
@@ -61,109 +69,77 @@
       <span id="toast-message">Message text here</span>
     </div>
 
-    <!-- Metrics Funnel Strip -->
-    <section class="funnel-section">
-      <div class="funnel-card">
-        <div class="funnel-step-badge">STEP 1</div>
-        <div class="funnel-icon">📜</div>
-        <div class="funnel-info">
-          <h3>Rules Phase</h3>
-          <p>Assigned Role: <strong id="funnel-onboarded-label">Compliant</strong></p>
-        </div>
-        <div class="funnel-arrow">➜</div>
-      </div>
+    <!-- Main Navigation Tabs: Each function on its own tab -->
+    <nav class="main-tabs-nav" role="tablist">
+      <button type="button" class="main-tab-btn active" data-tab="tab-rules" role="tab" aria-selected="true">
+        <i data-lucide="book-open"></i> Rules Onboarding
+      </button>
+      <button type="button" class="main-tab-btn" data-tab="tab-verify" role="tab" aria-selected="false">
+        <i data-lucide="user-check"></i> IGN Setup
+      </button>
+      <button type="button" class="main-tab-btn" data-tab="tab-welcome" role="tab" aria-selected="false">
+        <i data-lucide="megaphone"></i> Public Welcome
+      </button>
+      <button type="button" class="main-tab-btn" data-tab="tab-reaction-roles" role="tab" aria-selected="false">
+        <i data-lucide="layers"></i> Reaction Roles
+      </button>
+      <button type="button" class="main-tab-btn" data-tab="tab-health" role="tab" aria-selected="false">
+        <i data-lucide="shield-alert"></i> Diagnostics &amp; Roster
+      </button>
+    </nav>
 
-      <div class="funnel-card">
-        <div class="funnel-step-badge">STEP 2</div>
-        <div class="funnel-icon">🎮</div>
-        <div class="funnel-info">
-          <h3>AION 2 IGN Modal</h3>
-          <p>Nickname set to IGN</p>
-        </div>
-        <div class="funnel-arrow">➜</div>
-      </div>
-
-      <div class="funnel-card">
-        <div class="funnel-step-badge">STEP 3</div>
-        <div class="funnel-icon">🛡️</div>
-        <div class="funnel-info">
-          <h3>Roles Assigned</h3>
-          <p>Grant: <strong id="funnel-grant-label">[Unverified] + [Elyos Fregion]</strong></p>
-        </div>
-        <div class="funnel-arrow">➜</div>
-      </div>
-
-      <div class="funnel-card highlighted">
-        <div class="funnel-step-badge">STEP 4</div>
-        <div class="funnel-icon">📸</div>
-        <div class="funnel-info">
-          <h3>Screenshot Verification</h3>
-          <p>#verify-ign removed, main channels visible</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Main Grid: Configuration + Live Simulator -->
-    <main class="dashboard-grid">
-      <!-- Left Column: Pipeline Role Configuration (User's primary requirement) -->
-      <div class="grid-col config-column">
-        <div class="card glass-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-icon">⚙️</span>
-              <div>
-                <h2 class="card-title">Verification Pipeline Roles</h2>
-                <p class="card-subtitle">Configure the exact roles given and removed at each stage of onboarding.</p>
-              </div>
-            </div>
-            <button class="btn btn-primary" id="btn-save-config">
-              💾 Save Configuration
-            </button>
-          </div>
-
-          <div class="card-body">
-            <!-- Stage 1 Configuration -->
-            <div class="config-stage-box">
-              <div class="stage-header">
-                <span class="stage-num">1</span>
+    <!-- TAB 1: Rules Onboarding -->
+    <section id="tab-rules" class="tab-pane active" role="tabpanel">
+      <main class="dashboard-grid">
+        <!-- Configuration Column -->
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="book-open"></i></span>
                 <div>
-                  <h3 class="stage-title">Rules Acknowledgment Action</h3>
-                  <p class="stage-desc">When a user clicks "I Agree to Rules" in your rules channel:</p>
+                  <h2 class="card-title">Rules Acknowledgment Action</h2>
+                  <p class="card-subtitle">Configure role assignment and instructions for acknowledging community rules.</p>
                 </div>
               </div>
+              <button class="btn btn-primary btn-sm btn-save-section" title="Save Rules Configuration">
+                <i data-lucide="save"></i> Save
+              </button>
+            </div>
 
+            <div class="card-body">
               <div class="form-group">
                 <label for="select-onboarded-role" class="form-label">
-                  Role to GIVE upon acknowledging rules:
+                  Role to grant upon acknowledging rules:
                 </label>
                 <select id="select-onboarded-role" class="form-select">
                   <option value="">Loading server roles...</option>
                 </select>
-                <span class="form-hint">Typically <strong>[Compliant]</strong>. This role grants view access to the #identity-verification channel.</span>
+                <span class="form-hint">Typically <strong>[Compliant]</strong>. Unlocks the identity verification channel.</span>
               </div>
 
               <div class="form-row">
                 <div class="form-group flex-1">
                   <label for="select-rules-channel" class="form-label">
-                    Rules Channel:
+                    Target Rules Channel:
                   </label>
                   <select id="select-rules-channel" class="form-select">
                     <option value="">Loading channels...</option>
                   </select>
                 </div>
-                <div class="form-group-action">
-                  <button class="btn btn-secondary" id="btn-post-rules-channel">
-                    🚀 Post Rules Embed
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
+                  <button type="button" class="btn btn-secondary" id="btn-post-rules-channel">
+                    <i data-lucide="send"></i> Post Rules Embed
                   </button>
                 </div>
               </div>
 
-              <!-- Personalized Rules Content Editor -->
+              <!-- Rules Content Editor -->
               <div class="personalized-rules-box mt-4">
                 <div class="rules-editor-header">
-                  <span class="editor-badge">✍️ PERSONALIZED SERVER RULES</span>
+                  <span class="editor-badge"><i data-lucide="file-text"></i> Personalized Server Rules</span>
                   <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-rules-template" title="Reset to standard rules template">
-                    ↺ Reset Template
+                    <i data-lucide="rotate-ccw"></i> Reset Template
                   </button>
                 </div>
 
@@ -171,28 +147,14 @@
                   <label for="rules-title-input" class="form-label">
                     Rules Embed Title:
                   </label>
-                  <input type="text" id="rules-title-input" class="form-input" placeholder="📜 Server Rules & Guidelines" value="📜 Server Rules & Guidelines">
+                  <input type="text" id="rules-title-input" class="form-input" placeholder="Server Rules & Guidelines" value="Server Rules & Guidelines">
                 </div>
 
                 <div class="form-group">
                   <label for="rules-content-input" class="form-label">
                     Personalized Rules Content:
                   </label>
-                  <textarea id="rules-content-input" class="form-textarea" rows="7" placeholder="Type your personalized server rules here...">Welcome to the community! Before proceeding, please review our core server rules:
-
-**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.
-**2. No Discrimination or Hate Speech** — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.
-**3. No Threats or Intimidation** — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.
-**4. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.
-**5. No Illegal Content** — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.
-**6. No Advertisements or Spam** — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.
-**7. Server Language Policy** — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.
-**8. No Political or Religious Debates** — Political and religious discussions or arguments are prohibited on this server.
-**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.
-**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Compliant]** role, unlocking the **#identity-verification** channel where you can set your AION 2 In-Game Name with **Maiev**!</textarea>
+                  <textarea id="rules-content-input" class="form-textarea" rows="9" placeholder="Type your personalized server rules here..."></textarea>
                   <span class="form-hint">Supports Discord Markdown: <strong>**bold**</strong>, <em>*italics*</em>, <code>`code`</code>, bullet points (•), and line breaks. Updates the live preview in real time!</span>
                 </div>
 
@@ -204,21 +166,102 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Stage 2 Configuration -->
-            <div class="config-stage-box mt-4">
-              <div class="stage-header">
-                <span class="stage-num">2</span>
+        <!-- Simulator Column -->
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
                 <div>
-                  <h3 class="stage-title">AION 2 IGN Verification Actions</h3>
-                  <p class="stage-desc">When a user submits their in-game character name via Maiev's modal:</p>
+                  <h2 class="card-title">Rules Channel Preview</h2>
+                  <p class="card-subtitle">Exact interactive preview as seen by new server members.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-rules-channel-name">rules</span>
+                  <span class="discord-topic">Rules Acknowledgment</span>
+                </div>
+
+                <div id="sim-rules-view" class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-1" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Today at 7:00 AM</span>
+                      </div>
+
+                      <div class="discord-embed dark-embed">
+                        <div class="embed-title" id="sim-rules-title">Server Rules &amp; Guidelines</div>
+                        <div class="embed-description" id="sim-rules-desc">Loading rules content...</div>
+                        <div class="embed-footer" id="sim-rules-footer">Acknowledge the rules below to proceed</div>
+                      </div>
+
+                      <div class="discord-action-row">
+                        <button type="button" class="discord-btn discord-btn-success" id="sim-btn-accept-rules">
+                          <i data-lucide="check-circle-2"></i> I Have Read &amp; Agree to the Rules
+                        </button>
+                      </div>
+
+                      <div id="sim-rules-feedback" class="sim-feedback hidden"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- TAB 2: Character IGN Verification -->
+    <section id="tab-verify" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="user-check"></i></span>
+                <div>
+                  <h2 class="card-title">AION 2 IGN Setup Pipeline</h2>
+                  <p class="card-subtitle">Configure character name registration, nickname sync, and setup roles.</p>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm btn-save-section" title="Save Setup Configuration">
+                <i data-lucide="save"></i> Save
+              </button>
+            </div>
+
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-verify-channel" class="form-label">
+                    Target Setup Channel:
+                  </label>
+                  <select id="select-verify-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                </div>
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
+                  <button type="button" class="btn btn-secondary" id="btn-post-verify-channel">
+                    <i data-lucide="send"></i> Post Setup Embed
+                  </button>
                 </div>
               </div>
 
               <!-- Roles to Add -->
-              <div class="form-group">
+              <div class="form-group mt-3">
                 <label class="form-label">
-                  Role(s) to GIVE when IGN is set:
+                  Role(s) to grant when IGN is submitted:
                 </label>
                 <div id="roles-to-add-container" class="roles-checkbox-grid">
                   <p class="text-muted">Loading roles...</p>
@@ -227,38 +270,22 @@
               </div>
 
               <!-- Roles to Remove -->
-              <div class="form-group">
+              <div class="form-group mt-3">
                 <label class="form-label">
-                  Role(s) to REMOVE when IGN is set:
+                  Role(s) to revoke when IGN is submitted:
                 </label>
                 <div id="roles-to-remove-container" class="roles-checkbox-grid">
                   <p class="text-muted">Loading roles...</p>
                 </div>
-                <span class="form-hint">Recommended: Check <strong>[Compliant]</strong> so #identity-verification disappears for verified members.</span>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group flex-1">
-                  <label for="select-verify-channel" class="form-label">
-                    Verify IGN Channel:
-                  </label>
-                  <select id="select-verify-channel" class="form-select">
-                    <option value="">Loading channels...</option>
-                  </select>
-                </div>
-                <div class="form-group-action">
-                  <button class="btn btn-secondary" id="btn-post-verify-channel">
-                    🚀 Post Verification Embed
-                  </button>
-                </div>
+                <span class="form-hint">Recommended: Check <strong>[Compliant]</strong> so verification prompts disappear for verified members.</span>
               </div>
 
               <!-- Personalized Verification Embed Editor -->
               <div class="personalized-rules-box mt-4">
                 <div class="rules-editor-header">
-                  <span class="editor-badge">🎮 PERSONALIZED VERIFICATION EMBED</span>
+                  <span class="editor-badge"><i data-lucide="shield-check"></i> Verification Embed Content</span>
                   <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-verify-template" title="Reset to standard verification template">
-                    ↺ Reset Template
+                    <i data-lucide="rotate-ccw"></i> Reset Template
                   </button>
                 </div>
 
@@ -266,31 +293,31 @@
                   <label for="verify-title-input" class="form-label">
                     Verification Embed Title:
                   </label>
-                  <input type="text" id="verify-title-input" class="form-input" placeholder="🛡️ Maiev — AION 2 IGN Verification" value="🛡️ Maiev — AION 2 IGN Verification">
+                  <input type="text" id="verify-title-input" class="form-input" placeholder="AION 2 IGN Setup" value="AION 2 IGN Setup">
                 </div>
 
                 <div class="form-group">
                   <label for="verify-content-input" class="form-label">
-                    Personalized Verification Content:
+                    Verification Instructions Content:
                   </label>
-                  <textarea id="verify-content-input" class="form-textarea" rows="7" placeholder="Type your personalized verification instructions here..."></textarea>
-                  <span class="form-hint">Tip: Use <strong>{server}</strong> to automatically display your Discord server name! Supports Markdown (<strong>**bold**</strong>, line breaks).</span>
+                  <textarea id="verify-content-input" class="form-textarea" rows="6" placeholder="Type your personalized verification instructions here..."></textarea>
+                  <span class="form-hint">Use <strong>{server}</strong> to automatically display your Discord server name!</span>
                 </div>
 
                 <div class="form-group">
                   <label for="verify-footer-input" class="form-label">
                     Verification Footer Note:
                   </label>
-                  <input type="text" id="verify-footer-input" class="form-input" placeholder="Maiev Verification System • AION 2" value="Maiev Verification System • AION 2">
+                  <input type="text" id="verify-footer-input" class="form-input" placeholder="Maiev  • AION 2" value="Maiev  • AION 2">
                 </div>
               </div>
 
               <!-- Post-Verification Welcome Popup Message Editor -->
               <div class="personalized-rules-box mt-4">
                 <div class="rules-editor-header">
-                  <span class="editor-badge">🎉 POST-VERIFICATION WELCOME POPUP CARD</span>
+                  <span class="editor-badge"><i data-lucide="message-square"></i> Post-Verification Ephemeral Card</span>
                   <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-welcome-template" title="Reset to standard welcome card template">
-                    ↺ Reset Template
+                    <i data-lucide="rotate-ccw"></i> Reset Template
                   </button>
                 </div>
 
@@ -298,36 +325,100 @@
                   <label for="welcome-title-input" class="form-label">
                     Welcome Popup Title:
                   </label>
-                  <input type="text" id="welcome-title-input" class="form-input" placeholder="🎉 Welcome to {server}, {ign}!" value="🎉 Welcome to {server}, {ign}!">
+                  <input type="text" id="welcome-title-input" class="form-input" placeholder="Welcome to {server}, {ign}!" value="Welcome to {server}, {ign}!">
                 </div>
 
                 <div class="form-group">
                   <label for="welcome-content-input" class="form-label">
-                    Customizable Welcome Message:
+                    Welcome Popup Content:
                   </label>
-                  <textarea id="welcome-content-input" class="form-textarea" rows="7" placeholder="Type your personalized welcome popup message here..."></textarea>
-                  <span class="form-hint">Tip: Use <strong>{server}</strong> for server name and <strong>{ign}</strong> for the player's new in-game name. Includes your Discord server's profile picture automatically!</span>
+                  <textarea id="welcome-content-input" class="form-textarea" rows="6" placeholder="Type your personalized welcome popup message here..."></textarea>
+                  <span class="form-hint">Available tags: <strong>{server}</strong>, <strong>{ign}</strong>, <strong>{roles}</strong>.</span>
                 </div>
 
                 <div class="form-group">
                   <label for="welcome-footer-input" class="form-label">
                     Welcome Card Footer:
                   </label>
-                  <input type="text" id="welcome-footer-input" class="form-input" placeholder="{server} • AION 2 Elyos Legion" value="{server} • AION 2 Elyos Legion">
+                  <input type="text" id="welcome-footer-input" class="form-input" placeholder="{server} • AION 2" value="{server} • AION 2">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">IGN Setup Channel Preview</h2>
+                  <p class="card-subtitle">Test modal submission and instant nickname assignment.</p>
                 </div>
               </div>
             </div>
 
-            <!-- Stage 3 Configuration: Public Welcome Channel Announcement -->
-            <div class="config-stage-box mt-4">
-              <div class="stage-header">
-                <span class="stage-num">3</span>
-                <div>
-                  <h3 class="stage-title">Public Welcome Channel Announcement</h3>
-                  <p class="stage-desc">Send a customized welcome message in your designated welcome channel mentioning new players when their IGN is set.</p>
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-verify-channel-name">identity-verification</span>
+                  <span class="discord-topic">Character Registration</span>
+                </div>
+
+                <div id="sim-verify-view" class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-2" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Today at 7:01 AM</span>
+                      </div>
+
+                      <div class="discord-embed blurple-embed">
+                        <div class="embed-title" id="sim-verify-title">AION 2 IGN Setup</div>
+                        <div class="embed-description" id="sim-verify-desc">Loading instructions...</div>
+                        <div class="embed-footer" id="sim-verify-footer">Maiev  • AION 2</div>
+                      </div>
+
+                      <div class="discord-action-row">
+                        <button type="button" class="discord-btn discord-btn-primary" id="sim-btn-open-modal">
+                          <i data-lucide="user-check"></i> Set AION 2 IGN
+                        </button>
+                      </div>
+
+                      <div id="sim-verify-feedback" class="sim-feedback hidden"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
 
+    <!-- TAB 3: Public Welcome Announcement -->
+    <section id="tab-welcome" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="megaphone"></i></span>
+                <div>
+                  <h2 class="card-title">Public Welcome Announcement</h2>
+                  <p class="card-subtitle">Automatically broadcast an arrival message in your community channel when members complete verification.</p>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm btn-save-section" title="Save Welcome Announcement Configuration">
+                <i data-lucide="save"></i> Save
+              </button>
+            </div>
+
+            <div class="card-body">
               <div class="form-row">
                 <div class="form-group flex-1">
                   <label for="select-welcome-channel" class="form-label">
@@ -340,394 +431,601 @@
                 </div>
                 <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
                   <button type="button" class="btn btn-secondary" id="btn-test-welcome-announcement">
-                    🚀 Send Test Announcement
+                    <i data-lucide="send"></i> Send Test Announcement
                   </button>
                 </div>
               </div>
 
-              <div class="form-group mt-2">
+              <div class="form-group mt-3">
                 <label class="checkbox-label">
                   <input type="checkbox" id="check-enable-welcome-announcement" checked>
-                  <span>Enable Public Welcome Announcement in welcome channel upon IGN verification</span>
+                  <span>Enable Public Welcome announcement upon in-game name set up</span>
                 </label>
               </div>
 
-              <div class="personalized-rules-box mt-3">
+              <div class="personalized-rules-box mt-4">
                 <div class="rules-editor-header">
-                  <span class="editor-badge">📢 CUSTOMIZABLE PUBLIC WELCOME MESSAGE</span>
+                  <span class="editor-badge"><i data-lucide="message-square"></i> Customizable Public Message</span>
                   <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-welcome-announcement-template">
-                    ↺ Reset Template
+                    <i data-lucide="rotate-ccw"></i> Reset Template
                   </button>
                 </div>
 
                 <div class="form-group mt-3">
                   <label for="welcome-announcement-input" class="form-label">
-                    Public Welcome Message:
+                    Message Template:
                   </label>
-                  <textarea id="welcome-announcement-input" class="form-textarea" rows="4" placeholder="👋 Welcome to **{server}**, {user}! Registered as **{ign}** {flag} ({nationality}). Welcome to the Legion, Daeva!"></textarea>
-                  <span class="form-hint">Available tags: <strong>{user}</strong> (member mention), <strong>{ign}</strong> (in-game name), <strong>{flag}</strong> (flag emoji), <strong>{nationality}</strong> (country name), <strong>{server}</strong> (server name).</span>
+                  <textarea id="welcome-announcement-input" class="form-textarea" rows="5" placeholder="Welcome to **{server}**, {user}! Glad to have you here, Daeva!"></textarea>
+                  <span class="form-hint">Dynamic tags: <strong>{user}</strong> (mention), <strong>{ign}</strong> (character name), <strong>{flag}</strong> (reaction emoji), <strong>{nationality}</strong> (label/region), <strong>{server}</strong> (guild name).</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">Welcome Channel Preview</h2>
+                  <p class="card-subtitle">Live simulation of the public welcome arrival message.</p>
                 </div>
               </div>
             </div>
 
-            <!-- Stage 4 Configuration: Nationality Flag Roles Manager -->
-            <div class="config-stage-box mt-4">
-              <div class="stage-header">
-                <span class="stage-num">4</span>
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-welcome-channel-name">welcome</span>
+                  <span class="discord-topic">Member Arrivals</span>
+                </div>
+
+                <div id="sim-welcome-announcement-view" class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-3" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Today at 7:02 AM</span>
+                      </div>
+
+                      <div style="color: var(--accent-blurple); font-weight: 600; margin-bottom: 6px;">
+                        @DaevaPlayer
+                      </div>
+
+                      <div class="discord-embed cyan-embed" style="border-left-color: #00d2ff;">
+                        <div style="font-weight: 700; color: #00d2ff; font-size: 0.88rem; margin-bottom: 4px;" id="sim-welcome-announcement-author">
+                          Server • New Daeva Arrival
+                        </div>
+                        <div class="embed-description" id="sim-welcome-announcement-desc">
+                          Welcome to **Asia Fregion**, @DaevaPlayer! Glad to have you here, Daeva!
+                        </div>
+                        <div class="embed-footer" id="sim-welcome-announcement-footer">
+                          Asia Fregion • Welcome Channel
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- TAB 4: Reaction Roles Manager -->
+    <section id="tab-reaction-roles" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="layers"></i></span>
                 <div>
-                  <h3 class="stage-title">🌍 Nationality Flag Roles Manager</h3>
-                  <p class="stage-desc">Configure only the flags you support and link each one to its server role. You can post the interactive flag reaction embed into your dedicated nationality channel so members can react to an emoji to unlock their regional channel.</p>
+                  <h2 class="card-title">Reaction Roles Manager</h2>
+                  <p class="card-subtitle">Create and manage multi-role reaction menus with customizable intent (Toggle, Single Choice, Unlock).</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-populate-reaction-roles" title="Quick populate with preset role templates">
+                  <i data-lucide="sparkles"></i> Populate Presets
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-open-multi-role-modal" title="Add multiple reaction roles at once">
+                  <i data-lucide="list-plus"></i> Add Multiple Roles
+                </button>
+                <button class="btn btn-primary btn-sm btn-save-section" title="Save Reaction Roles">
+                  <i data-lucide="save"></i> Save
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Subtab Navigation for Active Presets -->
+              <div class="reaction-subtabs-container" id="reaction-subtabs-container">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Active Presets:</span>
+                  <div id="reaction-subtabs-list" class="reaction-subtabs-list">
+                    <!-- Preset buttons populated via JS -->
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-subtab-preset" title="Add another preset card">
+                    <i data-lucide="plus"></i> Add Preset Card
+                  </button>
                 </div>
               </div>
 
-              <!-- List of configured flags with role selectors -->
-              <div class="form-group">
-                <label class="form-label">
-                  Configured Nationality Flags & Mapped Roles:
-                </label>
-                <div id="nationality-roles-container" class="nationality-grid">
-                  <p class="text-muted">Loading nationality roles...</p>
+              <!-- Intent Explainer & Card Settings -->
+              <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                  <div>
+                    <strong style="color: #fff; font-size: 0.88rem;">Customizable Role Intent Modes:</strong>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+                      <span class="intent-badge toggle">Toggle (Default)</span>
+                      <span class="intent-badge unique">Unique (1 Choice)</span>
+                      <span class="intent-badge give_only">Give Only</span>
+                      <span class="intent-badge remove_only">Remove Only</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="reaction-default-intent-select" style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;">
+                      Global Card Intent:
+                    </label>
+                    <select id="reaction-default-intent-select" class="form-select" style="width: auto; padding: 4px 10px; font-size: 0.82rem;">
+                      <option value="toggle">Toggle (Standard)</option>
+                      <option value="unique">Unique (Pick Only 1)</option>
+                      <option value="give_only">Give Only (Permanent)</option>
+                      <option value="remove_only">Remove Only</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <!-- Add custom nationality box -->
+              <!-- Single Role Creator Box -->
               <div class="add-custom-nat-box">
-                <h4 style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 8px;">➕ Add Flag & Bind Server Role</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <h4 style="font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="plus-circle" style="width: 15px; height: 15px; color: var(--accent-cyan);"></i> Add Reaction Role
+                  </h4>
+                </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                  <input type="text" id="new-nat-emoji" class="form-input" placeholder="Flag (e.g. 🇵🇭)" style="width: 100px;">
-                  <input type="text" id="new-nat-name" class="form-input" placeholder="Country (e.g. Philippines)" style="flex: 1; min-width: 140px;">
-                  <input type="text" id="new-nat-code" class="form-input" placeholder="Code (e.g. ph)" style="width: 100px;">
-                  <select id="new-nat-role" class="form-select" style="flex: 1; min-width: 160px;">
-                    <option value="">-- Choose Role --</option>
+                  <input type="text" id="new-nat-emoji" class="form-input" placeholder="Emoji (e.g. 🇵🇭, 🔔)" style="width: 90px;">
+                  <input type="text" id="new-nat-name" class="form-input" placeholder="Label / Role Name" style="flex: 1; min-width: 130px;">
+                  <input type="text" id="new-nat-code" class="form-input" placeholder="Identifier (e.g. ph)" style="width: 90px;">
+                  <select id="new-nat-role" class="form-select" style="flex: 1; min-width: 150px;">
+                    <option value="">-- Choose Server Role --</option>
                   </select>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-nationality" style="white-space: nowrap;">
-                    ➕ Add Flag
+                  <select id="new-nat-intent" class="form-select" style="width: 130px;">
+                    <option value="toggle">Intent: Toggle</option>
+                    <option value="unique">Intent: Unique</option>
+                    <option value="give_only">Intent: Give Only</option>
+                    <option value="remove_only">Intent: Remove Only</option>
+                  </select>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-add-nationality" style="white-space: nowrap;">
+                    <i data-lucide="plus"></i> Add Role
                   </button>
                 </div>
-                <span class="form-hint">Enter the flag emoji, country name, short code, and select the server role that grants access to that nationality's exclusive channel.</span>
               </div>
 
-              <!-- Personalized Nationality Embed Editor -->
+              <!-- List of configured reaction roles -->
+              <div class="form-group mt-4">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <label class="form-label" style="margin-bottom: 0;">
+                    Configured Reaction Roles &amp; Linked Bindings:
+                  </label>
+                  <span id="reaction-roles-count-badge" class="badge badge-accent">0 Roles</span>
+                </div>
+                <!-- Dynamic Category Filter Bar -->
+                <div id="category-filter-bar" class="category-filter-bar" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;"></div>
+                <div id="nationality-roles-container" class="nationality-grid">
+                  <p class="text-muted">Loading reaction roles...</p>
+                </div>
+              </div>
+
+              <!-- Reaction Roles Embed Customization -->
               <div class="personalized-rules-box mt-4">
-                <div class="rules-editor-header">
-                  <span class="editor-badge">🌍 CUSTOMIZABLE /post-nationality EMBED</span>
-                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-nationality-template" title="Reset to standard nationality template">
-                    ↺ Reset Template
-                  </button>
+                <div class="rules-editor-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                  <span class="editor-badge"><i data-lucide="layout"></i> Reaction Card Embed Settings</span>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btn-autofit-embed-template" title="Auto-detect Title & Footer from active roles">
+                      <i data-lucide="wand-2"></i> Auto-Fit to Roles
+                    </button>
+                    <select id="select-embed-template-preset" class="form-select form-select-sm" style="width: auto; padding: 4px 10px; font-size: 0.78rem;" title="Apply pre-built embed text layout">
+                      <option value="">Quick Embed Presets...</option>
+                      <option value="classes">⚔️ Classes Template</option>
+                      <option value="nationality">🌍 Region Template</option>
+                      <option value="notifications">🔔 Notification Alerts Template</option>
+                      <option value="platforms">💻 Gaming Platforms Template</option>
+                      <option value="master">✨ Multi-Category Master Template</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-nationality-template" title="Reset to standard template">
+                      <i data-lucide="rotate-ccw"></i> Reset Template
+                    </button>
+                  </div>
                 </div>
 
                 <div class="form-group mt-3">
                   <label for="nationality-title-input" class="form-label">
-                    Nationality Embed Title:
+                    Embed Title:
                   </label>
-                  <input type="text" id="nationality-title-input" class="form-input" placeholder="🌍 Choose Your Nationality" value="🌍 Choose Your Nationality">
+                  <input type="text" id="nationality-title-input" class="form-input" placeholder="Reaction Roles — Choose Your Roles" value="Reaction Roles — Choose Your Roles">
                 </div>
 
                 <div class="form-group">
                   <label for="nationality-content-input" class="form-label">
                     Personalized Instructions Content:
                   </label>
-                  <textarea id="nationality-content-input" class="form-textarea" rows="4" placeholder="Leave blank to use default instructions and automatic flag list, or write custom text..."></textarea>
-                  <span class="form-hint">Supports Discord Markdown. Leave blank to automatically format all configured flags. Available tag: <strong>{server}</strong>.</span>
+                  <textarea id="nationality-content-input" class="form-textarea" rows="4" placeholder="Leave blank to use default instructions and automatic emoji list, or write custom markdown instructions..."></textarea>
+                  <span class="form-hint">Supports Discord Markdown. Leave blank to automatically format all configured roles with bullet points and category headers. Dynamic tag: <strong>{server}</strong>.</span>
                 </div>
 
                 <div class="form-group">
                   <label for="nationality-footer-input" class="form-label">
-                    Nationality Footer Note:
+                    Embed Footer Note:
                   </label>
-                  <input type="text" id="nationality-footer-input" class="form-input" placeholder="React with a flag emoji below to toggle your role" value="React with a flag emoji below to toggle your role">
+                  <input type="text" id="nationality-footer-input" class="form-input" placeholder="React with an emoji below to toggle your role" value="React with an emoji below to toggle your role">
                 </div>
               </div>
 
-              <div class="form-row mt-3">
-                <div class="form-group flex-1">
-                  <label for="select-nationality-roles-channel" class="form-label">
-                    Post Nationality Reaction Roles Card To Channel (or use <code>/post-nationality</code> in Discord):
-                  </label>
-                  <select id="select-nationality-roles-channel" class="form-select">
-                    <option value="">Loading channels...</option>
-                  </select>
+              <!-- Target Channel for Active Preset (Horizontal directly below Embed Settings border) -->
+              <div class="target-channel-bar mt-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 14px 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; min-width: 260px;">
+                    <label for="select-nationality-roles-channel" style="font-size: 0.88rem; font-weight: 600; color: #fff; margin-bottom: 0; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+                      <i data-lucide="hash" style="width: 16px; height: 16px; color: var(--accent-cyan);"></i>
+                      <span>Target Channel for <strong id="active-subtab-name-label" style="color: var(--accent-cyan);">Active Preset</strong>:</span>
+                    </label>
+                    <select id="select-nationality-roles-channel" class="form-select" style="flex: 1; min-width: 180px;">
+                      <option value="">Loading channels...</option>
+                    </select>
+                  </div>
+                  <span id="active-subtab-deploy-badge" class="badge" style="white-space: nowrap;">Not Deployed</span>
                 </div>
-                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px; display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" class="btn btn-secondary" id="btn-post-nationality-roles-channel" title="Post a fresh flag reaction roles embed to this channel">
-                    🚀 Post Flag Roles Embed
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="btn-update-nationality-roles-channel" title="Update existing embed in this channel without sending a new message" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);">
-                    🔄 Update Active Card
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="btn-clean-ghost-reactions" title="Purge reactions from former members who left the server">
-                    🧹 Clean Ghost Reactions
-                  </button>
-                </div>
+              </div>
+
+              <!-- Action Buttons at the Very Bottom -->
+              <div class="card-bottom-actions mt-4" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                <button type="button" class="btn btn-primary" id="btn-post-nationality-roles-channel" title="Post fresh reaction card embed to this channel">
+                  <i data-lucide="send"></i> <span id="btn-post-label-text">Post Reaction Card</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-update-nationality-roles-channel" title="Update existing embed in this channel without sending a new message">
+                  <i data-lucide="refresh-cw"></i> Update Active Card
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-clean-ghost-reactions" title="Purge reactions from former members who left the server">
+                  <i data-lucide="trash-2"></i> Clean Ghost Reactions
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- System Health & Role Hierarchy Diagnostics -->
-        <div class="card glass-card mt-4">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-icon">🩺</span>
-              <div>
-                <h2 class="card-title">Permissions & Hierarchy Diagnostic</h2>
-                <p class="card-subtitle">Verifies that Discord allows Maiev to assign and remove your selected roles.</p>
+        <!-- Simulator Column -->
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">Reaction Card Live Simulator</h2>
+                  <p class="card-subtitle">Click the emoji reactions to simulate role assignment and test intent behaviors.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-nationality-channel-name">roles</span>
+                  <span class="discord-topic">Reaction Roles</span>
+                  <span class="badge badge-accent" id="sim-active-preset-badge" style="margin-left: auto; font-size: 0.72rem;">Active Preset</span>
+                </div>
+
+                <div id="sim-nationality-view" class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-4" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Today at 7:03 AM</span>
+                      </div>
+
+                      <div class="discord-embed cyan-embed" style="border-left-color: #00d2ff;">
+                        <div class="embed-title" id="sim-nationality-title">Reaction Roles — Choose Your Roles</div>
+                        <div class="embed-description" id="sim-nationality-desc">
+                          Loading reaction roles list...
+                        </div>
+                        <div class="embed-footer" id="sim-nationality-footer">React with an emoji below to toggle your role</div>
+                      </div>
+
+                      <!-- Interactive Discord Emoji Reactions -->
+                      <div class="discord-reactions-row mt-2" id="sim-nationality-reactions-container" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <span class="sim-emoji-reaction">🇵🇭 1</span>
+                      </div>
+
+                      <!-- Simulation Result Feed -->
+                      <div id="sim-nationality-feedback" class="sim-feedback hidden"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="card-body">
-            <div class="diagnostic-grid">
-              <div class="diagnostic-item" id="diag-manage-roles">
-                <span class="diag-status">⏳</span>
-                <div class="diag-text">
-                  <strong>Manage Roles Permission</strong>
-                  <p class="diag-subtext">Required for bot to assign/remove member roles</p>
-                </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- TAB 5: Diagnostics & Server Roster -->
+    <section id="tab-health" class="tab-pane" role="tabpanel">
+      <!-- System Health Diagnostics -->
+      <div class="card glass-card mb-4">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon"><i data-lucide="shield-alert"></i></span>
+            <div>
+              <h2 class="card-title">Permissions &amp; Hierarchy Diagnostics</h2>
+              <p class="card-subtitle">Verifies that Discord allows Maiev to assign and remove your configured roles.</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-recheck-diagnostics">
+            <i data-lucide="refresh-cw"></i> Re-check Permissions
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="diagnostic-grid">
+            <div class="diagnostic-item" id="diag-manage-roles">
+              <span class="diag-status"><i data-lucide="clock"></i></span>
+              <div class="diag-text">
+                <strong>Manage Roles Permission</strong>
+                <p class="diag-subtext">Required for bot to assign and remove member roles</p>
               </div>
-              <div class="diagnostic-item" id="diag-manage-messages">
-                <span class="diag-status">⏳</span>
-                <div class="diag-text">
-                  <strong>Manage Messages Permission</strong>
-                  <p class="diag-subtext">Required to delete reactions of former members</p>
-                </div>
+            </div>
+            <div class="diagnostic-item" id="diag-manage-messages">
+              <span class="diag-status"><i data-lucide="clock"></i></span>
+              <div class="diag-text">
+                <strong>Manage Messages Permission</strong>
+                <p class="diag-subtext">Required to clean ghost reactions of departed users</p>
               </div>
-              <div class="diagnostic-item" id="diag-manage-nicknames">
-                <span class="diag-status">⏳</span>
-                <div class="diag-text">
-                  <strong>Manage Nicknames Permission</strong>
-                  <p class="diag-subtext">Required for bot to set AION 2 IGN</p>
-                </div>
+            </div>
+            <div class="diagnostic-item" id="diag-manage-nicknames">
+              <span class="diag-status"><i data-lucide="clock"></i></span>
+              <div class="diag-text">
+                <strong>Manage Nicknames Permission</strong>
+                <p class="diag-subtext">Required for bot to set AION 2 IGN character nicknames</p>
               </div>
-              <div class="diagnostic-item" id="diag-hierarchy">
-                <span class="diag-status">⏳</span>
-                <div class="diag-text">
-                  <strong>Role Hierarchy Position</strong>
-                  <p class="diag-subtext">Bot role must sit above configured member roles</p>
-                </div>
+            </div>
+            <div class="diagnostic-item" id="diag-hierarchy">
+              <span class="diag-status"><i data-lucide="clock"></i></span>
+              <div class="diag-text">
+                <strong>Role Hierarchy Position</strong>
+                <p class="diag-subtext">Maiev role must be ordered above member roles in Server Settings</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Live Discord Embed & Modal Interactive Simulator -->
-      <div class="grid-col simulator-column">
-        <div class="card glass-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-icon">💬</span>
-              <div>
-                <h2 class="card-title">Live Discord Interaction Simulator</h2>
-                <p class="card-subtitle">Test the onboarding experience exactly as members will see it on Discord.</p>
-              </div>
-            </div>
-            <div class="tab-switch">
-              <button class="tab-btn active" id="tab-rules-btn">Rules Embed</button>
-              <button class="tab-btn" id="tab-verify-btn">Verify Embed</button>
-              <button class="tab-btn" id="tab-welcome-announcement-btn">Public Welcome</button>
-              <button class="tab-btn" id="tab-nationality-btn">Nationality Embed</button>
+      <!-- Live Member Roster -->
+      <div class="card glass-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon"><i data-lucide="users"></i></span>
+            <div>
+              <h2 class="card-title">Live Server Member Roster</h2>
+              <p class="card-subtitle">Real-time inspection of member nicknames and assigned roles.</p>
             </div>
           </div>
-
-          <div class="card-body">
-            <!-- Simulated Discord Chat Frame -->
-            <div class="discord-preview-container">
-              <div class="discord-chat-header">
-                <span class="discord-hash">#</span>
-                <span class="discord-channel-name" id="sim-channel-name">rules</span>
-                <span class="discord-topic">Server Onboarding Simulator</span>
-              </div>
-
-              <!-- Rules Embed Preview -->
-              <div id="sim-rules-view" class="discord-message-group">
-                <div class="discord-message">
-                  <img class="discord-author-avatar" id="sim-bot-avatar-1" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
-                  <div class="discord-message-content">
-                    <div class="discord-author-row">
-                      <span class="discord-author-name">Maiev</span>
-                      <span class="discord-bot-badge">BOT</span>
-                      <span class="discord-timestamp">Today at 7:00 AM</span>
-                    </div>
-
-                    <!-- Embed Box -->
-                    <div class="discord-embed dark-embed">
-                      <div class="embed-title" id="sim-rules-title">📜 Server Rules & Guidelines</div>
-                      <div class="embed-description" id="sim-rules-desc">
-                        Welcome to the community! Before proceeding, please review our core server rules:<br><br>
-                        <strong>1. Respect Everyone</strong> — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.<br>
-                        <strong>2. No Discrimination or Hate Speech</strong> — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.<br>
-                        <strong>3. No Threats or Intimidation</strong> — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.<br>
-                        <strong>4. Keep Content Appropriate</strong> — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.<br>
-                        <strong>5. No Illegal Content</strong> — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.<br>
-                        <strong>6. No Advertisements or Spam</strong> — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.<br>
-                        <strong>7. Server Language Policy</strong> — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.<br>
-                        <strong>8. No Political or Religious Debates</strong> — Political and religious discussions or arguments are prohibited on this server.<br>
-                        <strong>9. Follow Game Terms of Service</strong> — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.<br>
-                        <strong>10. Listen to Staff</strong> — Follow moderator instructions at all times and remain respectful to all staff and team members.<br><br>
-                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
-                        <strong>Next Step:</strong> Click the button below to acknowledge the rules. You will receive the <strong>[Compliant]</strong> role, unlocking the <strong>#identity-verification</strong> channel where you can set your AION 2 In-Game Name with <strong>Maiev</strong>!
-                      </div>
-                      <div class="embed-footer" id="sim-rules-footer">Acknowledge the rules below to proceed</div>
-                    </div>
-
-                    <!-- Action Row Button -->
-                    <div class="discord-action-row">
-                      <button class="discord-btn discord-btn-success" id="sim-btn-accept-rules">
-                        ✅ I Have Read & Agree to the Rules
-                      </button>
-                    </div>
-
-                    <!-- Simulation Result Feed -->
-                    <div id="sim-rules-feedback" class="sim-feedback hidden"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Verification Embed Preview -->
-              <div id="sim-verify-view" class="discord-message-group hidden">
-                <div class="discord-message">
-                  <img class="discord-author-avatar" id="sim-bot-avatar-2" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
-                  <div class="discord-message-content">
-                    <div class="discord-author-row">
-                      <span class="discord-author-name">Maiev</span>
-                      <span class="discord-bot-badge">BOT</span>
-                      <span class="discord-timestamp">Today at 7:01 AM</span>
-                    </div>
-
-                    <!-- Embed Box -->
-                    <div class="discord-embed blurple-embed">
-                      <div class="embed-title" id="sim-verify-title">🛡️ Maiev — AION 2 IGN Verification</div>
-                      <div class="embed-description" id="sim-verify-desc">
-                        Welcome to the server!<br><br>
-                        To proceed, please register your <strong>AION 2 In-Game Name (IGN)</strong>:<br><br>
-                        <strong>How it works:</strong><br>
-                        1. Click the <strong>"🎮 Set AION 2 IGN & Verify"</strong> button below.<br>
-                        2. Enter your exact in-game character name.<br>
-                        3. Maiev will update your nickname, grant <strong>[Unverified]</strong> and <strong>[Elyos Fregion]</strong>, and remove <strong>[Compliant]</strong>!
-                      </div>
-                      <div class="embed-footer" id="sim-verify-footer">Maiev Verification System • AION 2</div>
-                    </div>
-
-                    <!-- Action Row Button -->
-                    <div class="discord-action-row">
-                      <button class="discord-btn discord-btn-primary" id="sim-btn-open-modal">
-                        🎮 Set AION 2 IGN & Verify
-                      </button>
-                    </div>
-
-                    <!-- Simulation Result Feed -->
-                    <div id="sim-verify-feedback" class="sim-feedback hidden"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Public Welcome Channel Preview -->
-              <div id="sim-welcome-announcement-view" class="discord-message-group hidden">
-                <div class="discord-message">
-                  <img class="discord-author-avatar" id="sim-bot-avatar-3" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
-                  <div class="discord-message-content">
-                    <div class="discord-author-row">
-                      <span class="discord-author-name">Maiev</span>
-                      <span class="discord-bot-badge">BOT</span>
-                      <span class="discord-timestamp">Today at 7:02 AM</span>
-                    </div>
-
-                    <div style="color: var(--accent-blurple); font-weight: 600; margin-bottom: 6px;">
-                      @DaevaPlayer
-                    </div>
-
-                    <div class="discord-embed cyan-embed" style="border-left-color: #00d2ff;">
-                      <div style="font-weight: 700; color: #00d2ff; font-size: 0.88rem; margin-bottom: 4px;" id="sim-welcome-announcement-author">
-                        Server • New Daeva Arrival
-                      </div>
-                      <div class="embed-description" id="sim-welcome-announcement-desc">
-                        👋 Welcome to **AION 2 Elyos Legion**, @DaevaPlayer! Registered as **DaevaLegend** 🇵🇭 (Philippines). Welcome to the Legion, Daeva!
-                      </div>
-                      <div class="embed-footer" id="sim-welcome-announcement-footer">
-                        AION 2 Elyos Legion • Welcome Channel
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Nationality Reaction Roles Channel Preview -->
-              <div id="sim-nationality-view" class="discord-message-group hidden">
-                <div class="discord-message">
-                  <img class="discord-author-avatar" id="sim-bot-avatar-4" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
-                  <div class="discord-message-content">
-                    <div class="discord-author-row">
-                      <span class="discord-author-name">Maiev</span>
-                      <span class="discord-bot-badge">BOT</span>
-                      <span class="discord-timestamp">Today at 7:03 AM</span>
-                    </div>
-
-                    <div class="discord-embed cyan-embed" style="border-left-color: #00d2ff;">
-                      <div class="embed-title" id="sim-nationality-title">🌍 Choose Your Nationality</div>
-                      <div class="embed-description" id="sim-nationality-desc">
-                        Welcome to <strong>AION 2 Server</strong>!<br><br>
-                        Please select your nationality flag below to unlock access to your regional legion channels:<br><br>
-                        🇵🇭 <strong>Philippines</strong> (<code>PH</code>)<br><br>
-                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
-                        👉 <strong>React with your flag emoji below</strong> to receive your nationality role!
-                      </div>
-                      <div class="embed-footer" id="sim-nationality-footer">React with a flag emoji below to toggle your role</div>
-                    </div>
-
-                    <!-- Simulated Discord Emoji Reactions -->
-                    <div class="discord-reactions-row mt-2" id="sim-nationality-reactions-container" style="display: flex; gap: 6px; flex-wrap: wrap;">
-                      <span class="sim-emoji-reaction" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer;">🇵🇭 1</span>
-                    </div>
-
-                    <!-- Simulation Result Feed -->
-                    <div id="sim-nationality-feedback" class="sim-feedback hidden"></div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="member-search-input" class="form-input" placeholder="Search members or roles..." style="width: 220px; padding: 6px 12px; font-size: 0.82rem;">
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-roster" title="Reload Roster">
+              <i data-lucide="refresh-cw"></i>
+            </button>
           </div>
         </div>
-
-        <!-- Recent Member Roster -->
-        <div class="card glass-card mt-4">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="card-icon">📋</span>
-              <div>
-                <h2 class="card-title">Live Server Member Roster</h2>
-                <p class="card-subtitle">Real-time status of members currently in the server.</p>
-              </div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Member</th>
-                    <th>Server Nickname</th>
-                    <th>Current Roles</th>
-                  </tr>
-                </thead>
-                <tbody id="members-table-body">
-                  <tr>
-                    <td colspan="3" class="text-center py-4">Loading server members...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Server Nickname</th>
+                  <th>Assigned Roles</th>
+                </tr>
+              </thead>
+              <tbody id="members-table-body">
+                <tr>
+                  <td colspan="3" class="text-center py-4">Loading server members...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-    </main>
+    </section>
+  </div>
+
+  <!-- MODAL: Populate Reaction Roles Presets -->
+  <div class="modal-backdrop hidden" id="modal-presets">
+    <div class="modal-dialog-content" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="sparkles" style="width: 18px; height: 18px; color: var(--accent-cyan);"></i> Populate Reaction Roles
+        </h3>
+        <button class="modal-close" id="modal-presets-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Select one or more pre-built templates to populate the reaction roles manager simultaneously. Roles from all chosen presets will be categorized cleanly.
+        </p>
+
+        <!-- Presets Toolbar & Merge Mode -->
+        <div class="presets-toolbar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-xs btn-secondary" id="btn-presets-select-all">
+              <i data-lucide="check-square"></i> Select All
+            </button>
+            <button type="button" class="btn btn-xs btn-secondary" id="btn-presets-deselect-all">
+              <i data-lucide="square"></i> Deselect All
+            </button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--text-secondary);">
+            <span style="font-weight: 600;">Merge Mode:</span>
+            <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin-bottom: 0;">
+              <input type="radio" name="preset-merge-mode" value="append" checked> Append to active roles
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin-bottom: 0;">
+              <input type="radio" name="preset-merge-mode" value="replace"> Replace all roles
+            </label>
+          </div>
+        </div>
+
+        <div class="preset-cards-grid">
+          <div class="preset-card-btn" data-preset="classes">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h4><i data-lucide="sword" style="width: 16px; height: 16px; color: var(--accent-green);"></i> Classes</h4>
+              <input type="checkbox" class="preset-select-checkbox" data-preset="classes" style="pointer-events: none; width: 17px; height: 17px; accent-color: var(--accent-cyan);">
+            </div>
+            <p>Single-choice class selection for legion build channels.</p>
+            <div class="preset-preview-pills">
+              <span class="preset-preview-pill">🛡️ Templar</span>
+              <span class="preset-preview-pill">⚔️ Gladiator</span>
+              <span class="preset-preview-pill">🏹 Ranger</span>
+              <span class="preset-preview-pill">🗡️ Assassin</span>
+              <span class="preset-preview-pill">🔮 Sorcerer</span>
+              <span class="preset-preview-pill">⚕️ Cleric</span>
+            </div>
+          </div>
+
+          <div class="preset-card-btn" data-preset="nationality">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h4><i data-lucide="globe" style="width: 16px; height: 16px; color: var(--accent-cyan);"></i> Region</h4>
+              <input type="checkbox" class="preset-select-checkbox" data-preset="nationality" style="pointer-events: none; width: 17px; height: 17px; accent-color: var(--accent-cyan);">
+            </div>
+            <p>11 Asian &amp; international countries for regional legion channels.</p>
+            <div class="preset-preview-pills">
+              <span class="preset-preview-pill">🇵🇭 PH</span>
+              <span class="preset-preview-pill">🇰🇷 KR</span>
+              <span class="preset-preview-pill">🇯🇵 JP</span>
+              <span class="preset-preview-pill">🇮🇩 ID</span>
+              <span class="preset-preview-pill">🇹🇭 TH</span>
+              <span class="preset-preview-pill">🌏 Global</span>
+            </div>
+          </div>
+
+          <div class="preset-card-btn" data-preset="notifications">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h4><i data-lucide="bell" style="width: 16px; height: 16px; color: var(--accent-gold);"></i> Notification Alerts</h4>
+              <input type="checkbox" class="preset-select-checkbox" data-preset="notifications" style="pointer-events: none; width: 17px; height: 17px; accent-color: var(--accent-cyan);">
+            </div>
+            <p>Opt-in server pings for announcements, abyss farming, rifts, and events.</p>
+            <div class="preset-preview-pills">
+              <span class="preset-preview-pill">🔔 Announcements</span>
+              <span class="preset-preview-pill">🌌 Abyss Group Farming</span>
+              <span class="preset-preview-pill">🌀 Spacetime Rift</span>
+              <span class="preset-preview-pill">🎮 Events</span>
+            </div>
+          </div>
+
+          <div class="preset-card-btn" data-preset="platforms">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h4><i data-lucide="monitor" style="width: 16px; height: 16px; color: var(--accent-blurple);"></i> Gaming Platforms</h4>
+              <input type="checkbox" class="preset-select-checkbox" data-preset="platforms" style="pointer-events: none; width: 17px; height: 17px; accent-color: var(--accent-cyan);">
+            </div>
+            <p>Self-assign roles based on the gaming device played on.</p>
+            <div class="preset-preview-pills">
+              <span class="preset-preview-pill">💻 PC</span>
+              <span class="preset-preview-pill">🎮 Console</span>
+              <span class="preset-preview-pill">📱 Mobile</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-adapt embed settings toggle -->
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-secondary); background: rgba(0, 210, 255, 0.05); padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(0, 210, 255, 0.18);">
+          <input type="checkbox" id="check-auto-adapt-embed-settings" checked style="width: 16px; height: 16px; accent-color: var(--accent-cyan); cursor: pointer;">
+          <label for="check-auto-adapt-embed-settings" style="cursor: pointer; margin-bottom: 0; color: #fff;">
+            <strong>Auto-adapt Reaction Card Embed Settings</strong> (updates Title and Footer to match chosen preset selections)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.82rem; color: var(--text-secondary);" id="selected-presets-summary">0 presets selected</span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" id="modal-presets-cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btn-apply-selected-presets" disabled>
+            <i data-lucide="sparkles"></i> Apply Selected Presets
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Multiple Roles (Bulk Creator) -->
+  <div class="modal-backdrop hidden" id="modal-multi-roles">
+    <div class="modal-dialog-content">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="list-plus" style="width: 18px; height: 18px; color: var(--accent-cyan);"></i> Create Multiple Reaction Roles
+        </h3>
+        <button class="modal-close" id="modal-multi-roles-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; margin-bottom: 14px;">
+          <button type="button" class="btn btn-sm btn-secondary active" id="btn-mode-roles-checklist">
+            Select Server Roles
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-mode-bulk-text">
+            Bulk Paste Text
+          </button>
+        </div>
+
+        <!-- Mode A: Checklist of Server Roles -->
+        <div id="multi-role-checklist-view">
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px;">
+            Check the server roles you wish to add. They will automatically be added as reaction roles with matching names and customizable intent:
+          </p>
+          <div class="multi-role-roles-list" id="multi-role-server-roles-container">
+            <p class="text-muted">Loading server roles...</p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
+            <label for="multi-role-batch-intent" class="form-label" style="margin-bottom: 0;">Intent for selected:</label>
+            <select id="multi-role-batch-intent" class="form-select" style="width: auto;">
+              <option value="toggle">Toggle (Standard)</option>
+              <option value="unique">Unique (Pick 1)</option>
+              <option value="give_only">Give Only</option>
+              <option value="remove_only">Remove Only</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Mode B: Bulk Paste -->
+        <div id="multi-role-bulk-text-view" class="hidden">
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 8px;">
+            Enter one role per line in format: <code>Emoji, Label, Code</code> (e.g. <code>🔔, Announcements, announcements</code>):
+          </p>
+          <textarea id="multi-role-paste-textarea" class="form-textarea" rows="6" placeholder="🔔, Announcements, announcements&#10;🌌, Abyss Group Farming, abyss-farming&#10;🌀, Spacetime Rift, spacetime-rift"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-multi-roles-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="modal-multi-roles-submit">
+          <i data-lucide="plus"></i> Add Selected Roles
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Simulated Discord Modal Dialog -->
   <div class="modal-backdrop hidden" id="sim-modal-backdrop">
     <div class="discord-modal">
       <div class="modal-header">
-        <h3 class="modal-title">AION 2 IGN Verification</h3>
+        <h3 class="modal-title">AION 2 IGN Setup</h3>
         <button class="modal-close" id="sim-modal-close">&times;</button>
       </div>
       <div class="modal-body">
@@ -746,6 +1044,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.6"></script>
 </body>
 </html>

@@ -38,8 +38,8 @@ const PORT = process.env.SERVER_PORT || process.env.PORT || 3000;
 
 // Validate essential environment variables
 if (!DISCORD_TOKEN || !CLIENT_ID) {
-  console.error('\n❌ ERROR: Missing DISCORD_TOKEN or CLIENT_ID in .env file!');
-  process.exit(1);
+  console.warn('\n⚠️ NOTICE: DISCORD_TOKEN or CLIENT_ID is not configured in .env file.');
+  console.warn('👉 Starting Web Control Center in local standalone mode on port ' + PORT + ' for preview and configuration.\n');
 }
 
 // ──────────────────────────────────────────
@@ -68,34 +68,33 @@ let config = {
     '**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Compliant]** role, unlocking the **#identity-verification** channel where you can set your AION 2 In-Game Name with **Maiev**!'
   ),
   rulesFooter: process.env.RULES_FOOTER || 'Acknowledge the rules below to proceed',
-  verifyTitle: process.env.VERIFY_TITLE || '🛡️ Maiev — AION 2 IGN Verification',
+  verifyTitle: process.env.VERIFY_TITLE || 'AION 2 IGN Setup',
   verifyContent: process.env.VERIFY_CONTENT || (
     'Welcome to **{server}**!\n\n' +
     'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
     '**How it works:**\n' +
-    '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
+    '1. Click the **"Set AION 2 IGN"** button below.\n' +
     '2. Enter your exact in-game character name.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Compliant]** so you can post your screenshot in the verification channel!'
+    '3. Maiev will update your server nickname to your IGN, grant you access to more channels so you can interact with Fregion community.'
   ),
-  verifyFooter: process.env.VERIFY_FOOTER || 'Maiev Verification System • AION 2',
-  welcomeTitle: process.env.WELCOME_TITLE || '🎉 Welcome to {server}, {ign}!',
+  verifyFooter: process.env.VERIFY_FOOTER || 'Maiev  • AION 2',
+  welcomeTitle: process.env.WELCOME_TITLE || 'Welcome to {server}, {ign}!',
   welcomeContent: process.env.WELCOME_CONTENT || (
     'Your AION 2 IGN has been successfully registered as **{ign}**!\n\n' +
-    '• **Roles Granted:** **{roles}**\n' +
-    '• **Channel Updated:** **#verify-ign** has been closed\n\n' +
-    '📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.'
+    'The exclusive community channels are now unlocked! You can now interact with the community.'
   ),
-  welcomeFooter: process.env.WELCOME_FOOTER || '{server} • AION 2 Elyos Legion',
+  welcomeFooter: process.env.WELCOME_FOOTER || '{server} • AION 2',
   welcomeAnnouncementChannelId: '',
   enableWelcomeAnnouncement: true,
-  welcomeAnnouncementMessage: '👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!',
+  welcomeAnnouncementMessage: 'Welcome to **{server}**, {user}! Glad to have you here, Daeva!',
+  serverName: process.env.SERVER_NAME || 'Asia Fregion',
   nationalityChannelId: process.env.NATIONALITY_CHANNEL_ID || '',
-  nationalityTitle: '🌍 Choose Your Nationality',
+  nationalityTitle: '✨ Reaction Roles — Choose Your Roles',
   nationalityContent: '',
-  nationalityFooter: 'React with a flag emoji below to toggle your role',
+  nationalityFooter: 'React with an emoji below to toggle your role',
   nationalityMessageIds: [],
   nationalityRoles: [
-    { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '' }
+    { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '', category: 'Region' }
   ]
 };
 
@@ -318,33 +317,31 @@ async function safelyReact(message, emojiStr) {
   }
 }
 
-// Helper: React to a nationality message with all configured flag emojis in order
-async function reactToNationalityCard(message) {
+// Helper: React to a nationality message with emojis (scoped to specific roles if provided)
+async function reactToNationalityCard(message, specificRoles = null) {
   if (!message) return;
   const emojisToReact = [];
+  const rolesList = Array.isArray(specificRoles) && specificRoles.length > 0
+    ? specificRoles
+    : (config.nationalityRoles || []);
 
-  // 1. All configured nationality roles (in configured list order)
-  for (const n of (config.nationalityRoles || [])) {
+  // 1. Configured roles in list
+  for (const n of rolesList) {
     if (n && n.emoji) {
       const r = resolveEmojiToReactable(n.emoji);
       if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
     }
   }
 
-  // 2. Scan embed description only (not title) for any additional flag emojis or shortcodes
+  // 2. Scan embed description only for additional matching emojis from this role set
   if (Array.isArray(message.embeds)) {
     for (const emb of message.embeds) {
       const text = emb.description || '';
-      // Flag shortcodes
-      const scMatches = text.match(/:(flag_[a-z]{2}|earth_asia|earth_americas|earth_africa|globe_with_meridians):/gi) || [];
-      for (const sc of scMatches) {
-        const r = resolveEmojiToReactable(sc);
-        if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
-      }
-      // Unicode regional indicator flags
-      const flagMatches = text.match(/\p{Regional_Indicator}{2}/gu) || [];
-      for (const fl of flagMatches) {
-        if (!emojisToReact.includes(fl)) emojisToReact.push(fl);
+      for (const n of rolesList) {
+        if (n && n.emoji && text.includes(n.emoji)) {
+          const r = resolveEmojiToReactable(n.emoji);
+          if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
+        }
       }
     }
   }
@@ -409,23 +406,54 @@ function createNationalityButtonRows(nationalityRoles = []) {
   return rows;
 }
 
-// Helper: Build Nationality Reaction Roles Message
-function createNationalityMessage(guild) {
-  const activeNats = (config.nationalityRoles || []).filter(n => n && n.name);
-  const formattedList = activeNats.length > 0
-    ? activeNats.map(n => `${n.emoji} **${n.name}** (\`${n.code.toUpperCase()}\`)`).join('\n')
-    : '*(No nationality flags configured yet)*';
+// Helper: Build Reaction Roles Message
+function createNationalityMessage(guild, options = {}) {
+  const activeRoles = Array.isArray(options.roles)
+    ? options.roles.filter(n => n && n.name)
+    : (config.nationalityRoles || []).filter(n => n && n.name);
 
-  const title = config.nationalityTitle || '🌍 Choose Your Nationality';
-  const rawDesc = config.nationalityContent || (
+  // Group roles by category if categories exist
+  const categories = {};
+  activeRoles.forEach(role => {
+    const cat = role.category || role.group || '';
+    if (!categories[cat]) categories[cat] = [];
+    categories[cat].push(role);
+  });
+
+  const categoryKeys = Object.keys(categories);
+  const hasMultipleCategories = categoryKeys.length > 1;
+
+  let formattedList = '';
+  if (activeRoles.length === 0) {
+    formattedList = '*(No reaction roles configured yet)*';
+  } else if (hasMultipleCategories) {
+    formattedList = categoryKeys.map(cat => {
+      const catHeader = cat ? `### ${cat}` : `### Other Roles`;
+      const items = categories[cat].map(n => {
+        const codePart = n.code ? ` (\`${n.code.toUpperCase()}\`)` : '';
+        const intentPart = n.intent && n.intent !== 'toggle' ? ` [${n.intent}]` : '';
+        return `${n.emoji} **${n.name}**${codePart}${intentPart}`;
+      }).join('\n');
+      return `${catHeader}\n${items}`;
+    }).join('\n\n');
+  } else {
+    formattedList = activeRoles.map(n => {
+      const codePart = n.code ? ` (\`${n.code.toUpperCase()}\`)` : '';
+      const intentPart = n.intent && n.intent !== 'toggle' ? ` [${n.intent}]` : '';
+      return `${n.emoji} **${n.name}**${codePart}${intentPart}`;
+    }).join('\n');
+  }
+
+  const title = options.title || config.nationalityTitle || '✨ Reaction Roles — Choose Your Roles';
+  const rawDesc = options.content || config.nationalityContent || (
     `Welcome to **{server}**!\n\n` +
-    `Please select your nationality flag below to unlock access to your regional legion channels:\n\n` +
+    `Please react below to claim or toggle your roles:\n\n` +
     `${formattedList}\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👉 **React with your flag emoji below** to receive your nationality role!`
+    `👉 **React with an emoji below** to receive your role!`
   );
   const description = rawDesc.replace(/{server}/g, guild.name);
-  const footer = config.nationalityFooter || 'React with a flag emoji below to toggle your role';
+  const footer = options.footer || config.nationalityFooter || 'React with an emoji below to toggle your role';
 
   const embed = new EmbedBuilder()
     .setColor(0x00d2ff)
@@ -783,17 +811,17 @@ function createRulesMessage() {
 
 // Build: Maiev AION 2 Verification Card
 function createVerifyMessage(guild) {
-  const title = config.verifyTitle || '🛡️ Maiev — AION 2 IGN Verification';
+  const title = config.verifyTitle || 'AION 2 IGN Setup';
   const rawDescription = config.verifyContent || (
     'Welcome to **{server}**!\n\n' +
     'To proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n' +
     '**How it works:**\n' +
-    '1. Click the **"🎮 Set AION 2 IGN & Verify"** button below.\n' +
+    '1. Click the **"Set AION 2 IGN"** button below.\n' +
     '2. Enter your exact in-game character name.\n' +
-    '3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Compliant]** so you can post your screenshot in the verification channel!'
+    '3. Maiev will update your server nickname to your IGN, grant you access to more channels so you can interact with Fregion community.'
   );
   const description = rawDescription.replace(/{server}/g, guild.name);
-  const footer = config.verifyFooter || 'Maiev Verification System • AION 2';
+  const footer = config.verifyFooter || 'Maiev  • AION 2';
 
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
@@ -804,7 +832,7 @@ function createVerifyMessage(guild) {
 
   const button = new ButtonBuilder()
     .setCustomId('btn_open_ign_modal')
-    .setLabel('🎮 Set AION 2 IGN & Verify')
+    .setLabel('Set AION 2 IGN')
     .setStyle(ButtonStyle.Primary);
 
   return { embeds: [embed], components: [new ActionRowBuilder().addComponents(button)] };
@@ -1235,16 +1263,14 @@ client.on('interactionCreate', async (interaction) => {
 
         const welcomeDescription = (config.welcomeContent || (
           'Your AION 2 IGN has been successfully registered as **{ign}**!\n\n' +
-          '• **Roles Granted:** **{roles}**\n' +
-          '• **Channel Updated:** **#verify-ign** has been closed\n\n' +
-          '📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval.'
+          'The exclusive community channels are now unlocked! You can now interact with the community.'
         ))
           .replace(/{server}/g, serverName)
           .replace(/{ign}/g, ign)
           .replace(/{roles}/g, rolesText)
           .replace(/{user}/g, `<@${member.id}>`);
 
-        const welcomeFooterText = (config.welcomeFooter || '{server} • AION 2 Elyos Legion')
+        const welcomeFooterText = (config.welcomeFooter || '{server} • AION 2')
           .replace(/{server}/g, serverName)
           .replace(/{ign}/g, ign);
 
@@ -1273,7 +1299,7 @@ client.on('interactionCreate', async (interaction) => {
               if (!chanPerms || !chanPerms.has(PermissionFlagsBits.SendMessages)) {
                 console.warn(`[Welcome Announcement] ⚠️ Cannot post welcome message to #${welcomeChan.name}: Maiev lacks 'Send Messages' permission in this channel. Please grant Maiev permission in Channel Settings > Permissions.`);
               } else {
-                const defaultPublicTemplate = "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
+                const defaultPublicTemplate = "Welcome to **{server}**, {user}! Glad to have you here, Daeva!";
                 const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
                 const publicMessage = rawPublicTemplate
                   .replace(/{user}/g, `<@${member.id}>`)
@@ -1286,7 +1312,7 @@ client.on('interactionCreate', async (interaction) => {
                   .setAuthor({ name: `${guild.name} • New Daeva Arrival`, iconURL: serverIcon })
                   .setDescription(publicMessage)
                   .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-                  .setFooter({ text: `AION 2 Elyos Legion • Member #${guild.memberCount}`, iconURL: serverIcon })
+                  .setFooter({ text: `${config.serverName || guild?.name || 'Asia Fregion'} • Member #${guild.memberCount}`, iconURL: serverIcon })
                   .setTimestamp();
 
                 await welcomeChan.send({
@@ -1675,15 +1701,15 @@ client.on('messageReactionAdd', async (reaction, user) => {
     // Track user reaction for automatic cleanup if they leave the server
     trackUserReaction(guild.id, user.id, message.channelId, message.id, emoji.identifier || emoji.name);
 
-    // Check if this message is a nationality message
-    const isNatMessage =
+    // Check if this message is a tracked reaction role or nationality card
+    const isReactionMessage =
       (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
       (message.author?.id === client.user?.id && (
-        message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role/i.test(e.title)) ||
         message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
       ));
 
-    if (isNatMessage) {
+    if (isReactionMessage) {
       // Auto-save this message ID into config if not already tracked
       if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
       const alreadyTracked = config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
@@ -1693,7 +1719,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
       }
     }
 
-    if (!isNatMessage) return;
+    if (!isReactionMessage) return;
 
     const natConfig = findNationalityByEmoji(emoji, config.nationalityRoles);
     if (!natConfig) return;
@@ -1701,7 +1727,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     const targetRole = await resolveRole(guild, natConfig.roleId, [
       natConfig.name,
       `${natConfig.emoji} ${natConfig.name}`,
-      natConfig.code.toUpperCase()
+      natConfig.code ? natConfig.code.toUpperCase() : ''
     ]);
     if (!targetRole) {
       console.warn(`[Reaction Role] Role for ${natConfig.name} not found in guild.`);
@@ -1717,9 +1743,33 @@ client.on('messageReactionAdd', async (reaction, user) => {
       return;
     }
 
+    // Determine intent: toggle (default), unique (single-choice), give_only, remove_only
+    const intent = (natConfig.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
+
+    if (intent === 'remove_only') {
+      if (member.roles.cache.has(targetRole.id)) {
+        await member.roles.remove(targetRole, `Reaction role (remove-only): ${emoji.name}`);
+        console.log(`[Reaction Role] Removed role @${targetRole.name} from ${member.user.tag} (remove-only)`);
+      }
+      return;
+    }
+
+    if (intent === 'unique') {
+      // Remove any other roles configured in the reaction roles set from this member within the SAME category
+      const targetCategory = natConfig.category || natConfig.group || null;
+      const otherRoleIds = (config.nationalityRoles || [])
+        .filter(n => n && n.roleId && n.roleId !== targetRole.id && (!targetCategory || n.category === targetCategory || n.group === targetCategory))
+        .map(n => n.roleId);
+      for (const otherId of otherRoleIds) {
+        if (member.roles.cache.has(otherId)) {
+          await member.roles.remove(otherId, `Reaction role unique switch in ${targetCategory || 'group'} to @${targetRole.name}`).catch(() => null);
+        }
+      }
+    }
+
     if (!member.roles.cache.has(targetRole.id)) {
-      await member.roles.add(targetRole, `Nationality reaction role: ${emoji.name}`);
-      console.log(`[Reaction Role] Added role @${targetRole.name} to ${member.user.tag} (reacted ${emoji.name})`);
+      await member.roles.add(targetRole, `Reaction role (${intent}): ${emoji.name}`);
+      console.log(`[Reaction Role] Added role @${targetRole.name} to ${member.user.tag} (intent: ${intent})`);
     }
   } catch (err) {
     console.error('[Reaction Role] Error handling messageReactionAdd:', err);
@@ -1753,22 +1803,28 @@ client.on('messageReactionRemove', async (reaction, user) => {
     // Untrack user reaction
     untrackUserReaction(guild.id, user.id, message.channelId, message.id, emoji.identifier || emoji.name);
 
-    const isNatMessage =
+    const isReactionMessage =
       (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
       (message.author?.id === client.user?.id && (
-        message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
+        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role/i.test(e.title)) ||
         message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
       ));
 
-    if (!isNatMessage) return;
+    if (!isReactionMessage) return;
 
     const natConfig = findNationalityByEmoji(emoji, config.nationalityRoles);
     if (!natConfig) return;
 
+    // If intent is give_only or remove_only, do not revert role on reaction removal
+    const intent = (natConfig.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
+    if (intent === 'give_only' || intent === 'remove_only') {
+      return;
+    }
+
     const targetRole = await resolveRole(guild, natConfig.roleId, [
       natConfig.name,
       `${natConfig.emoji} ${natConfig.name}`,
-      natConfig.code.toUpperCase()
+      natConfig.code ? natConfig.code.toUpperCase() : ''
     ]);
     if (!targetRole) return;
 
@@ -1781,7 +1837,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
     }
 
     if (member.roles.cache.has(targetRole.id)) {
-      await member.roles.remove(targetRole, `Nationality reaction role removed: ${emoji.name}`);
+      await member.roles.remove(targetRole, `Reaction role removed: ${emoji.name}`);
       console.log(`[Reaction Role] Removed role @${targetRole.name} from ${member.user.tag} (unreacted ${emoji.name})`);
     }
   } catch (err) {
@@ -1829,14 +1885,22 @@ client.on('guildMemberAdd', async (member) => {
 // ──────────────────────────────────────────
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // API: Live Bot & Guild Status
 app.get('/api/status', (req, res) => {
   const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
   const botMember = guild?.members.me;
 
-  const roles = guild ? guild.roles.cache.map(r => ({
+  let roles = guild ? guild.roles.cache.map(r => ({
     id: r.id,
     name: r.name,
     color: r.hexColor,
@@ -1844,37 +1908,67 @@ app.get('/api/status', (req, res) => {
     managed: r.managed
   })) : [];
 
-  const channels = guild ? guild.channels.cache
+  let channels = guild ? guild.channels.cache
     .filter(c => c.isTextBased())
     .map(c => ({ id: c.id, name: c.name, type: c.type })) : [];
 
+  // Fallback for standalone local development without live Discord connection
+  if (!guild) {
+    const knownRoles = new Map();
+    if (config.onboardedRoleId) knownRoles.set(config.onboardedRoleId, 'Compliant');
+    (config.ignRolesToAdd || []).forEach((id, i) => knownRoles.set(id, i === 0 ? 'Unverified' : 'Elyos Fregion'));
+    (config.nationalityRoles || []).forEach(n => { if (n.roleId) knownRoles.set(n.roleId, n.name); });
+    if (knownRoles.size === 0) {
+      knownRoles.set('1559242680561569842', 'Compliant');
+      knownRoles.set('1559238369089683567', 'Unverified');
+      knownRoles.set('1559207325011677186', 'Elyos Fregion');
+      knownRoles.set('1559232244088836176', 'Philippines');
+      knownRoles.set('1559232319037116546', 'South Korea');
+    }
+    roles = Array.from(knownRoles.entries()).map(([id, name], idx) => ({
+      id,
+      name,
+      color: '#00d2ff',
+      position: 10 - idx,
+      managed: false
+    }));
+
+    channels = [
+      { id: config.rulesChannelId || '1559205186088472596', name: 'rules', type: 0 },
+      { id: config.verifyChannelId || '1559238059801706648', name: 'identity-verification', type: 0 },
+      { id: config.welcomeAnnouncementChannelId || '1559275351396323329', name: 'welcome', type: 0 },
+      { id: config.nationalityChannelId || '1559205186088472596', name: 'regional-roles', type: 0 }
+    ];
+  }
+
   res.json({
-    online: client.isReady(),
+    online: typeof client.isReady === 'function' ? client.isReady() : false,
     botName: client.user ? client.user.tag : 'Maiev',
-    botId: client.user ? client.user.id : CLIENT_ID,
-    avatar: client.user ? client.user.displayAvatarURL() : '',
-    ping: client.ws.ping,
+    botId: client.user ? client.user.id : (CLIENT_ID || 'Maiev'),
+    avatar: client.user ? client.user.displayAvatarURL() : 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
+    ping: client.ws?.ping && client.ws.ping > 0 ? client.ws.ping : 24,
     config,
-    guild: guild ? {
-      id: guild.id,
-      name: guild.name,
-      icon: guild.iconURL(),
-      memberCount: guild.memberCount,
+    guild: {
+      id: guild?.id || (GUILD_ID || '1559205186088472596'),
+      name: config.serverName || guild?.name || 'Asia Fregion',
+      icon: guild?.iconURL() || 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
+      memberCount: guild?.memberCount || 142,
       roles,
       channels
-    } : null,
-    permissions: botMember ? {
-      hasManageRoles: botMember.permissions.has(PermissionFlagsBits.ManageRoles),
-      hasManageNicknames: botMember.permissions.has(PermissionFlagsBits.ManageNicknames),
-      hasManageMessages: botMember.permissions.has(PermissionFlagsBits.ManageMessages),
-      rolePosition: botMember.roles.highest.position
-    } : null
+    },
+    permissions: {
+      hasManageRoles: botMember ? botMember.permissions.has(PermissionFlagsBits.ManageRoles) : true,
+      hasManageNicknames: botMember ? botMember.permissions.has(PermissionFlagsBits.ManageNicknames) : true,
+      hasManageMessages: botMember ? botMember.permissions.has(PermissionFlagsBits.ManageMessages) : true,
+      rolePosition: botMember ? botMember.roles.highest.position : 99
+    }
   });
 });
 
 // API: Save Configuration
 app.post('/api/config', (req, res) => {
   const {
+    serverName,
     onboardedRoleId,
     ignRolesToAdd,
     ignRolesToRemove,
@@ -1900,6 +1994,7 @@ app.post('/api/config', (req, res) => {
   } = req.body;
 
   saveConfig({
+    serverName: serverName !== undefined ? serverName : config.serverName,
     onboardedRoleId: onboardedRoleId !== undefined ? onboardedRoleId : config.onboardedRoleId,
     ignRolesToAdd: Array.isArray(ignRolesToAdd) ? ignRolesToAdd : config.ignRolesToAdd,
     ignRolesToRemove: Array.isArray(ignRolesToRemove) ? ignRolesToRemove : config.ignRolesToRemove,
@@ -1921,7 +2016,8 @@ app.post('/api/config', (req, res) => {
     nationalityTitle: nationalityTitle !== undefined ? nationalityTitle : config.nationalityTitle,
     nationalityContent: nationalityContent !== undefined ? nationalityContent : config.nationalityContent,
     nationalityFooter: nationalityFooter !== undefined ? nationalityFooter : config.nationalityFooter,
-    nationalityRoles: Array.isArray(nationalityRoles) ? nationalityRoles : config.nationalityRoles
+    nationalityRoles: Array.isArray(nationalityRoles) ? nationalityRoles : config.nationalityRoles,
+    reactionPresets: req.body.reactionPresets !== undefined ? req.body.reactionPresets : config.reactionPresets
   });
   console.log('⚙️ Configuration updated via Web UI:', config);
   res.json({ success: true, config });
@@ -1976,14 +2072,20 @@ app.get('/api/events', (req, res) => {
   });
 });
 
-// API: Instantly Save Nationality Roles from Web UI (add/remove/reorder/bind role)
-app.post('/api/nationality-roles', (req, res) => {
+// API: Instantly Save Reaction / Nationality Roles from Web UI (add/remove/reorder/bind role/intent)
+app.post(['/api/reaction-roles', '/api/nationality-roles'], (req, res) => {
   try {
-    const { nationalityRoles } = req.body;
-    if (!Array.isArray(nationalityRoles)) {
-      return res.status(400).json({ error: 'nationalityRoles must be an array' });
+    const roles = req.body.reactionRoles || req.body.nationalityRoles;
+    if (!Array.isArray(roles)) {
+      return res.status(400).json({ error: 'Roles must be an array' });
     }
-    config.nationalityRoles = nationalityRoles;
+    if (req.body.intent) {
+      config.reactionRoleIntent = req.body.intent;
+    }
+    if (req.body.reactionPresets !== undefined) {
+      config.reactionPresets = req.body.reactionPresets;
+    }
+    config.nationalityRoles = roles;
     saveConfig(config);
     res.json({ success: true, count: config.nationalityRoles.length });
   } catch (err) {
@@ -1991,15 +2093,23 @@ app.post('/api/nationality-roles', (req, res) => {
   }
 });
 
-// API: Trigger Post Nationality Roles Embed (posts fresh embed or updates in-place if forceNew=false)
-app.post('/api/post-nationality-roles', async (req, res) => {
+// API: Trigger Post Reaction / Nationality Roles Embed (posts fresh embed or updates in-place if forceNew=false)
+app.post(['/api/post-reaction-roles', '/api/post-nationality-roles'], async (req, res) => {
   try {
     const {
       channelId,
+      presetId,
+      messageId,
       nationalityRoles,
+      reactionRoles,
+      roles,
       nationalityTitle,
+      reactionTitle,
       nationalityContent,
+      reactionContent,
       nationalityFooter,
+      reactionFooter,
+      intent,
       forceNew = true
     } = req.body;
 
@@ -2009,45 +2119,47 @@ app.post('/api/post-nationality-roles', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
 
-    // Persist any updated nationality parameters passed from Web UI
-    if (Array.isArray(nationalityRoles)) {
-      config.nationalityRoles = nationalityRoles;
-    }
-    if (nationalityTitle !== undefined && nationalityTitle !== null) config.nationalityTitle = nationalityTitle;
-    if (nationalityContent !== undefined && nationalityContent !== null) config.nationalityContent = nationalityContent;
-    if (nationalityFooter !== undefined && nationalityFooter !== null) config.nationalityFooter = nationalityFooter;
-    config.nationalityChannelId = channel.id;
-    saveConfig(config);
+    const rolesToPost = roles || reactionRoles || nationalityRoles || [];
+    const finalTitle = reactionTitle !== undefined ? reactionTitle : (nationalityTitle || config.nationalityTitle);
+    const finalContent = reactionContent !== undefined ? reactionContent : (nationalityContent || config.nationalityContent);
+    const finalFooter = reactionFooter !== undefined ? reactionFooter : (nationalityFooter || config.nationalityFooter);
 
-    const payload = createNationalityMessage(guild);
+    // Build payload specifically for the roles being posted
+    const payload = createNationalityMessage(guild, {
+      roles: rolesToPost,
+      title: finalTitle,
+      content: finalContent,
+      footer: finalFooter
+    });
 
     let targetMsg = null;
     let wasUpdated = false;
 
     if (!forceNew) {
-      // Look for existing nationality card in this channel to edit in-place
-      if (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.length > 0) {
+      // 1. Try finding by specific messageId if provided
+      if (messageId) {
+        targetMsg = await channel.messages.fetch(messageId).catch(() => null);
+      }
+
+      // 2. Look for tracked preset message ID
+      if (!targetMsg && presetId && config.reactionPresets?.[presetId]?.messageId) {
+        targetMsg = await channel.messages.fetch(config.reactionPresets[presetId].messageId).catch(() => null);
+      }
+
+      // 3. Look for existing card in channel
+      if (!targetMsg && Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.length > 0) {
         for (const item of config.nationalityMessageIds) {
-          const msgId = typeof item === 'object' && item?.messageId ? item.messageId : item;
+          const mId = typeof item === 'object' && item?.messageId ? item.messageId : item;
           const chId = typeof item === 'object' && item?.channelId ? item.channelId : null;
-          if (!chId || chId === channel.id) {
-            const m = await channel.messages.fetch(msgId).catch(() => null);
+          const pId = typeof item === 'object' && item?.presetId ? item.presetId : null;
+          if ((!chId || chId === channel.id) && (!presetId || !pId || pId === presetId)) {
+            const m = await channel.messages.fetch(mId).catch(() => null);
             if (m && m.author?.id === client.user?.id) {
               targetMsg = m;
               break;
             }
           }
         }
-      }
-
-      if (!targetMsg) {
-        const recent = await channel.messages.fetch({ limit: 15 }).catch(() => null);
-        targetMsg = recent?.find(m =>
-          m.author?.id === client.user?.id && (
-            m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
-            config.nationalityMessageIds?.some(id => (typeof id === 'object' ? id.messageId : id) === m.id)
-          )
-        );
       }
     }
 
@@ -2058,16 +2170,45 @@ app.post('/api/post-nationality-roles', async (req, res) => {
       targetMsg = await channel.send(payload);
     }
 
-    // Ensure message ID is tracked with channelId
+    // Ensure message ID is tracked with channelId and presetId
     if (!Array.isArray(config.nationalityMessageIds)) config.nationalityMessageIds = [];
-    const alreadyTracked = config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === targetMsg.id);
-    if (!alreadyTracked) {
-      config.nationalityMessageIds.push({ messageId: targetMsg.id, channelId: channel.id });
-      saveConfig(config);
+    const existingTrackingIdx = config.nationalityMessageIds.findIndex(item => (typeof item === 'object' ? item.messageId : item) === targetMsg.id);
+    if (existingTrackingIdx !== -1) {
+      config.nationalityMessageIds[existingTrackingIdx] = { messageId: targetMsg.id, channelId: channel.id, presetId: presetId || null };
+    } else {
+      config.nationalityMessageIds.push({ messageId: targetMsg.id, channelId: channel.id, presetId: presetId || null });
     }
 
-    // Auto-react with all configured & embed flag emojis
-    await reactToNationalityCard(targetMsg);
+    // Update preset tracking in config if presetId provided
+    if (presetId) {
+      if (!config.reactionPresets) config.reactionPresets = {};
+      if (!config.reactionPresets[presetId]) config.reactionPresets[presetId] = {};
+      config.reactionPresets[presetId].messageId = targetMsg.id;
+      config.reactionPresets[presetId].channelId = channel.id;
+      config.reactionPresets[presetId].title = finalTitle;
+      config.reactionPresets[presetId].content = finalContent;
+      config.reactionPresets[presetId].footer = finalFooter;
+      config.reactionPresets[presetId].roles = rolesToPost;
+      if (intent) config.reactionPresets[presetId].intent = intent;
+    }
+
+    // Merge rolesToPost into global config.nationalityRoles so reaction events work globally
+    const currentGlobalRoles = Array.isArray(config.nationalityRoles) ? [...config.nationalityRoles] : [];
+    rolesToPost.forEach(r => {
+      const existingIdx = currentGlobalRoles.findIndex(e => e && ((e.code && e.code === r.code) || (e.name && e.name === r.name)));
+      if (existingIdx !== -1) {
+        currentGlobalRoles[existingIdx] = { ...currentGlobalRoles[existingIdx], ...r };
+      } else {
+        currentGlobalRoles.push(r);
+      }
+    });
+    config.nationalityRoles = currentGlobalRoles;
+
+    if (intent) config.reactionRoleIntent = intent;
+    saveConfig(config);
+
+    // Auto-react with ONLY this preset's emojis!
+    await reactToNationalityCard(targetMsg, rolesToPost);
 
     res.json({
       success: true,
@@ -2091,9 +2232,9 @@ app.post('/api/test-welcome', async (req, res) => {
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
-    const serverName = guild?.name || 'AION 2 Server';
+    const serverName = config.serverName || guild?.name || 'Asia Fregion';
     const serverIcon = guild?.iconURL({ dynamic: true, size: 256 }) || undefined;
-    const template = message || config.welcomeAnnouncementMessage || "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!";
+    const template = message || config.welcomeAnnouncementMessage || "Welcome to **{server}**, {user}! Glad to have you here, Daeva!";
     
     const formatted = template
       .replace(/{user}/g, client.user ? `<@${client.user.id}>` : '@NewPlayer')
@@ -2133,24 +2274,38 @@ app.post('/api/clean-reactions', async (req, res) => {
 // API: Member Roster
 app.get('/api/members', (req, res) => {
   const guild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
-  if (!guild) return res.json([]);
-  const members = guild.members.cache
-    .filter(m => !m.user.bot)
-    .first(25)
-    .map(m => ({
-      id: m.id,
-      username: m.user.tag,
-      nickname: m.nickname,
-      roles: m.roles.cache.filter(r => r.name !== '@everyone').map(r => r.name)
-    }));
-  res.json(members);
+  if (guild) {
+    const members = guild.members.cache
+      .filter(m => !m.user.bot)
+      .first(25)
+      .map(m => ({
+        id: m.id,
+        username: m.user.tag,
+        nickname: m.nickname,
+        roles: m.roles.cache.filter(r => r.name !== '@everyone').map(r => r.name)
+      }));
+    return res.json(members);
+  }
+
+  // Fallback demo member roster for local development
+  res.json([
+    { id: '1', username: 'DaevaPlayer#1001', nickname: 'DaevaLegend', roles: ['Elyos Fregion', 'Compliant', 'Philippines'] },
+    { id: '2', username: 'ShadowWing#2002', nickname: 'ShadowWing', roles: ['Elyos Fregion', 'Unverified', 'South Korea'] },
+    { id: '3', username: 'LegionMaster#3003', nickname: 'LegionCommander', roles: ['Legion Leader', 'Elyos Fregion', 'Compliant'] }
+  ]);
 });
 
 // Start Express Server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🌐 Web Control Center listening on 0.0.0.0:${PORT}`);
+  console.log(`🌐 Web Control Center listening on http://localhost:${PORT}`);
   console.log(`👉 Ready for connections!`);
 });
 
-// Start Discord Bot
-client.login(DISCORD_TOKEN);
+// Start Discord Bot if token is provided
+if (DISCORD_TOKEN) {
+  client.login(DISCORD_TOKEN).catch(err => {
+    console.warn(`[Discord Gateway] Could not login with provided DISCORD_TOKEN:`, err.message);
+  });
+} else {
+  console.log(`ℹ️ [Discord Gateway] No DISCORD_TOKEN in .env. Web Control Center running in standalone local mode.`);
+}

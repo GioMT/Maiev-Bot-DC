@@ -12,19 +12,20 @@
   "rulesTitle": "📜 Server Rules & Guidelines",
   "rulesContent": "Welcome to the community! Before proceeding, please review our core server rules:\n\n**1. Respect Everyone** — Treat all members with courtesy and kindness. Zero tolerance for harassment, bullying, trolling, or starting unnecessary drama.\n**2. No Discrimination or Hate Speech** — Do not use slurs, defamatory, or abusive language. Any discrimination based on race, sex, gender, or identity will lead to an immediate ban.\n**3. No Threats or Intimidation** — Do not threaten, blackmail, or intimidate anyone on this server. Personal safety is strictly enforced.\n**4. Keep Content Appropriate** — Keep discussions in the relevant channels. No NSFW, sexually explicit, graphic, or offensive content.\n**5. No Illegal Content** — Sharing pirated materials, malicious links, malware, or any illegal content is strictly prohibited.\n**6. No Advertisements or Spam** — Self-promotion, unsolicited advertising, and referral links are prohibited. Streamers may promote themselves in the designated promotion channel as long as it is related to the game. Offenders will be muted.\n**7. Server Language Policy** — Speak in English as much as possible since we have international guild mate for community inclusivity and moderation.\n**8. No Political or Religious Debates** — Political and religious discussions or arguments are prohibited on this server.\n**9. Follow Game Terms of Service** — Respect game rules at all times. No exploits, account selling, botting, or unapproved third-party software.\n**10. Listen to Staff** — Follow moderator instructions at all times and remain respectful to all staff and team members.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**Next Step:** Click the button below to acknowledge the rules. You will receive the **[Compliant]** role, unlocking the **#identity-verification** channel where you can set your AION 2 In-Game Name with **Maiev**!",
   "rulesFooter": "Acknowledge the rules below to proceed",
-  "verifyTitle": "🛡️ Maiev — AION 2 IGN Verification",
-  "verifyContent": "Welcome to **{server}**!\n\nTo proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n**How it works:**\n1. Click the **\"🎮 Set AION 2 IGN & Verify\"** button below.\n2. Enter your exact in-game character name.\n3. Maiev will update your server nickname to your IGN, grant you **[Unverified]** and **[Elyos Fregion]**, and remove **[Compliant]** so you can post your screenshot in the verification channel!",
-  "verifyFooter": "Maiev Verification System • AION 2",
-  "welcomeTitle": "🎉 Welcome to {server}, {ign}!",
-  "welcomeContent": "Your AION 2 IGN has been successfully registered as **{ign}**!\n\n• **Roles Granted:** **[Unverified]** and **[Elyos Fregion]**\n• **Channel Updated:** **#verify-ign** has been closed\n\n📸 **Next Step:** The exclusive community channels are now unlocked! Please post your character screenshot in the verification channel for staff approval. Visit your regional channel to pick your nationality role!",
-  "welcomeFooter": "{server} • AION 2 Elyos Legion",
+  "verifyTitle": "AION 2 IGN Setup",
+  "verifyContent": "Welcome to **{server}**!\n\nTo proceed, please register your **AION 2 In-Game Name (IGN)**:\n\n**How it works:**\n1. Click the **\"Set AION 2 IGN\"** button below.\n2. Enter your exact in-game character name.\n3. Maiev will update your server nickname to your IGN, grant you access to more channels so you can interact with Fregion community.",
+  "verifyFooter": "Maiev  • AION 2",
+  "welcomeTitle": "Welcome to {server}, {ign}!",
+  "welcomeContent": "Your AION 2 IGN has been successfully registered as **{ign}**!\n\nThe exclusive community channels are now unlocked! You can now interact with the community.",
+  "welcomeFooter": "{server} • AION 2",
   "welcomeAnnouncementChannelId": "1559275351396323329",
   "enableWelcomeAnnouncement": true,
-  "welcomeAnnouncementMessage": "👋 Welcome to **{server}**, {user}! Registered as **{ign}**. Welcome to the Legion, Daeva!",
+  "welcomeAnnouncementMessage": "Welcome to **{server}**, {user}! Glad to have you here, Daeva!",
+  "serverName": "Asia Fregion",
   "nationalityChannelId": "1559205186088472596",
-  "nationalityTitle": "🌍 Choose Your Region",
+  "nationalityTitle": "⚔️ Choose Your Class Archetype",
   "nationalityContent": "",
-  "nationalityFooter": "React with a flag emoji below to toggle your role",
+  "nationalityFooter": "React with an emoji below to choose your class",
   "nationalityMessageIds": [
     {
       "messageId": "1559545015619817524",
@@ -37,70 +38,395 @@
   ],
   "nationalityRoles": [
     {
-      "code": "ph",
-      "name": "Philippines",
+      "emoji": "🛡️",
+      "name": "Templar",
+      "code": "templar",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "⚔️",
+      "name": "Gladiator",
+      "code": "gladiator",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "🏹",
+      "name": "Ranger",
+      "code": "ranger",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "🗡️",
+      "name": "Assassin",
+      "code": "assassin",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "🔮",
+      "name": "Sorcerer",
+      "code": "sorcerer",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "🌀",
+      "name": "Spiritmaster",
+      "code": "spiritmaster",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "⚕️",
+      "name": "Cleric",
+      "code": "cleric",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
+      "emoji": "🎶",
+      "name": "Chanter",
+      "code": "chanter",
+      "roleId": "",
+      "intent": "unique",
+      "category": "Classes"
+    },
+    {
       "emoji": "🇵🇭",
-      "roleId": "1559232244088836176"
+      "name": "Philippines",
+      "code": "ph",
+      "roleId": "1559232244088836176",
+      "intent": "unique"
     },
     {
-      "code": "kr",
-      "name": "South Korea",
       "emoji": "🇰🇷",
-      "roleId": "1559232319037116546"
+      "name": "South Korea",
+      "code": "kr",
+      "roleId": "1559232319037116546",
+      "intent": "unique"
     },
     {
-      "code": "jp",
-      "name": "Japan",
       "emoji": "🇯🇵",
-      "roleId": "1559232359264555078"
+      "name": "Japan",
+      "code": "jp",
+      "roleId": "1559232359264555078",
+      "intent": "unique"
     },
     {
-      "code": "id",
-      "name": "Indonesia",
       "emoji": "🇮🇩",
-      "roleId": "1559232387249082379"
+      "name": "Indonesia",
+      "code": "id",
+      "roleId": "1559232387249082379",
+      "intent": "unique"
     },
     {
-      "code": "th",
-      "name": "Thailand",
       "emoji": "🇹🇭",
-      "roleId": "1559232416667668600"
+      "name": "Thailand",
+      "code": "th",
+      "roleId": "1559232416667668600",
+      "intent": "unique"
     },
     {
-      "code": "tw",
-      "name": "Taiwan",
       "emoji": "🇹🇼",
-      "roleId": "1559232441137500161"
+      "name": "Taiwan",
+      "code": "tw",
+      "roleId": "1559232441137500161",
+      "intent": "unique"
     },
     {
-      "code": "cn",
-      "name": "China",
       "emoji": "🇨🇳",
-      "roleId": "1559232615847035010"
+      "name": "China",
+      "code": "cn",
+      "roleId": "1559232615847035010",
+      "intent": "unique"
     },
     {
-      "code": "au",
-      "name": "Australia",
       "emoji": "🇦🇺",
-      "roleId": "1559232573236846722"
+      "name": "Australia",
+      "code": "au",
+      "roleId": "1559232573236846722",
+      "intent": "unique"
     },
     {
-      "code": "my",
-      "name": "Malaysia",
       "emoji": "🇲🇾",
-      "roleId": "1559232647916560476"
+      "name": "Malaysia",
+      "code": "my",
+      "roleId": "1559232647916560476",
+      "intent": "unique"
     },
     {
-      "code": "vn",
-      "name": "Vietnam",
       "emoji": "🇻🇳",
-      "roleId": "1559232859401748663"
+      "name": "Vietnam",
+      "code": "vn",
+      "roleId": "1559232859401748663",
+      "intent": "unique"
     },
     {
-      "code": "intl",
-      "name": "International",
       "emoji": "🌏",
-      "roleId": "1559235056235585566"
+      "name": "International",
+      "code": "intl",
+      "roleId": "1559235056235585566",
+      "intent": "unique"
+    },
+    {
+      "emoji": "🔔",
+      "name": "Announcements",
+      "code": "announcements",
+      "roleId": "",
+      "intent": "toggle",
+      "category": "Notification Alerts"
+    },
+    {
+      "emoji": "🌌",
+      "name": "Abyss Group Farming",
+      "code": "abyss-farming",
+      "roleId": "",
+      "intent": "toggle",
+      "category": "Notification Alerts"
+    },
+    {
+      "emoji": "🌀",
+      "name": "Spacetime Rift",
+      "code": "spacetime-rift",
+      "roleId": "",
+      "intent": "toggle",
+      "category": "Notification Alerts"
+    },
+    {
+      "emoji": "🎮",
+      "name": "Community Events",
+      "code": "events",
+      "roleId": "",
+      "intent": "toggle",
+      "category": "Notification Alerts"
     }
-  ]
+  ],
+  "reactionRoleIntent": "unique",
+  "reactionPresets": {
+    "classes": {
+      "id": "classes",
+      "name": "Classes",
+      "icon": "⚔️",
+      "category": "Classes",
+      "title": "⚔️ Choose Your Class Archetype",
+      "content": "",
+      "footer": "React with an emoji below to choose your class",
+      "channelId": "1559205186088472596",
+      "messageId": "1559556029979697197",
+      "intent": "unique",
+      "roles": [
+        {
+          "emoji": "🛡️",
+          "name": "Templar",
+          "code": "templar",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "⚔️",
+          "name": "Gladiator",
+          "code": "gladiator",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "🏹",
+          "name": "Ranger",
+          "code": "ranger",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "🗡️",
+          "name": "Assassin",
+          "code": "assassin",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "🔮",
+          "name": "Sorcerer",
+          "code": "sorcerer",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "🌀",
+          "name": "Spiritmaster",
+          "code": "spiritmaster",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "⚕️",
+          "name": "Cleric",
+          "code": "cleric",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        },
+        {
+          "emoji": "🎶",
+          "name": "Chanter",
+          "code": "chanter",
+          "roleId": "",
+          "intent": "unique",
+          "category": "Classes"
+        }
+      ]
+    },
+    "nationality": {
+      "id": "nationality",
+      "name": "Region",
+      "icon": "🌍",
+      "category": "Region",
+      "title": "💻 Select Your Gaming Platform",
+      "content": "",
+      "footer": "React with an icon below to select your device",
+      "channelId": "1559205186088472596",
+      "messageId": "1559545015619817524",
+      "intent": "unique",
+      "roles": [
+        {
+          "emoji": "🇵🇭",
+          "name": "Philippines",
+          "code": "ph",
+          "roleId": "1559232244088836176",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇰🇷",
+          "name": "South Korea",
+          "code": "kr",
+          "roleId": "1559232319037116546",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇯🇵",
+          "name": "Japan",
+          "code": "jp",
+          "roleId": "1559232359264555078",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇮🇩",
+          "name": "Indonesia",
+          "code": "id",
+          "roleId": "1559232387249082379",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇹🇭",
+          "name": "Thailand",
+          "code": "th",
+          "roleId": "1559232416667668600",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇹🇼",
+          "name": "Taiwan",
+          "code": "tw",
+          "roleId": "1559232441137500161",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇨🇳",
+          "name": "China",
+          "code": "cn",
+          "roleId": "1559232615847035010",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇦🇺",
+          "name": "Australia",
+          "code": "au",
+          "roleId": "1559232573236846722",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇲🇾",
+          "name": "Malaysia",
+          "code": "my",
+          "roleId": "1559232647916560476",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🇻🇳",
+          "name": "Vietnam",
+          "code": "vn",
+          "roleId": "1559232859401748663",
+          "intent": "unique"
+        },
+        {
+          "emoji": "🌏",
+          "name": "International",
+          "code": "intl",
+          "roleId": "1559235056235585566",
+          "intent": "unique"
+        }
+      ]
+    },
+    "notifications": {
+      "id": "notifications",
+      "name": "Notification Alerts",
+      "icon": "🔔",
+      "category": "Notification Alerts",
+      "title": "🔔 Notification Preferences",
+      "content": "",
+      "footer": "React with an emoji below to toggle notification pings",
+      "channelId": "1559205186088472596",
+      "messageId": "",
+      "intent": "toggle",
+      "roles": [
+        {
+          "emoji": "🔔",
+          "name": "Announcements",
+          "code": "announcements",
+          "roleId": "",
+          "intent": "toggle",
+          "category": "Notification Alerts"
+        },
+        {
+          "emoji": "🌌",
+          "name": "Abyss Group Farming",
+          "code": "abyss-farming",
+          "roleId": "",
+          "intent": "toggle",
+          "category": "Notification Alerts"
+        },
+        {
+          "emoji": "🌀",
+          "name": "Spacetime Rift",
+          "code": "spacetime-rift",
+          "roleId": "",
+          "intent": "toggle",
+          "category": "Notification Alerts"
+        },
+        {
+          "emoji": "🎮",
+          "name": "Community Events",
+          "code": "events",
+          "roleId": "",
+          "intent": "toggle",
+          "category": "Notification Alerts"
+        }
+      ]
+    }
+  }
 }
