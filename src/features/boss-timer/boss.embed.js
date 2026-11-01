@@ -23,7 +23,7 @@ export function processBossList(bossList) {
     }
   }
 
-  return unique.slice(0, 25);
+  return unique.slice(0, 50);
 }
 
 /**

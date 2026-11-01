@@ -152,7 +152,57 @@ function persistMessageId(id, channelId) {
   });
 }
 
-async function sendNewMessage(channel, payload) {
+function isBossTimerEmbedMessage(msg, clientUserId) {
+  if (!msg || !clientUserId || msg.author?.id !== clientUserId) return false;
+  if (!Array.isArray(msg.embeds) || msg.embeds.length === 0) return false;
+  return msg.embeds.some(
+    (e) =>
+      /Reshanta|Verteron|Abyss Bosses|Field Bosses/i.test(e.title || '') ||
+      /Data last synced:/i.test(e.description || '')
+  );
+}
+
+/**
+ * Scans recent channel messages for existing Boss Timer embeds authored by Maiev.
+ * - If deleteAll is true (used when forceNew=true), deletes all previous Boss Timer embeds.
+ * - Otherwise, keeps the newest Boss Timer message and deletes any older duplicates.
+ */
+async function findAndCleanupExistingBossMessages(channel, clientUserId, { deleteAll = false, keepMessageId = null } = {}) {
+  try {
+    const recent = await channel.messages.fetch({ limit: 20 });
+    const matches = [...recent.values()]
+      .filter((m) => isBossTimerEmbedMessage(m, clientUserId))
+      .sort((a, b) => b.createdTimestamp - a.createdTimestamp); // newest first
+
+    if (matches.length === 0) return null;
+
+    if (deleteAll) {
+      for (const oldMsg of matches) {
+        await oldMsg.delete().catch(() => null);
+      }
+      console.log(`[BossTimer] 🧹 Deleted ${matches.length} previous Boss Timer message(s) before posting fresh embed.`);
+      return null;
+    }
+
+    const keeper = (keepMessageId && matches.find((m) => m.id === keepMessageId)) || matches[0];
+    const duplicates = matches.filter((m) => m.id !== keeper.id);
+
+    for (const dup of duplicates) {
+      await dup.delete().catch(() => null);
+      console.log(`[BossTimer] 🧹 Removed duplicate Boss Timer message ${dup.id} in #${channel.name}`);
+    }
+
+    return keeper;
+  } catch (err) {
+    console.warn('[BossTimer] Could not scan recent messages for duplicates:', err.message);
+    return null;
+  }
+}
+
+async function sendNewMessage(channel, payload, clientUserId) {
+  if (clientUserId) {
+    await findAndCleanupExistingBossMessages(channel, clientUserId, { deleteAll: true });
+  }
   const message = await channel.send(payload);
   trackedMessage = message;
   persistMessageId(message.id, channel.id);
@@ -306,15 +356,33 @@ export async function renderBossTimers(client, options = {}) {
         return null;
       }
 
-      if (MESSAGE_ID && !options.forceNew) {
+      if (options.forceNew) {
+        const msg = await sendNewMessage(channel, payload, client.user?.id);
+        return { messageId: msg.id, channelName: channel.name, posted: true, updated: false };
+      }
+
+      // Scan channel for existing Boss Timer message(s) and automatically clean up duplicates
+      const discovered = await findAndCleanupExistingBossMessages(channel, client.user?.id, {
+        deleteAll: false,
+        keepMessageId: MESSAGE_ID
+      });
+
+      if (discovered) {
+        trackedMessage = discovered;
+        if (MESSAGE_ID !== discovered.id) {
+          persistMessageId(discovered.id, channel.id);
+          console.log(`[BossTimer] 📌 Adopted existing Boss Timer message in #${channel.name}: ${discovered.id}`);
+        }
+      } else if (MESSAGE_ID) {
         trackedMessage = await channel.messages.fetch(MESSAGE_ID).catch((err) => {
           if (err.code !== 10008) throw err;
           console.warn('[BossTimer] ⚠️ Previous message was deleted in Discord. Sending a fresh message...');
           return null;
         });
       }
+
       if (!trackedMessage) {
-        const msg = await sendNewMessage(channel, payload);
+        const msg = await sendNewMessage(channel, payload, client.user?.id);
         return { messageId: msg.id, channelName: channel.name, posted: true, updated: false };
       }
     }
