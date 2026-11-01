@@ -7,8 +7,8 @@
   <meta name="description" content="Professional web dashboard for Maiev Discord Bot. Manage rules onboarding, character verification, welcome announcements, and customizable reaction roles.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=4.1">
   <script src="lucide.min.js"></script>
 </head>
 <body>
@@ -70,7 +70,31 @@
     </div>
 
     <!-- Main Navigation Tabs: Each function on its own tab -->
-    <nav class="main-tabs-nav" role="tablist">
+    <!-- Dyno App Shell: Left Sidebar + Right Workspace -->
+    <div class="dyno-shell">
+      <aside class="dyno-sidebar">
+        <!-- Dyno Sidebar Server Profile Card -->
+        <div class="dyno-sidebar-server">
+          <img id="dyno-sidebar-avatar" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Server Icon" class="dyno-sidebar-server-img">
+          <div class="dyno-sidebar-server-meta">
+            <div class="dyno-sidebar-server-name" id="dyno-sidebar-server-name">Asia Fregion</div>
+            <div class="dyno-sidebar-server-tier"><span class="dyno-tier-dot"></span> Managed Server</div>
+          </div>
+        </div>
+
+        <nav class="main-tabs-nav" role="tablist">
+          <div class="dyno-nav-section-label">MANAGEMENT</div>
+          <button type="button" class="main-tab-btn" data-tab="tab-modules-hub" role="tab" aria-selected="false">
+            <i data-lucide="layout-grid"></i> <span>Modules</span>
+          </button>
+          <button type="button" class="main-tab-btn" data-tab="tab-health" role="tab" aria-selected="false">
+            <i data-lucide="shield-check"></i> <span>Diagnostics</span>
+          </button>
+          <button type="button" class="main-tab-btn" data-tab="tab-roster" role="tab" aria-selected="false">
+            <i data-lucide="users"></i> <span>Server Roster</span>
+          </button>
+
+          <div class="dyno-nav-section-label" style="margin-top: 14px;">MODULES</div>
       <button type="button" class="main-tab-btn active" data-tab="tab-rules" role="tab" aria-selected="true">
         <i data-lucide="book-open"></i> Rules Onboarding
       </button>
@@ -83,10 +107,164 @@
       <button type="button" class="main-tab-btn" data-tab="tab-reaction-roles" role="tab" aria-selected="false">
         <i data-lucide="layers"></i> Reaction Roles
       </button>
-      <button type="button" class="main-tab-btn" data-tab="tab-health" role="tab" aria-selected="false">
-        <i data-lucide="shield-alert"></i> Diagnostics &amp; Roster
+      <button type="button" class="main-tab-btn" data-tab="tab-boss-timer" role="tab" aria-selected="false">
+        <i data-lucide="timer"></i> Boss Timer
       </button>
-    </nav>
+      <button type="button" class="main-tab-btn" data-tab="tab-alerts" role="tab" aria-selected="false">
+        <i data-lucide="bell-ring"></i> Scheduled Alerts
+      </button>
+      </nav>
+      <div class="dyno-sidebar-footer">
+        <div class="dyno-sidebar-footer-row">
+          <span>Bot Status</span>
+          <span class="dyno-status-pill"><span class="dyno-tier-dot"></span> Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="dyno-workspace">
+      <!-- Dyno Module Breadcrumb & Header Bar -->
+      <div class="dyno-module-topbar">
+        <div class="dyno-breadcrumb">
+          <span class="dyno-bc-root" id="dyno-bc-modules-link" title="View all modules">Modules</span>
+          <span class="dyno-bc-sep">/</span>
+          <span class="dyno-bc-current" id="dyno-active-module-title">Rules Onboarding</span>
+        </div>
+        <div class="dyno-topbar-actions">
+          <span class="dyno-module-enabled-pill"><span class="dyno-tier-dot"></span> Module Enabled</span>
+        </div>
+      </div>
+
+      <!-- TAB 0: Dyno Modules Hub Grid -->
+      <section id="tab-modules-hub" class="tab-pane" role="tabpanel">
+        <div class="dyno-modules-grid">
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="book-open"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Rules Onboarding</h3>
+                <span class="dyno-module-tag">Onboarding</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Require new members to acknowledge community rules and automatically grant the Compliant role.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-rules">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="user-check"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>IGN Verification</h3>
+                <span class="dyno-module-tag">Identity</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Interactive modal verification that renames members to their AION 2 character IGN and assigns faction roles.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-verify">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="megaphone"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Public Welcome</h3>
+                <span class="dyno-module-tag">Announcements</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Broadcast customizable welcome messages and embeds when a Daeva completes verification.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-welcome">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="layers"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Reaction Roles</h3>
+                <span class="dyno-module-tag">Roles</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Create multi-preset emoji reaction role embeds for Classes, Regions, Alerts, and Custom Presets.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-reaction-roles">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="timer"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Field Boss Timer</h3>
+                <span class="dyno-module-tag">AION 2 Tracker</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Live auto-updating Reshanta &amp; Verteron boss respawn tables with 10-minute Major Boss @here alerts.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-boss-timer">Settings</button></div></div><div class="dyno-module-card"><div class="dyno-module-card-top"><div class="dyno-module-card-icon"><i data-lucide="bell-ring"></i></div><div class="dyno-module-card-title-wrap"><h3>Scheduled Alerts</h3><span class="dyno-module-tag">Notifications</span></div><label class="dyno-switch" title="Module Enabled"><input type="checkbox" checked disabled><span class="dyno-slider"></span></label></div><p class="dyno-module-card-desc">Multi-time daily &amp; custom-day alerts for Announcements, Abyss Farming, Rifts, Events, and custom embeds with auto-delete.</p><div class="dyno-module-card-footer"><button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-alerts">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="shield-check"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Diagnostics</h3>
+                <span class="dyno-module-tag">Management</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Inspect bot permission health and verify role hierarchy position in Server Settings.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-health">Open Diagnostics</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="users"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Server Roster</h3>
+                <span class="dyno-module-tag">Management</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Real-time directory of server members, AION 2 character nicknames, and assigned Discord roles.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-roster">Open Roster</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
     <!-- TAB 1: Rules Onboarding -->
     <section id="tab-rules" class="tab-pane active" role="tabpanel">
@@ -554,7 +732,8 @@
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-subtab-preset" title="Add another preset card">
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-create-custom-preset" title="Create a brand new custom preset tab"><i data-lucide="folder-plus"></i> Create Preset</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-subtab-preset" title="Add from built-in preset templates">
                     <i data-lucide="plus"></i> Add Preset Card
                   </button>
                 </div>
@@ -593,8 +772,35 @@
                     <i data-lucide="plus-circle" style="width: 15px; height: 15px; color: var(--accent-cyan);"></i> Add Reaction Role
                   </h4>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                  <input type="text" id="new-nat-emoji" class="form-input" placeholder="Emoji (e.g. 🇵🇭, 🔔)" style="width: 90px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; position: relative;">
+                  <!-- Discord-Style Emoji Picker Dropdown -->
+                  <div class="discord-emoji-picker-wrapper" id="emoji-picker-wrapper">
+                    <input type="hidden" id="new-nat-emoji" value="">
+                    <button type="button" class="discord-emoji-trigger-btn" id="btn-emoji-picker-trigger" title="Open Discord Emoji Picker">
+                      <span class="emoji-trigger-icon" id="emoji-picker-selected-display">😀</span>
+
+                      <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: auto;"></i>
+                    </button>
+
+                    <!-- Floating Discord Emoji Picker Popover -->
+                    <div class="discord-emoji-popover hidden" id="discord-emoji-popover">
+                      <div class="emoji-popover-header">
+                        <div class="emoji-search-box">
+                          <i data-lucide="search" style="width: 15px; height: 15px; color: #949ba4;"></i>
+                          <input type="text" id="emoji-picker-search" placeholder="Find the perfect emoji (e.g. sword, ph, bell)..." autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="emoji-category-tabs" id="emoji-picker-categories"></div>
+                      </div>
+                      <div class="emoji-popover-grid" id="emoji-picker-grid"></div>
+                      <div class="emoji-popover-footer">
+                        <span class="emoji-footer-preview" id="emoji-footer-icon">✨</span>
+                        <div class="emoji-footer-meta">
+                          <strong id="emoji-footer-shortcode">:sparkles:</strong>
+                          <span id="emoji-footer-label">Hover or click an emoji to select</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <input type="text" id="new-nat-name" class="form-input" placeholder="Label / Role Name" style="flex: 1; min-width: 130px;">
                   <input type="text" id="new-nat-code" class="form-input" placeholder="Identifier (e.g. ph)" style="width: 90px;">
                   <select id="new-nat-role" class="form-select" style="flex: 1; min-width: 150px;">
@@ -761,7 +967,549 @@
       </main>
     </section>
 
-    <!-- TAB 5: Diagnostics & Server Roster -->
+    <!-- TAB 5: Aion 2 Field Boss & Abyss Tracker -->
+    <section id="tab-boss-timer" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <!-- Configuration Column -->
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="timer"></i></span>
+                <div>
+                  <h2 class="card-title">Aion 2 Field Boss &amp; Abyss Tracker</h2>
+                  <p class="card-subtitle">Live Reshanta &amp; Elyos Overland respawn timers synced every 3m with 10-minute @here major boss alerts.</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-sync-boss-data" title="Fetch fresh boss timers from Questlog API">
+                  <i data-lucide="refresh-cw"></i> Sync Questlog Now
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-save-boss-timer" title="Save Boss Timer Settings">
+                  <i data-lucide="save"></i> Save
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Live Sync Status & Deployment Bar -->
+              <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span id="boss-sync-status-badge" class="badge badge-success"><i data-lucide="check-circle-2"></i> Questlog Synced</span>
+                  <span id="boss-deployed-msg-badge" class="badge badge-accent">Message ID: Auto</span>
+                  <span style="font-size: 0.78rem; color: var(--text-secondary);">Updates countdown every <strong>1m</strong> • Re-fetches API every <strong>3m</strong></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label for="boss-server-id-input" style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0;">Server ID:</label>
+                  <input type="number" id="boss-server-id-input" class="form-input" value="1507" style="width: 90px; padding: 4px 8px; font-size: 0.82rem;" title="Aion 2 Server ID (1507 = Fregion)">
+                </div>
+              </div>
+
+              <!-- Tracker & Alert Channel Selectors -->
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-boss-timer-channel" class="form-label">
+                    Target Boss Timer Channel:
+                  </label>
+                  <select id="select-boss-timer-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                  <span class="form-hint">Channel where the live 2-embed countdown table is posted and auto-edited every minute.</span>
+                </div>
+
+                <div class="form-group flex-1">
+                  <label for="select-boss-alert-channel" class="form-label">
+                    10-Minute @here Alert Channel:
+                  </label>
+                  <select id="select-boss-alert-channel" class="form-select">
+                    <option value="">-- Disabled (No @here Alert Channel) --</option>
+                  </select>
+                  <span class="form-hint">General chat or alert channel pinged 10 minutes before a Major Boss (★) spawns.</span>
+                </div>
+              </div>
+
+              <!-- Alert Behavior Toggles -->
+              <div class="form-group mt-3" style="display: flex; flex-direction: column; gap: 8px;">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="check-boss-enable-alerts" checked>
+                  <span>Enable <strong>10-minute @here notifications</strong> when a Major Boss (★) is about to spawn</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="check-boss-autodelete-alerts" checked>
+                  <span>Automatically delete expired alert messages <strong>10 minutes after spawn</strong> to keep chat clean</span>
+                </label>
+              </div>
+
+              <!-- Major Bosses Watchlist (★) -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <span class="editor-badge"><i data-lucide="star"></i> Major Bosses Watchlist (★ &amp; 10m Alerts)</span>
+                  <span id="boss-major-count-badge" class="badge badge-accent">10 Major Bosses</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; margin-bottom: 10px;">
+                  Click any boss below to toggle its <strong>★ Major Boss</strong> highlight in the status table and 10-minute <code>@here</code> spawn alert:
+                </p>
+                <div id="boss-major-watchlist-container" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                  <!-- Populated via boss-timer-tab.js -->
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="text" id="new-major-boss-input" class="form-input" placeholder="Add custom boss name (e.g. Watcher Kaira)..." style="flex: 1; padding: 6px 10px; font-size: 0.82rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-major-boss">
+                    <i data-lucide="plus"></i> Add Major Boss
+                  </button>
+                </div>
+              </div>
+
+              <!-- Embed Titles & Footer Customization -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge"><i data-lucide="layout"></i> Boss Timer Embed Customization</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-boss-template">
+                    <i data-lucide="rotate-ccw"></i> Reset Defaults
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="boss-abyss-title-input" class="form-label">
+                    Reshanta / Abyss Embed Title:
+                  </label>
+                  <input type="text" id="boss-abyss-title-input" class="form-input" value="🔥 Fregion — Reshanta Bosses">
+                </div>
+
+                <div class="form-group">
+                  <label for="boss-elyos-title-input" class="form-label">
+                    Verteron / Elyos Embed Title:
+                  </label>
+                  <input type="text" id="boss-elyos-title-input" class="form-input" value="🪽 Fregion — Verteron Field Bosses">
+                </div>
+
+                <div class="form-group">
+                  <label for="boss-footer-input" class="form-label">
+                    Tracker Legend Footer:
+                  </label>
+                  <input type="text" id="boss-footer-input" class="form-input" value="● Alive  ○ Respawning (00d 00h 00m)  ★ Major boss  •  Updates every 1m">
+                </div>
+              </div>
+
+              <!-- Bottom Action Buttons -->
+              <div class="card-bottom-actions mt-4" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                <button type="button" class="btn btn-primary" id="btn-post-boss-timer" title="Post or update the live Boss Timer embeds in the selected channel">
+                  <i data-lucide="send"></i> Post / Update Boss Timer
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-force-new-boss-timer" title="Create a brand-new Boss Timer message in the channel">
+                  <i data-lucide="plus-square"></i> Post Fresh Timer Message
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-test-boss-alert" title="Send a test 10-minute @here Major Boss alert to the Alert Channel">
+                  <i data-lucide="bell-ring"></i> Send Test 10m Alert
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator Column -->
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">Boss Timer Channel Preview</h2>
+                  <p class="card-subtitle">Live preview of the two-region countdown tables and 10-minute @here alert embed.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-boss-channel-name">field-boss-timers</span>
+                  <span class="discord-topic">Aion 2 Live Respawn Tracker</span>
+                </div>
+
+                <div id="sim-boss-view" class="discord-message-group">
+                  <!-- Main Tracker Message (2 Embeds) -->
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-5" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Live Auto-Updating</span>
+                      </div>
+
+                      <!-- Embed 1: Reshanta / Abyss Bosses -->
+                      <div class="discord-embed" style="border-left: 4px solid #e74c3c; margin-bottom: 8px;">
+                        <div class="embed-title" id="sim-boss-abyss-title">🔥 Fregion — Reshanta Bosses</div>
+                        <div class="embed-description">
+                          <div style="margin-bottom: 6px; font-size: 0.82rem; color: #dbdee1;">
+                            📡 Data last synced: <span style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-size: 0.78rem;">just now</span>
+                          </div>
+                          <pre id="sim-boss-abyss-table" style="background: #1e1f22; padding: 10px 12px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; line-height: 1.45; color: #dbdee1; overflow-x: auto; margin: 0;">Loading Abyss bosses...</pre>
+                        </div>
+                      </div>
+
+                      <!-- Embed 2: Elyos Overland Field Bosses -->
+                      <div class="discord-embed" style="border-left: 4px solid #3498db;">
+                        <div class="embed-title" id="sim-boss-elyos-title">🪽 Fregion — Verteron Field Bosses</div>
+                        <div class="embed-description">
+                          <div style="margin-bottom: 6px; font-size: 0.82rem; color: #dbdee1;">
+                            📡 Data last synced: <span style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-size: 0.78rem;">just now</span>
+                          </div>
+                          <pre id="sim-boss-elyos-table" style="background: #1e1f22; padding: 10px 12px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; line-height: 1.45; color: #dbdee1; overflow-x: auto; margin: 0;">Loading Elyos bosses...</pre>
+                        </div>
+                        <div class="embed-footer" id="sim-boss-footer" style="margin-top: 8px;">● Alive  ○ Respawning (00d 00h 00m)  ★ Major boss  •  Updates every 1m</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Simulated 10-Minute @here Alert Preview -->
+                  <div class="discord-message" style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-6" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">10m Alert Preview</span>
+                      </div>
+                      <div style="color: #faa61a; background: rgba(250, 166, 26, 0.15); display: inline-block; padding: 1px 6px; border-radius: 3px; font-weight: 600; font-size: 0.82rem; margin-bottom: 6px;">
+                        @here
+                      </div>
+                      <div class="discord-embed" style="border-left: 4px solid #e67e22;">
+                        <div class="embed-description" id="sim-boss-alert-desc">
+                          <strong>Major Boss Spawning Soon: Watcher Kaira</strong> <span style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-size: 0.78rem;">in 10 minutes</span>
+                        </div>
+                        <div class="embed-footer">Aion 2 Major Boss Alert • Auto-deletes 10m after spawn</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- TAB 5.5: Scheduled Notification & Custom Alerts -->
+    <section id="tab-alerts" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <!-- Configuration Column -->
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="bell-ring"></i></span>
+                <div>
+                  <h2 class="card-title">Scheduled Notification &amp; Custom Alerts</h2>
+                  <p class="card-subtitle">Configure multi-time daily or custom-day alerts with auto-delete cleanups for preset &amp; standalone channel embeds.</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-open-create-alert-modal" title="Create a standalone custom alert embed for any channel">
+                  <i data-lucide="plus-circle"></i> Create Custom Alert
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-save-alerts-top" title="Save All Alert Schedules">
+                  <i data-lucide="save"></i> Save Alerts
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Subtab Bar: 4 Notification Presets + Custom Alerts -->
+              <div class="reaction-subtabs-container">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Alert Profiles:</span>
+                  <div id="alerts-subtabs-list" class="reaction-subtabs-list"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="active-alert-type-badge" class="badge badge-success">Recurring Game Timer</span>
+                  <button type="button" class="btn btn-xs btn-secondary" id="btn-delete-custom-alert" style="color: #f23f43; border-color: rgba(242,63,67,0.4);" title="Delete this alert profile">
+                    <i data-lucide="trash-2"></i> Delete Profile
+                  </button>
+                </div>
+              </div>
+
+              <!-- Enable Toggle & Alert Identity Row -->
+              <div style="background: rgba(51, 127, 213, 0.06); border: 1px solid rgba(51, 127, 213, 0.25); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <label class="checkbox-label" style="margin-bottom: 0;">
+                  <input type="checkbox" id="check-alert-enabled" checked>
+                  <span><strong>Enable Automated Schedule</strong> for this alert profile</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="discord-emoji-picker-wrapper">
+                    <input type="hidden" id="input-alert-emoji" value="🌌">
+                    <button type="button" class="discord-emoji-trigger-btn" id="btn-alert-emoji-trigger" data-emoji-trigger-for="input-alert-emoji" title="Open Discord Emoji Picker">
+                      <span class="emoji-trigger-icon" id="alert-emoji-selected-display">🌌</span>
+                      <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: auto;"></i>
+                    </button>
+                  </div>
+                  <input type="text" id="input-alert-name" class="form-input" value="Abyss Group Farming" style="width: 190px; padding: 5px 10px; font-size: 0.84rem;" title="Alert Profile Name">
+                </div>
+              </div>
+
+              <!-- Target Channel & Role Mention Settings -->
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-alert-target-channel" class="form-label">Target Alert Channel:</label>
+                  <select id="select-alert-target-channel" class="form-select">
+                    <option value="">-- Select Target Channel --</option>
+                  </select>
+                  <span class="form-hint">Channel where this alert embed will be posted on schedule or manual dispatch.</span>
+                </div>
+
+                <div class="form-group flex-1">
+                  <label for="select-alert-ping-type" class="form-label">Role / Mention Ping:</label>
+                  <select id="select-alert-ping-type" class="form-select">
+                    <option value="preset_role">Linked Notification Preset Role (Auto)</option>
+                    <option value="here">@here Mention</option>
+                    <option value="everyone">@everyone Mention</option>
+                    <option value="none">No Ping (Embed Only)</option>
+                  </select>
+                  <span class="form-hint">Choose who gets pinged above the alert embed.</span>
+                </div>
+              </div>
+
+              <!-- Multi-Schedule Builder (Event Start Time + Daily or Chosen Days + Multiple Alert Times) -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <span class="editor-badge"><i data-lucide="calendar-clock"></i> Event Time &amp; Scheduled Alert Times</span>
+                  <span id="alert-times-count-badge" class="badge badge-accent">0 Scheduled Times / Day</span>
+                </div>
+
+                <!-- Event Start Times & Recurring Cycle Builder (Used for {countdown} calculation) -->
+                <div style="background: rgba(51, 127, 213, 0.08); border: 1px solid rgba(51, 127, 213, 0.28); border-radius: 8px; padding: 12px 14px; margin-top: 12px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <label for="input-alert-event-time" style="font-size: 0.84rem; font-weight: 700; color: #fff; margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="flame" style="width: 16px; height: 16px; color: #f0b232;"></i>
+                        <span>Event Start Time (PHT):</span>
+                      </label>
+                      <input type="time" id="input-alert-event-time" class="form-input" value="02:00" style="width: 135px; padding: 5px 10px; font-weight: 700;" title="02:00 PHT = 03:00 Server Time">
+                      <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-add-event-time" title="Add single Event Start Time">
+                        <i data-lucide="plus"></i> Add Event Time
+                      </button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <span style="font-size: 0.76rem; color: var(--text-secondary);">Or Repeat Every:</span>
+                      <input type="number" id="input-alert-repeat-hours" class="form-input" value="3" min="1" max="12" style="width: 60px; padding: 4px 8px; font-size: 0.8rem;" title="Repeat interval in hours (e.g. every 3 hours)">
+                      <span style="font-size: 0.76rem; color: var(--text-secondary);">hrs</span>
+                      <button type="button" class="btn btn-xs btn-primary" id="btn-alert-generate-recurring-events" title="Generate 24h cycle of Event Start Times starting from Event Start Time">
+                        <i data-lucide="repeat"></i> Generate Cycle
+                      </button>
+                      <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-clear-event-times" style="color: #f23f43;">Clear</button>
+                    </div>
+                  </div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 6px;">
+                    Active Event Start Times (<code>{countdown}</code> automatically counts down to the next upcoming event time; note: PHT = Server Time - 1h):
+                  </div>
+                  <div id="alert-event-times-pills-container" style="display: flex; gap: 6px; flex-wrap: wrap; min-height: 30px; align-items: center;"></div>
+
+                  <!-- Pre-Event Offsets Row (e.g. 10m and 1m before every Event Time) -->
+                  <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="font-size: 0.8rem; font-weight: 600; color: #fff;">Pre-Event Alert Offsets:</span>
+                      <input type="number" id="input-alert-offset-mins" class="form-input" value="10" min="1" max="720" style="width: 68px; padding: 4px 8px; font-size: 0.8rem;" title="Minutes before each Event Start Time (e.g. 10 or 1)">
+                      <span style="font-size: 0.76rem; color: var(--text-muted);">mins before each event</span>
+                      <button type="button" class="btn btn-xs btn-primary" id="btn-alert-add-offset" title="Add pre-event offset & auto-generate alert times for all Event Start Times">
+                        <i data-lucide="plus"></i> Add Offset (All Events)
+                      </button>
+                    </div>
+                    <div id="alert-offsets-pills-container" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;"></div>
+                  </div>
+                </div>
+
+                <div class="form-row mt-3">
+                  <div class="form-group" style="min-width: 210px;">
+                    <label for="select-alert-schedule-mode" class="form-label">Schedule Frequency:</label>
+                    <select id="select-alert-schedule-mode" class="form-select">
+                      <option value="daily">Every Day (Daily)</option>
+                      <option value="days">Chosen Days of the Week Only</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group flex-1" id="alert-days-picker-wrap">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <label class="form-label" style="margin-bottom: 0;">Active Days of the Week:</label>
+                      <div style="display: flex; gap: 4px;">
+                        <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-all">All</button>
+                        <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-weekdays">Weekdays</button>
+                        <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-weekends">Weekend</button>
+                      </div>
+                    </div>
+                    <div id="alert-days-pills-container" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                  </div>
+                </div>
+
+                <!-- Add Multiple Times -->
+                <div class="form-group mt-2">
+                  <label class="form-label">Scheduled Alert Times (Fires on active days &amp; computes <code>{countdown}</code> to Event Time):</label>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                    <input type="time" id="input-alert-new-time" class="form-input" value="19:00" style="width: 145px; padding: 6px 10px;">
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-alert-add-time">
+                      <i data-lucide="plus"></i> Add Alert Time
+                    </button>
+                    <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-clear-times" style="margin-left: auto; color: #f23f43;">Clear All</button>
+                  </div>
+                  <div id="alert-times-pills-container" style="display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 12px; background: #14171f; border: 1px solid var(--border-subtle); border-radius: 6px; min-height: 44px; align-items: center;"></div>
+                </div>
+              </div>
+
+              <!-- Auto-Delete Clean Channel Settings -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge"><i data-lucide="sparkles"></i> Channel Cleanliness &amp; Auto-Delete Timer</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
+                  <label class="checkbox-label" style="margin-bottom: 0;">
+                    <input type="checkbox" id="check-alert-autodelete" checked>
+                    <span>Automatically delete this alert message to keep the channel clean</span>
+                  </label>
+                  <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Delete after:</span>
+                    <input type="number" id="input-alert-delete-minutes" class="form-input" value="15" min="1" max="1440" style="width: 75px; padding: 4px 8px; font-size: 0.82rem;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">mins</span>
+                    <button type="button" class="btn btn-xs btn-secondary btn-quick-delete-mins" data-mins="5">5m</button>
+                    <button type="button" class="btn btn-xs btn-secondary btn-quick-delete-mins" data-mins="10">10m</button>
+                    <button type="button" class="btn btn-xs btn-secondary btn-quick-delete-mins" data-mins="15">15m</button>
+                    <button type="button" class="btn btn-xs btn-secondary btn-quick-delete-mins" data-mins="30">30m</button>
+                    <button type="button" class="btn btn-xs btn-secondary btn-quick-delete-mins" data-mins="60">1h</button>
+                    <button type="button" class="btn btn-xs btn-secondary btn-quick-delete-mins" data-mins="120">2h</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alert Embed Customization -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <span class="editor-badge"><i data-lucide="layout"></i> Alert Embed Appearance &amp; Message</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="input-alert-color" style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0;">Accent Color:</label>
+                    <input type="color" id="input-alert-color" value="#9b59b6" style="width: 34px; height: 26px; background: transparent; border: 1px solid var(--border-subtle); border-radius: 4px; cursor: pointer;">
+                  </div>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="input-alert-title" class="form-label">Embed Title (Optional — leave blank for compact Boss-Timer alert style):</label>
+                  <input type="text" id="input-alert-title" class="form-input" placeholder="e.g. 🌌 Abyss Group Farming Alert">
+                </div>
+
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+                    <label for="input-alert-description" class="form-label" style="margin-bottom: 0;">Alert Description / Message Content:</label>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                      <button type="button" class="btn btn-xs btn-secondary btn-insert-alert-tag" data-target="input-alert-description" data-tag="{countdown}" title="Insert live remaining time countdown to Event Start Time">+ Insert <code>{countdown}</code></button>
+                      <button type="button" class="btn btn-xs btn-secondary btn-insert-alert-tag" data-target="input-alert-description" data-tag="{event_time}" title="Insert formatted Event Start Time">+ Insert <code>{event_time}</code></button>
+                      <button type="button" class="btn btn-xs btn-secondary btn-insert-alert-tag" data-target="input-alert-description" data-tag="{name}" title="Insert Alert Name">+ Insert <code>{name}</code></button>
+                    </div>
+                  </div>
+                  <textarea id="input-alert-description" class="form-textarea" rows="3" placeholder="**Abyss Artifact Siege in {countdown}, please gear up and gather in Reshanta**"></textarea>
+                  <span class="form-hint">Use <strong>{countdown}</strong> to automatically display remaining time before the Event Start Time (e.g., <code>in 1 hour</code> at 7:00 PM, <code>in 30 minutes</code> at 7:30 PM). Also supports <strong>{event_time}</strong>, <strong>{name}</strong>, <strong>{server}</strong>, <strong>{deleteAfter}</strong>.</span>
+                </div>
+
+                <div class="form-row" style="align-items: center;">
+                  <div class="form-group flex-1" style="margin-bottom: 0;">
+                    <label for="input-alert-footer" class="form-label">Embed Footer:</label>
+                    <input type="text" id="input-alert-footer" class="form-input" value="Aion 2 Scheduled Alert">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0; padding-top: 18px;">
+                    <label class="checkbox-label" style="margin-bottom: 0;">
+                      <input type="checkbox" id="check-alert-timestamp" checked>
+                      <span>Append relative timestamp <code>&lt;t:...:R&gt;</code></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Action Buttons -->
+              <div class="card-bottom-actions mt-4" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                <button type="button" class="btn btn-primary" id="btn-save-alerts-bottom">
+                  <i data-lucide="save"></i> Save Alert Schedule
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-send-alert-now" title="Immediately post this alert embed to the target channel">
+                  <i data-lucide="send"></i> Send Alert Now to Channel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator Column -->
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">Scheduled Alert Channel Preview</h2>
+                  <p class="card-subtitle">Live preview of how the scheduled or custom alert embed appears in Discord.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-alert-channel-name">alerts-channel</span>
+                  <span class="discord-topic">Automated &amp; Custom Alerts</span>
+                  <span class="badge badge-accent" id="sim-alert-active-badge" style="margin-left: auto; font-size: 0.72rem;">🌌 Abyss Group Farming</span>
+                </div>
+
+                <div class="discord-message-group" id="sim-alert-messages-list">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-7" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Today at 7:00 PM</span>
+                      </div>
+
+                      <div id="sim-alert-ping-badge" style="color: #faa61a; background: rgba(250, 166, 26, 0.15); display: inline-block; padding: 1px 6px; border-radius: 3px; font-weight: 600; font-size: 0.82rem; margin-bottom: 6px;">
+                        @everyone
+                      </div>
+
+                      <div class="discord-embed" id="sim-alert-embed-box" style="border-left: 4px solid #9b59b6;">
+                        <div class="embed-title" id="sim-alert-embed-title">🌌 Abyss Group Farming Alert</div>
+                        <div class="embed-description" id="sim-alert-embed-desc">
+                          <strong>Abyss Group Farming Session</strong> is forming up! Gather your party and rally in Reshanta.
+                        </div>
+                        <div class="embed-footer" id="sim-alert-embed-footer" style="margin-top: 8px;">Aion 2 Abyss Farming Alert • Auto-deletes in 15m</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Schedule & Cleanup Summary Card -->
+              <div style="margin-top: 16px; background: #14171f; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px 16px;">
+                <div style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-cyan); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="clock" style="width: 14px; height: 14px;"></i> Active Schedule &amp; Cleanup Summary
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+                  <div style="display: flex; justify-content: space-between; gap: 10px;">
+                    <span style="color: var(--text-muted);">Active Days:</span>
+                    <strong id="sim-alert-summary-days" style="color: #fff; text-align: right;">Every Day (Daily)</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; gap: 10px;">
+                    <span style="color: var(--text-muted);">Scheduled Times:</span>
+                    <strong id="sim-alert-summary-times" style="color: #337fd5; text-align: right;">12:00 PM • 4:00 PM • 8:00 PM • 10:00 PM</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; gap: 10px;">
+                    <span style="color: var(--text-muted);">Auto-Delete Cleanup:</span>
+                    <strong id="sim-alert-summary-clean" style="color: #23a55a; text-align: right;">Deletes automatically after 15 minutes</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- TAB 6: Diagnostics & Server Roster -->
     <section id="tab-health" class="tab-pane" role="tabpanel">
       <!-- System Health Diagnostics -->
       <div class="card glass-card mb-4">
@@ -810,7 +1558,10 @@
           </div>
         </div>
       </div>
+    </section>
 
+    <!-- TAB 7: Live Server Member Roster -->
+    <section id="tab-roster" class="tab-pane" role="tabpanel">
       <!-- Live Member Roster -->
       <div class="card glass-card">
         <div class="card-header">
@@ -848,6 +1599,8 @@
         </div>
       </div>
     </section>
+    </div><!-- /.dyno-workspace -->
+    </div><!-- /.dyno-shell -->
   </div>
 
   <!-- MODAL: Populate Reaction Roles Presets -->
@@ -870,6 +1623,7 @@
             <button type="button" class="btn btn-xs btn-secondary" id="btn-presets-select-all">
               <i data-lucide="check-square"></i> Select All
             </button>
+            <button type="button" class="btn btn-xs btn-primary" id="btn-open-create-preset-from-modal"><i data-lucide="folder-plus"></i> Create Custom Preset</button>
             <button type="button" class="btn btn-xs btn-secondary" id="btn-presets-deselect-all">
               <i data-lucide="square"></i> Deselect All
             </button>
@@ -1044,6 +1798,145 @@
     </div>
   </div>
 
-  <script src="app.js?v=2.6"></script>
+  <!-- MODAL: Create Custom Preset -->
+  <div class="modal-backdrop hidden" id="modal-create-preset">
+    <div class="modal-dialog-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="folder-plus" style="width: 18px; height: 18px; color: var(--accent-cyan);"></i> Create Custom Preset
+        </h3>
+        <button class="modal-close" id="modal-create-preset-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Create a dedicated reaction role preset card with its own subtab, embed title, footer, and target channel.
+        </p>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+          <div style="width: 75px;">
+            <label class="form-label">Tab Icon</label>
+            <div class="discord-emoji-picker-wrapper">
+              <input type="hidden" id="create-preset-icon" value="🏷️">
+              <button type="button" class="discord-emoji-trigger-btn" id="btn-create-preset-emoji-trigger" data-emoji-trigger-for="create-preset-icon" title="Open Discord Emoji Picker" style="width: 100%; height: 38px;">
+                <span class="emoji-trigger-icon" id="create-preset-emoji-display">🏷️</span>
+                <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: auto;"></i>
+              </button>
+            </div>
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label" for="create-preset-name">Preset Name <span class="required">*</span></label>
+            <input type="text" id="create-preset-name" class="form-input" placeholder="e.g. Legion Ranks, PvP Squads, Factions">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="create-preset-intent">Default Role Intent</label>
+          <select id="create-preset-intent" class="form-select">
+            <option value="toggle">Toggle (Standard Multi-Select)</option>
+            <option value="unique">Unique (Pick Only 1 in Preset)</option>
+            <option value="give_only">Give Only (Permanent Unlock)</option>
+            <option value="remove_only">Remove Only</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="create-preset-title">Embed Card Title</label>
+          <input type="text" id="create-preset-title" class="form-input" placeholder="e.g. 🏷️ Choose Your Role">
+        </div>
+        <div class="form-group" style="margin-bottom: 4px;">
+          <label class="form-label" for="create-preset-footer">Embed Card Footer</label>
+          <input type="text" id="create-preset-footer" class="form-input" value="React with an emoji below to toggle your role">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-create-preset-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-create-preset">
+          <i data-lucide="plus"></i> Create Preset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Create Custom Alert Embed -->
+  <div class="modal-backdrop hidden" id="modal-create-alert">
+    <div class="modal-dialog-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="bell-plus" style="width: 18px; height: 18px; color: var(--accent-cyan);"></i> Create Custom Channel Alert
+        </h3>
+        <button class="modal-close" id="modal-create-alert-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Create a standalone alert embed with <code>{countdown}</code> support, custom event start time, alert schedule, and auto-delete timer.
+        </p>
+        <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px;">
+          <div style="width: 75px;">
+            <label class="form-label" style="white-space: nowrap;">Emoji</label>
+            <div class="discord-emoji-picker-wrapper">
+              <input type="hidden" id="create-alert-emoji" value="📢">
+              <button type="button" class="discord-emoji-trigger-btn" id="btn-create-alert-emoji-trigger" data-emoji-trigger-for="create-alert-emoji" title="Open Discord Emoji Picker" style="width: 100%; height: 38px;">
+                <span class="emoji-trigger-icon" id="create-alert-emoji-display">📢</span>
+                <i data-lucide="chevron-down" style="width: 14px; height: 14px; color: var(--text-muted); margin-left: auto;"></i>
+              </button>
+            </div>
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label" for="create-alert-name" style="white-space: nowrap;">Alert Name</label>
+            <input type="text" id="create-alert-name" class="form-input" placeholder="e.g. ARTIFACT SIEGE" style="height: 38px;">
+          </div>
+          <div style="width: 68px;">
+            <label class="form-label" for="create-alert-color" style="white-space: nowrap;">Color</label>
+            <input type="color" id="create-alert-color" value="#e67e22" style="width: 100%; height: 38px; background: transparent; border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer; display: block;">
+          </div>
+        </div>
+
+        <!-- Event Time & Auto-Delete Row in Modal -->
+        <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px;">
+          <div style="flex: 1;">
+            <label class="form-label" for="create-alert-event-time" style="white-space: nowrap;">Event Time (PHT)</label>
+            <input type="time" id="create-alert-event-time" class="form-input" value="20:00" style="height: 38px;">
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label" for="create-alert-times-csv" style="white-space: nowrap;">Alert Times (24h)</label>
+            <input type="text" id="create-alert-times-csv" class="form-input" value="19:00, 19:30" placeholder="e.g. 19:00, 19:30" style="height: 38px;">
+          </div>
+          <div style="width: 145px;">
+            <label class="form-label" for="create-alert-delete-mins" style="white-space: nowrap;">Auto-Delete (mins)</label>
+            <input type="number" id="create-alert-delete-mins" class="form-input" value="15" min="1" max="1440" style="height: 38px;">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="create-alert-ping-type">Role / Mention Ping (Optional — can be left blank)</label>
+          <select id="create-alert-ping-type" class="form-select">
+            <option value="none">-- Leave Blank (No Role / No Ping) --</option>
+            <option value="everyone">@everyone Mention</option>
+            <option value="here">@here Mention</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" for="create-alert-title">Alert Embed Title (Optional — leave blank for compact style)</label>
+          <input type="text" id="create-alert-title" class="form-input" placeholder="e.g. 📢 Siege War Rally Alert (or leave blank)">
+        </div>
+        <div class="form-group" style="margin-bottom: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="create-alert-desc" style="margin-bottom: 0;">Alert Message Content</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-xs btn-secondary btn-insert-alert-tag" data-target="create-alert-desc" data-tag="{countdown}">+ Insert <code>{countdown}</code></button>
+              <button type="button" class="btn btn-xs btn-secondary btn-insert-alert-tag" data-target="create-alert-desc" data-tag="{event_time}">+ Insert <code>{event_time}</code></button>
+            </div>
+          </div>
+          <textarea id="create-alert-desc" class="form-textarea" rows="3" placeholder="**Abyss Artifact Siege in {countdown}, please gear up and gather in Reshanta**">**Abyss Artifact Siege in {countdown}, please gear up and gather in Reshanta**</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-create-alert-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-create-alert">
+          <i data-lucide="plus"></i> Create Custom Alert
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js?v=4.5"></script>
 </body>
 </html>

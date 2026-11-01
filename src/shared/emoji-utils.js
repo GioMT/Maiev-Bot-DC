@@ -1,0 +1,144 @@
+/**
+ * Resolve emoji string, custom <:name:id>, or shortcode (:flag_ph:, :earth_asia:)
+ * to a reactable Discord emoji identifier.
+ */
+export function resolveEmojiToReactable(emojiStr) {
+  if (!emojiStr) return null;
+  const s = emojiStr.trim();
+
+  // Custom Discord emoji: <:name:12345> or <a:name:12345> -> extract ID
+  const customMatch = s.match(/:(\d+)>$/);
+  if (customMatch) return customMatch[1];
+
+  // Raw numeric custom emoji ID
+  if (/^\d+$/.test(s)) return s;
+
+  // Flag shortcode: :flag_xx: (e.g. :flag_ph:, :flag_kr:, :flag_jp:, etc.)
+  const flagMatch = s.match(/^:flag_([a-z]{2}):$/i);
+  if (flagMatch) {
+    const code = flagMatch[1].toUpperCase();
+    const c1 = 0x1F1E6 + code.charCodeAt(0) - 65;
+    const c2 = 0x1F1E6 + code.charCodeAt(1) - 65;
+    return String.fromCodePoint(c1, c2);
+  }
+
+  // Common named shortcodes
+  const shortcodeMap = {
+    ':earth_asia:': '🌏',
+    ':earth_americas:': '🌎',
+    ':earth_africa:': '🌍',
+    ':globe_with_meridians:': '🌐'
+  };
+  if (shortcodeMap[s.toLowerCase()]) {
+    return shortcodeMap[s.toLowerCase()];
+  }
+
+  return s;
+}
+
+/**
+ * Match emoji (Unicode or Custom) to a configured nationality/reaction role.
+ */
+export function findNationalityByEmoji(emoji, nationalityRoles = []) {
+  if (!emoji || !Array.isArray(nationalityRoles)) return null;
+  const emojiName = emoji.name ? emoji.name.trim() : '';
+  const emojiId = emoji.id || '';
+  const emojiString = emoji.toString ? emoji.toString() : '';
+
+  return nationalityRoles.find(n => {
+    if (!n) return false;
+    const nEmojiResolved = resolveEmojiToReactable(n.emoji) || n.emoji;
+
+    // 1. Exact emoji string match
+    if (nEmojiResolved && (nEmojiResolved === emojiName || nEmojiResolved === emojiString)) return true;
+    if (n.emoji && (n.emoji === emojiName || n.emoji === emojiString)) return true;
+
+    // 2. Custom Discord emoji ID match <:name:id>
+    if (emojiId && n.emoji && n.emoji.includes(emojiId)) return true;
+
+    // 3. Normalized Unicode match
+    if (nEmojiResolved && emojiName && (nEmojiResolved.includes(emojiName) || emojiName.includes(nEmojiResolved))) return true;
+
+    // 4. Code match (e.g. emoji "ph" matches code "ph", or flag_ph matches "ph")
+    const cleanEmojiName = emojiName.toLowerCase().replace(/^flag_/, '').replace(/:/g, '');
+    if (cleanEmojiName && n.code && cleanEmojiName === n.code.toLowerCase()) return true;
+
+    // 5. Country / Role name match
+    if (emojiName && n.name && emojiName.toLowerCase() === n.name.toLowerCase()) return true;
+
+    return false;
+  }) || null;
+}
+
+/**
+ * Extract 2-letter ISO country code from Unicode Regional Indicator flag emoji.
+ */
+export function extractFlagIsoCode(emoji) {
+  if (!emoji) return null;
+  try {
+    const chars = [...emoji.trim()];
+    if (chars.length === 2) {
+      const cp1 = chars[0].codePointAt(0);
+      const cp2 = chars[1].codePointAt(0);
+      if (cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF && cp2 >= 0x1F1E6 && cp2 <= 0x1F1FF) {
+        return String.fromCharCode(cp1 - 0x1F1E6 + 65, cp2 - 0x1F1E6 + 65).toLowerCase();
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+/**
+ * Safely react to a message with Unicode or Custom emoji.
+ */
+export async function safelyReact(message, emojiStr) {
+  if (!emojiStr || !message) return;
+  const reactable = resolveEmojiToReactable(emojiStr);
+  if (!reactable) return;
+  try {
+    const alreadyReacted = message.reactions?.cache?.some(r => {
+      if (r.me) {
+        if (r.emoji.id && r.emoji.id === reactable) return true;
+        if (r.emoji.name && (r.emoji.name === reactable || r.emoji.name === emojiStr.trim())) return true;
+      }
+      return false;
+    });
+    if (alreadyReacted) return;
+
+    await message.react(reactable);
+  } catch (err) {
+    console.warn(`[Reaction Roles] Could not auto-react with ${emojiStr}:`, err.message);
+  }
+}
+
+/**
+ * Match nationality input to configured nationality entry.
+ */
+export function matchNationality(input, nationalityRoles = []) {
+  if (!input || !Array.isArray(nationalityRoles) || nationalityRoles.length === 0) return null;
+  const cleanInput = input.trim().toLowerCase();
+
+  const emojiMatch = nationalityRoles.find(n => n.emoji && input.includes(n.emoji));
+  if (emojiMatch) return emojiMatch;
+
+  const codeMatch = nationalityRoles.find(n => n.code && n.code.toLowerCase() === cleanInput);
+  if (codeMatch) return codeMatch;
+
+  const nameMatch = nationalityRoles.find(n => {
+    const cleanName = n.name.toLowerCase();
+    return cleanName === cleanInput || cleanInput.includes(cleanName) || cleanName.includes(cleanInput);
+  });
+  if (nameMatch) return nameMatch;
+
+  const words = cleanInput.split(/[^a-z0-9]/).filter(Boolean);
+  const wordCodeMatch = nationalityRoles.find(n => words.includes(n.code.toLowerCase()));
+  if (wordCodeMatch) return wordCodeMatch;
+
+  if (['globe', 'world', 'other', 'international', 'none', 'all'].some(alias => cleanInput.includes(alias))) {
+    const globalEntry = nationalityRoles.find(n => n.code === 'global' || (n.emoji && n.emoji.includes('🌐')));
+    if (globalEntry) return globalEntry;
+  }
+
+  return null;
+}
+

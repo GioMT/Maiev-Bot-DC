@@ -211,7 +211,7 @@
       "category": "Notification Alerts"
     }
   ],
-  "reactionRoleIntent": "unique",
+  "reactionRoleIntent": "toggle",
   "reactionPresets": {
     "classes": {
       "id": "classes",
@@ -296,9 +296,9 @@
       "name": "Region",
       "icon": "🌍",
       "category": "Region",
-      "title": "💻 Select Your Gaming Platform",
+      "title": "🌍 Choose Your Region",
       "content": "",
-      "footer": "React with an icon below to select your device",
+      "footer": "React with a flag emoji below to toggle your region",
       "channelId": "1559205186088472596",
       "messageId": "1559545015619817524",
       "intent": "unique",
