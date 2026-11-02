@@ -5,6 +5,7 @@ export function createDiscordClient() {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildEmojisAndStickers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildMessageReactions
     ],

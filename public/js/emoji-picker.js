@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { extractFlagIsoCode } from './utils.js';
+import { state } from './state.js?v=4.8';
+import { AION2_CUSTOM_EMOJIS, extractFlagIsoCode, getCustomEmojiEntry, normalizeEmojiCode } from './utils.js?v=4.8';
 
 const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg';
 
@@ -95,6 +95,8 @@ export function getTwemojiUrl(unified) {
 
 export function emojiToTwemojiUrl(emojiStr) {
   if (!emojiStr) return `${TWEMOJI_BASE}/1f600.svg`;
+  const custom = getCustomEmojiEntry(emojiStr);
+  if (custom) return custom.url;
   const codePoints = [];
   for (const symbol of emojiStr) {
     const cp = symbol.codePointAt(0);
@@ -225,14 +227,45 @@ export function setupDiscordEmojiPicker() {
     const emojisMap = data?.emojis || {};
     const rawCats = data?.categories || [];
     const serverEmojis = state.serverState?.guild?.emojis || [];
-    const guildName = state.serverState?.guild?.name || 'Server Emojis';
-    const guildIcon = state.serverState?.guild?.icon || '';
+    const guildName = state.serverState?.guild?.name || 'AION 2 Server Emojis';
+    const guildIcon = state.serverState?.guild?.icon || '/emojis/Elyos.webp';
+
+    const aion2NamesSet = new Set(AION2_CUSTOM_EMOJIS.map(e => e.name.toLowerCase()));
+    const aion2Items = AION2_CUSTOM_EMOJIS.map(e => ({
+      id: `custom_${e.name}`,
+      emoji: `:${e.name}:`,
+      displayUrl: e.file,
+      shortcode: `:${e.name}:`,
+      name: e.name,
+      categoryName: guildName,
+      keywords: [...(e.keywords || []), e.name.toLowerCase(), 'server', 'custom', 'aion'],
+      code: e.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+    }));
+
+    const extraServerItems = serverEmojis
+      .filter(e => e && e.name && !aion2NamesSet.has(e.name.toLowerCase()))
+      .map(e => ({
+        id: `custom_${e.name}`,
+        emoji: `:${e.name}:`,
+        displayUrl: e.url,
+        shortcode: `:${e.name}:`,
+        name: e.name,
+        categoryName: guildName,
+        keywords: [e.name.toLowerCase(), 'server', 'custom'],
+        code: e.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+      }));
+
+    const customItems = [...aion2Items, ...extraServerItems];
+    const customMap = new Map(customItems.map(item => [item.id, item]));
 
     const resolved = [];
 
     // 1. Frequently Used
     const recentItems = recentEmojiIds
       .map(id => {
+        if (customMap.has(id)) {
+          return { ...customMap.get(id), categoryName: 'Frequently Used' };
+        }
         const entry = emojisMap[id];
         if (!entry) return null;
         return formatStandardEmojiItem(entry, 'Frequently Used');
@@ -248,23 +281,14 @@ export function setupDiscordEmojiPicker() {
       });
     }
 
-    // 2. Server Custom Emojis (always shown in rail with server icon like Discord, or populated when guild has emojis)
-    if (serverEmojis.length > 0) {
+    // 2. Server / AION 2 Custom Emojis
+    if (customItems.length > 0) {
       resolved.push({
         id: 'server',
         name: guildName,
         isServer: true,
         guildIcon,
-        items: serverEmojis.map(e => ({
-          id: `custom_${e.id}`,
-          emoji: e.identifier || `<:${e.name}:${e.id}>`,
-          displayUrl: e.url,
-          shortcode: `:${e.name}:`,
-          name: e.name,
-          categoryName: guildName,
-          keywords: [e.name.toLowerCase(), 'server', 'custom'],
-          code: e.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
-        }))
+        items: customItems
       });
     }
 
@@ -365,7 +389,8 @@ export function setupDiscordEmojiPicker() {
   function updateInspector(item) {
     if (!item) return;
     if (footerIcon) {
-      footerIcon.innerHTML = `<img src="${item.displayUrl}" alt="${item.emoji}" onerror="this.replaceWith(document.createTextNode('${item.emoji}'))">`;
+      const safeFallback = (item.emoji && (item.emoji.startsWith(':') || item.emoji.startsWith('<'))) ? '✨' : (item.emoji || '✨');
+      footerIcon.innerHTML = `<img src="${item.displayUrl}" alt="${item.name || item.emoji}" onerror="this.replaceWith(document.createTextNode('${safeFallback}'))">`;
     }
     if (footerShortcode) footerShortcode.textContent = item.shortcode;
     if (footerLabel) footerLabel.textContent = `${item.name} • ${item.categoryName}`;
@@ -511,11 +536,12 @@ export function setupDiscordEmojiPicker() {
 
     const img = document.createElement('img');
     img.src = item.displayUrl;
-    img.alt = item.emoji;
+    img.alt = item.name || item.emoji;
     img.loading = 'lazy';
     img.decoding = 'async';
     img.onerror = () => {
-      img.replaceWith(document.createTextNode(item.emoji));
+      const safeFallback = (item.emoji && (item.emoji.startsWith(':') || item.emoji.startsWith('<'))) ? '✨' : (item.emoji || '✨');
+      img.replaceWith(document.createTextNode(safeFallback));
     };
     btn.appendChild(img);
 
@@ -546,7 +572,7 @@ export function setupDiscordEmojiPicker() {
   }, { passive: true });
 
   function recordRecentEmoji(item) {
-    if (!item?.id || item.id.startsWith('custom_')) return;
+    if (!item?.id) return;
     recentEmojiIds = [item.id, ...recentEmojiIds.filter(id => id !== item.id)].slice(0, 27);
     try {
       localStorage.setItem('maiev_recent_emojis', JSON.stringify(recentEmojiIds));
@@ -569,7 +595,8 @@ export function setupDiscordEmojiPicker() {
     if (hiddenInput) hiddenInput.value = item.emoji;
     triggerBtn.classList.add('has-selection');
     if (selectedDisplay) {
-      selectedDisplay.innerHTML = `<img src="${item.displayUrl}" alt="${item.emoji}" class="twemoji-inline" onerror="this.replaceWith(document.createTextNode('${item.emoji}'))">`;
+      const safeFallback = (item.emoji && (item.emoji.startsWith(':') || item.emoji.startsWith('<'))) ? '✨' : (item.emoji || '✨');
+      selectedDisplay.innerHTML = `<img src="${item.displayUrl}" alt="${item.name || item.emoji}" class="twemoji-inline" onerror="this.replaceWith(document.createTextNode('${safeFallback}'))">`;
     }
     triggerBtn.title = `${item.shortcode || item.emoji} (${item.name || 'Selected Emoji'})`;
 
@@ -656,13 +683,16 @@ export function setupDiscordEmojiPicker() {
 
   function updateTriggerButtonVisual(btn, inputEl, emojiChar, displayUrl) {
     if (!btn) return;
+    const normalizedEmoji = normalizeEmojiCode(emojiChar || '😀');
+    const customEntry = getCustomEmojiEntry(normalizedEmoji);
     const iconSpan = btn.querySelector('.emoji-trigger-icon');
-    const url = displayUrl || emojiToTwemojiUrl(emojiChar || '😀');
+    const url = displayUrl || (customEntry ? customEntry.url : emojiToTwemojiUrl(normalizedEmoji));
+    const fallbackText = customEntry ? '✨' : normalizedEmoji;
     if (iconSpan) {
-      iconSpan.innerHTML = `<img src="${url}" alt="${emojiChar}" class="twemoji-inline" onerror="this.replaceWith(document.createTextNode('${emojiChar}'))">`;
+      iconSpan.innerHTML = `<img src="${url}" alt="${normalizedEmoji}" class="twemoji-inline" onerror="this.replaceWith(document.createTextNode('${fallbackText}'))">`;
     }
     if (inputEl) {
-      inputEl.value = emojiChar;
+      inputEl.value = normalizedEmoji;
       inputEl.dispatchEvent(new Event('input', { bubbles: true }));
       inputEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -726,10 +756,11 @@ export function setupDiscordEmojiPicker() {
       openPopover(anchorEl, onSelect);
     },
     setTriggerEmoji(inputId, emojiChar) {
+      const normalized = normalizeEmojiCode(emojiChar || '😀');
       const btn = document.querySelector(`[data-emoji-trigger-for="${inputId}"]`);
       const inputEl = document.getElementById(inputId);
-      if (inputEl) inputEl.value = emojiChar;
-      if (btn) updateTriggerButtonVisual(btn, null, emojiChar);
+      if (inputEl) inputEl.value = normalized;
+      if (btn) updateTriggerButtonVisual(btn, null, normalized);
     },
     resetCreator() {
       if (hiddenInput) hiddenInput.value = '';

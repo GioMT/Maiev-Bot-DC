@@ -1,5 +1,5 @@
-import { state } from '../state.js';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js';
+import { state } from '../state.js?v=4.8';
+import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=4.8';
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -103,6 +103,9 @@ function subtractMinutesFromHHMM(eventHHMM, minsBefore) {
 
 function ensureEventTimesAndOffsets(active) {
   if (!active) return;
+  if (active.emoji) {
+    active.emoji = normalizeEmojiCode(active.emoji);
+  }
   if (!Array.isArray(active.eventTimes) || active.eventTimes.length === 0) {
     active.eventTimes = [active.eventTime || '20:00'];
   }
@@ -284,7 +287,7 @@ export function renderAlertsSubtabs() {
 
     btn.innerHTML = `
       <span style="width: 7px; height: 7px; border-radius: 50%; background: ${statusDotColor}; display: inline-block;"></span>
-      <span>${escapeHtml(alert.emoji || '🔔')}</span>
+      <span>${renderEmojiHtml(alert.emoji || '🔔')}</span>
       <span>${escapeHtml(alert.name)}</span>
       <span class="subtab-count-pill">${timeCount}t</span>
     `;
@@ -622,7 +625,7 @@ export function updateAlertsPreview() {
   if (simPresetBadge) {
     const evCount = active.eventTimes?.length || 1;
     const evSummary = evCount > 1 ? `${evCount} daily events` : `${formatTime12h(active.eventTimes?.[0] || '20:00')} PHT`;
-    simPresetBadge.textContent = `${active.emoji || '🔔'} ${active.name} (${evSummary})`;
+    simPresetBadge.innerHTML = `${renderEmojiHtml(active.emoji || '🔔')} ${escapeHtml(active.name)} (${escapeHtml(evSummary)})`;
   }
 
   const pingLabel = resolvePreviewPingLabel(active);
@@ -689,7 +692,7 @@ export function updateAlertsPreview() {
                   : ''
               }
               <div class="discord-embed" style="border-left: 4px solid ${escapeHtml(active.embedColor || '#e67e22')};">
-                ${rawTitle ? `<div class="embed-title">${escapeHtml(rawTitle)}</div>` : ''}
+                ${rawTitle ? `<div class="embed-title">${formatDiscordMarkdown(rawTitle)}</div>` : ''}
                 <div class="embed-description">${descHtml}</div>
                 <div class="embed-footer" style="margin-top: 8px;">${escapeHtml(footerStr)}</div>
               </div>

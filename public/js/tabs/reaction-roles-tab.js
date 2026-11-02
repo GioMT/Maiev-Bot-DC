@@ -1,16 +1,18 @@
 import {
   DEFAULT_NATIONALITY_TEMPLATE,
   ROLE_PRESETS
-} from '../presets.js';
-import { state, getActiveServerName } from '../state.js';
+} from '../presets.js?v=4.8';
+import { state, getActiveServerName } from '../state.js?v=4.8';
 import {
   formatDiscordMarkdown,
   extractFlagIsoCode,
+  normalizeEmojiCode,
+  renderEmojiHtml,
   refreshIcons,
   showToast
-} from '../utils.js';
-import { autoSaveNationalityRoles } from '../api.js';
-import { setupDiscordEmojiPicker } from '../emoji-picker.js';
+} from '../utils.js?v=4.8';
+import { autoSaveNationalityRoles } from '../api.js?v=4.8';
+import { setupDiscordEmojiPicker } from '../emoji-picker.js?v=4.8';
 
 export function renderNationalityRolesManager(data) {
   const cfg = data.config || {};
@@ -167,7 +169,7 @@ export function renderReactionSubtabs() {
     btn.className = `reaction-subtab-btn ${isActive ? 'active' : ''}`;
     btn.dataset.presetId = key;
     btn.innerHTML = `
-      <span>${preset.icon || '🏷️'}</span>
+      <span>${renderEmojiHtml(preset.icon || '🏷️')}</span>
       <span>${preset.name || key}</span>
       <span class="reaction-subtab-badge">${roleCount}</span>
       ${keys.length > 1 ? `<span class="reaction-subtab-close" data-close-preset="${key}" title="Remove preset tab">&times;</span>` : ''}
@@ -298,7 +300,7 @@ export function updateNationalityPreview() {
     : (currentPreset.content || '');
   const rawFooter = document.getElementById('nationality-footer-input')?.value || currentPreset.footer || DEFAULT_NATIONALITY_TEMPLATE.footer;
 
-  if (simTitle) simTitle.textContent = rawTitle.replace(/{server}/g, serverName);
+  if (simTitle) simTitle.innerHTML = formatDiscordMarkdown(rawTitle.replace(/{server}/g, serverName));
   if (simFooter) simFooter.textContent = rawFooter.replace(/{server}/g, serverName);
 
   let descHtml = '';
@@ -325,7 +327,7 @@ export function updateNationalityPreview() {
         const items = categories[cat].map(n => {
           const codeStr = n.code ? ` (<code>${n.code.toUpperCase()}</code>)` : '';
           const intentTag = n.intent && n.intent !== 'toggle' ? ` <small class="text-muted">[${n.intent}]</small>` : '';
-          return `${n.emoji} <strong>${n.name}</strong>${codeStr}${intentTag}`;
+          return `${renderEmojiHtml(n.emoji)} <strong>${n.name}</strong>${codeStr}${intentTag}`;
         }).join('<br>');
         return `${catHeader}${items}`;
       }).join('<br>');
@@ -333,7 +335,7 @@ export function updateNationalityPreview() {
       listStr = list.map(n => {
         const codeStr = n.code ? ` (<code>${n.code.toUpperCase()}</code>)` : '';
         const intentTag = n.intent && n.intent !== 'toggle' ? ` <small class="text-muted">[${n.intent}]</small>` : '';
-        return `${n.emoji} <strong>${n.name}</strong>${codeStr}${intentTag}`;
+        return `${renderEmojiHtml(n.emoji)} <strong>${n.name}</strong>${codeStr}${intentTag}`;
       }).join('<br>');
     }
 
@@ -355,7 +357,7 @@ export function updateNationalityPreview() {
         pill.style.borderColor = '#00d2ff';
       }
 
-      pill.textContent = `${item.emoji} ${isSimActive ? '2' : '1'}`;
+      pill.innerHTML = `${renderEmojiHtml(item.emoji)} ${isSimActive ? '2' : '1'}`;
       pill.title = `Simulate reacting with ${item.emoji} (${item.intent || 'toggle'})`;
 
       pill.addEventListener('click', () => {
@@ -373,6 +375,7 @@ export function handleSimulatedReactionClick(item) {
 
   const intent = (item.intent || document.getElementById('reaction-default-intent-select')?.value || 'toggle').toLowerCase();
   const id = item.code || item.name;
+  const emojiHtml = renderEmojiHtml(item.emoji);
 
   if (intent === 'unique') {
     const itemCat = item.category || null;
@@ -383,20 +386,20 @@ export function handleSimulatedReactionClick(item) {
       }
     });
     state.simulatedAssignedRoles.add(id);
-    feedback.innerHTML = `<span style="color: #00d2ff;"><i data-lucide="check-circle-2"></i></span> <strong>[Simulated Unique Role]</strong> Selected <strong>${item.name}</strong> (${item.emoji})! Other ${itemCat ? `<strong>${itemCat}</strong>` : ''} roles were cleared.`;
+    feedback.innerHTML = `<span style="color: #00d2ff;"><i data-lucide="check-circle-2"></i></span> <strong>[Simulated Unique Role]</strong> Selected <strong>${item.name}</strong> (${emojiHtml})! Other ${itemCat ? `<strong>${itemCat}</strong>` : ''} roles were cleared.`;
   } else if (intent === 'give_only') {
     state.simulatedAssignedRoles.add(id);
-    feedback.innerHTML = `<span style="color: #57F287;"><i data-lucide="check-circle-2"></i></span> <strong>[Simulated Give-Only Role]</strong> Unlocked role for <strong>${item.name}</strong> (${item.emoji}) permanently!`;
+    feedback.innerHTML = `<span style="color: #57F287;"><i data-lucide="check-circle-2"></i></span> <strong>[Simulated Give-Only Role]</strong> Unlocked role for <strong>${item.name}</strong> (${emojiHtml}) permanently!`;
   } else if (intent === 'remove_only') {
     state.simulatedAssignedRoles.delete(id);
-    feedback.innerHTML = `<span style="color: #ED4245;"><i data-lucide="trash-2"></i></span> <strong>[Simulated Remove-Only Role]</strong> Removed role for <strong>${item.name}</strong> (${item.emoji}).`;
+    feedback.innerHTML = `<span style="color: #ED4245;"><i data-lucide="trash-2"></i></span> <strong>[Simulated Remove-Only Role]</strong> Removed role for <strong>${item.name}</strong> (${emojiHtml}).`;
   } else {
     if (state.simulatedAssignedRoles.has(id)) {
       state.simulatedAssignedRoles.delete(id);
-      feedback.innerHTML = `<span style="color: #949ba4;"><i data-lucide="minus-circle"></i></span> <strong>[Simulated Toggle]</strong> Unreacted ${item.emoji} — removed role for <strong>${item.name}</strong>.`;
+      feedback.innerHTML = `<span style="color: #949ba4;"><i data-lucide="minus-circle"></i></span> <strong>[Simulated Toggle]</strong> Unreacted ${emojiHtml} — removed role for <strong>${item.name}</strong>.`;
     } else {
       state.simulatedAssignedRoles.add(id);
-      feedback.innerHTML = `<span style="color: #57F287;"><i data-lucide="check-circle-2"></i></span> <strong>[Simulated Toggle]</strong> Reacted ${item.emoji} — granted role for <strong>${item.name}</strong>!`;
+      feedback.innerHTML = `<span style="color: #57F287;"><i data-lucide="check-circle-2"></i></span> <strong>[Simulated Toggle]</strong> Reacted ${emojiHtml} — granted role for <strong>${item.name}</strong>!`;
     }
   }
 
@@ -481,7 +484,7 @@ export function renderNationalityRolesList() {
     card.innerHTML = `
       <div class="nat-card-header">
         <div class="nat-identity">
-          <span class="nat-flag clickable-emoji" title="Click to change emoji">${item.emoji || '🌐'}</span>
+          <span class="nat-flag clickable-emoji" title="Click to change emoji">${renderEmojiHtml(item.emoji || '🌐')}</span>
           <div>
             <span class="nat-name">${item.name}</span>
             <span class="nat-code">${(item.code || '').toUpperCase()}</span>

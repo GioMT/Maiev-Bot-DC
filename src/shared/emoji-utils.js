@@ -1,8 +1,8 @@
 /**
- * Resolve emoji string, custom <:name:id>, or shortcode (:flag_ph:, :earth_asia:)
+ * Resolve emoji string, custom <:name:id>, or shortcode (:flag_ph:, :earth_asia:, :Cleric:)
  * to a reactable Discord emoji identifier.
  */
-export function resolveEmojiToReactable(emojiStr) {
+export function resolveEmojiToReactable(emojiStr, guild = null) {
   if (!emojiStr) return null;
   const s = emojiStr.trim();
 
@@ -33,7 +33,26 @@ export function resolveEmojiToReactable(emojiStr) {
     return shortcodeMap[s.toLowerCase()];
   }
 
+  // Custom guild emoji shortcode: :Cleric:, :Abyss:, etc.
+  const customShortcodeMatch = s.match(/^:([a-zA-Z0-9_]+):$/);
+  if (customShortcodeMatch && guild?.emojis?.cache) {
+    const targetName = customShortcodeMatch[1].toLowerCase();
+    const guildEmoji = guild.emojis.cache.find(e => e.name && e.name.toLowerCase() === targetName);
+    if (guildEmoji) return guildEmoji.id;
+  }
+
   return s;
+}
+
+/**
+ * Replace :Shortcode: in text with <:Shortcode:ID> from guild.emojis.cache so Discord renders custom server emojis in embeds/messages.
+ */
+export function resolveCustomEmojiShortcodes(text, guild) {
+  if (!text || !guild?.emojis?.cache) return text;
+  return String(text).replace(/(?<![<a]):([a-zA-Z0-9_]+):(?!\d+>)/g, (full, name) => {
+    const guildEmoji = guild.emojis.cache.find(e => e.name && e.name.toLowerCase() === name.toLowerCase());
+    return guildEmoji ? guildEmoji.toString() : full;
+  });
 }
 
 /**
@@ -53,8 +72,10 @@ export function findNationalityByEmoji(emoji, nationalityRoles = []) {
     if (nEmojiResolved && (nEmojiResolved === emojiName || nEmojiResolved === emojiString)) return true;
     if (n.emoji && (n.emoji === emojiName || n.emoji === emojiString)) return true;
 
-    // 2. Custom Discord emoji ID match <:name:id>
+    // 2. Custom Discord emoji ID or :Shortcode: name match
     if (emojiId && n.emoji && n.emoji.includes(emojiId)) return true;
+    const strippedConfigEmoji = String(n.emoji || '').replace(/^<a?:|:(\d+)>$|^:|:$/g, '').toLowerCase();
+    if (strippedConfigEmoji && emojiName && strippedConfigEmoji === emojiName.toLowerCase()) return true;
 
     // 3. Normalized Unicode match
     if (nEmojiResolved && emojiName && (nEmojiResolved.includes(emojiName) || emojiName.includes(nEmojiResolved))) return true;
@@ -93,13 +114,18 @@ export function extractFlagIsoCode(emoji) {
  */
 export async function safelyReact(message, emojiStr) {
   if (!emojiStr || !message) return;
-  const reactable = resolveEmojiToReactable(emojiStr);
+  let reactable = resolveEmojiToReactable(emojiStr, message.guild);
+  if (reactable && /^:[a-zA-Z0-9_]+:$/.test(reactable) && message.guild?.emojis) {
+    await message.guild.emojis.fetch().catch(() => null);
+    reactable = resolveEmojiToReactable(emojiStr, message.guild);
+  }
   if (!reactable) return;
   try {
+    const cleanInputName = String(emojiStr).trim().replace(/^:|:$/g, '').toLowerCase();
     const alreadyReacted = message.reactions?.cache?.some(r => {
       if (r.me) {
         if (r.emoji.id && r.emoji.id === reactable) return true;
-        if (r.emoji.name && (r.emoji.name === reactable || r.emoji.name === emojiStr.trim())) return true;
+        if (r.emoji.name && (r.emoji.name === reactable || r.emoji.name === emojiStr.trim() || r.emoji.name.toLowerCase() === cleanInputName)) return true;
       }
       return false;
     });

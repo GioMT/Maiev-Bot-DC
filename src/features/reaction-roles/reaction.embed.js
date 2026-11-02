@@ -5,7 +5,7 @@ import {
   ButtonStyle
 } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
-import { resolveEmojiToReactable, safelyReact } from '../../shared/emoji-utils.js';
+import { resolveEmojiToReactable, resolveCustomEmojiShortcodes, safelyReact } from '../../shared/emoji-utils.js';
 import { findMessageAcrossGuild } from '../../shared/discord-resolvers.js';
 
 export function createNationalityButtonRows(nationalityRoles = []) {
@@ -64,9 +64,10 @@ export function createNationalityMessage(guild, options = {}) {
     }).join('\n');
   }
 
-  const title = options.title || config.nationalityTitle || '✨ Reaction Roles — Choose Your Roles';
+  const rawTitle = options.title || config.nationalityTitle || '✨ Reaction Roles — Choose Your Roles';
+  const title = resolveCustomEmojiShortcodes(rawTitle, guild);
   const rawDesc = options.content || config.nationalityContent || formattedList;
-  const description = rawDesc.replace(/{server}/g, guild.name);
+  const description = resolveCustomEmojiShortcodes(rawDesc.replace(/{server}/g, guild.name), guild);
   const footer = options.footer || config.nationalityFooter || 'React with an emoji below to toggle your role';
 
   const embed = new EmbedBuilder()
@@ -89,7 +90,7 @@ export async function reactToNationalityCard(message, specificRoles = null) {
 
   for (const n of rolesList) {
     if (n && n.emoji) {
-      const r = resolveEmojiToReactable(n.emoji);
+      const r = resolveEmojiToReactable(n.emoji, message.guild);
       if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
     }
   }
@@ -99,7 +100,7 @@ export async function reactToNationalityCard(message, specificRoles = null) {
       const text = emb.description || '';
       for (const n of rolesList) {
         if (n && n.emoji && text.includes(n.emoji)) {
-          const r = resolveEmojiToReactable(n.emoji);
+          const r = resolveEmojiToReactable(n.emoji, message.guild);
           if (r && !emojisToReact.includes(r)) emojisToReact.push(r);
         }
       }

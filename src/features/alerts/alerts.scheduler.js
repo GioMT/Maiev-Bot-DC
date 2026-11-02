@@ -2,6 +2,7 @@ import path from 'node:path';
 import { EmbedBuilder } from 'discord.js';
 import { JsonStore } from '../../core/storage/json-store.js';
 import { ROOT_DIR, configStore } from '../../core/storage/config-store.js';
+import { resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 const ALERTS_CONFIG_FILE = path.join(ROOT_DIR, 'alertsConfig.json');
 
@@ -191,6 +192,10 @@ export function getAlertsConfig() {
       resolvedPingType = 'none';
     }
 
+    const normalizedEmoji = String(item.emoji || presetMatch?.emoji || '🔔')
+      .trim()
+      .replace(/^<a?:([a-zA-Z0-9_]+):\d+>$/, ':$1:');
+
     return {
       enabled: true,
       channelId: '',
@@ -207,6 +212,7 @@ export function getAlertsConfig() {
       autoDelete: true,
       deleteAfterMinutes: 15,
       ...item,
+      emoji: normalizedEmoji,
       pingType: resolvedPingType,
       isCustom,
       eventTime: evTimes[0] || '20:00',
@@ -247,7 +253,7 @@ export function saveAlertsConfig(alertsArray) {
       id: idStr,
       code: String(a.code || idStr),
       name: String(a.name || 'Custom Alert').trim(),
-      emoji: String(a.emoji || '🔔').trim(),
+      emoji: String(a.emoji || '🔔').trim().replace(/^<a?:([a-zA-Z0-9_]+):\d+>$/, ':$1:'),
       isCustom,
       enabled: Boolean(a.enabled),
       channelId: String(a.channelId || ''),
@@ -324,7 +330,7 @@ export function buildAlertDiscordPayload(alert, options = {}) {
 
   const rawDesc = alert.embedDescription || `**${alert.name || 'Scheduled Alert'} in {countdown}, please gear up!**`;
   const hasExplicitCountdown = /\{countdown\}|\{event_time\}/i.test(rawDesc);
-  let description = replaceVars(rawDesc);
+  let description = resolveCustomEmojiShortcodes(replaceVars(rawDesc), options.guild);
 
   if (alert.includeTimestamp && !hasExplicitCountdown) {
     description += ` <t:${eventUnixSec}:R> (<t:${eventUnixSec}:t>)`;
@@ -340,7 +346,7 @@ export function buildAlertDiscordPayload(alert, options = {}) {
     .setDescription(description)
     .setTimestamp();
 
-  const titleText = replaceVars(alert.embedTitle || '').trim();
+  const titleText = resolveCustomEmojiShortcodes(replaceVars(alert.embedTitle || '').trim(), options.guild);
   if (titleText) {
     embed.setTitle(titleText);
   }
@@ -436,7 +442,7 @@ export async function dispatchAlertMessage(client, alert, options = {}) {
     throw new Error('Selected channel was not found or is not a text channel.');
   }
 
-  const payload = buildAlertDiscordPayload(alert, options);
+  const payload = buildAlertDiscordPayload(alert, { ...options, guild: channel.guild });
   const sentMsg = await channel.send(payload);
 
   if (alert.autoDelete && Number(alert.deleteAfterMinutes) > 0) {

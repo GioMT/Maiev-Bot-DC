@@ -2,16 +2,46 @@ import { PermissionFlagsBits } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
 import { getActiveGuild } from '../../shared/discord-resolvers.js';
 
+const AION2_EMOJI_NAMES = [
+  'Abyss',
+  'Artifact',
+  'Asmodian',
+  'Assassin',
+  'Chanter',
+  'Cleric',
+  'Elyos',
+  'Gladiator',
+  'PVP',
+  'Ranger',
+  'Rift',
+  'Sorcerer',
+  'Spiritmaster',
+  'Templar',
+  'WorldBoss'
+];
+
+let lastEmojiFetchAt = 0;
+
 export const statusFeature = {
   id: 'status',
   name: 'Web Control Center Telemetry & Config API',
 
   registerRoutes(app, { client }) {
     // GET /api/status - Live Bot & Guild Status
-    app.get('/api/status', (req, res) => {
+    app.get('/api/status', async (req, res) => {
       const config = configStore.get();
       const guild = getActiveGuild(client);
       const botMember = guild?.members.me;
+
+      if (guild && Date.now() - lastEmojiFetchAt > 30000) {
+        const missingAny = AION2_EMOJI_NAMES.some(
+          name => !guild.emojis.cache.some(e => e.name && e.name.toLowerCase() === name.toLowerCase())
+        );
+        if (missingAny) {
+          lastEmojiFetchAt = Date.now();
+          await guild.emojis.fetch().catch(() => null);
+        }
+      }
 
       let roles = guild ? guild.roles.cache.map(r => ({
         id: r.id,
@@ -25,13 +55,29 @@ export const statusFeature = {
         .filter(c => c.isTextBased())
         .map(c => ({ id: c.id, name: c.name, type: c.type })) : [];
 
-      const emojis = guild ? guild.emojis.cache.map(e => ({
-        id: e.id,
-        name: e.name,
-        animated: e.animated,
-        identifier: e.toString(),
-        url: e.imageURL({ size: 64 })
-      })) : [];
+      const aion2NameSet = new Set(AION2_EMOJI_NAMES.map(n => n.toLowerCase()));
+      const builtInEmojis = AION2_EMOJI_NAMES.map(name => {
+        const liveMatch = guild?.emojis?.cache?.find(e => e.name && e.name.toLowerCase() === name.toLowerCase());
+        return {
+          id: liveMatch ? liveMatch.id : name,
+          name,
+          animated: Boolean(liveMatch?.animated),
+          identifier: `:${name}:`,
+          url: `/emojis/${name}.webp`
+        };
+      });
+
+      const extraGuildEmojis = guild ? guild.emojis.cache
+        .filter(e => e.name && !aion2NameSet.has(e.name.toLowerCase()))
+        .map(e => ({
+          id: e.id,
+          name: e.name,
+          animated: e.animated,
+          identifier: `:${e.name}:`,
+          url: e.imageURL({ size: 64 })
+        })) : [];
+
+      const emojis = [...builtInEmojis, ...extraGuildEmojis];
 
       if (!guild) {
         const knownRoles = new Map();
