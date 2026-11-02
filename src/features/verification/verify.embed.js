@@ -8,13 +8,15 @@ import {
   TextInputStyle
 } from 'discord.js';
 import { configStore, DEFAULT_CONFIG } from '../../core/storage/config-store.js';
+import { resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 export function createVerifyMessage(guild) {
   const config = configStore.get();
-  const title = config.verifyTitle || DEFAULT_CONFIG.verifyTitle;
+  const rawTitle = (config.verifyTitle || DEFAULT_CONFIG.verifyTitle).replace(/{server}/g, guild.name);
   const rawDescription = config.verifyContent || DEFAULT_CONFIG.verifyContent;
-  const description = rawDescription.replace(/{server}/g, guild.name);
-  const footer = config.verifyFooter || DEFAULT_CONFIG.verifyFooter;
+  const title = resolveCustomEmojiShortcodes(rawTitle, guild);
+  const description = resolveCustomEmojiShortcodes(rawDescription.replace(/{server}/g, guild.name), guild);
+  const footer = (config.verifyFooter || DEFAULT_CONFIG.verifyFooter).replace(/{server}/g, guild.name);
 
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
@@ -54,15 +56,21 @@ export function createWelcomePopupEmbed({ guild, member, ign, rolesText }) {
   const serverName = guild.name;
   const serverIcon = guild.iconURL({ dynamic: true, size: 256 }) || undefined;
 
-  const welcomeTitle = (config.welcomeTitle || '🎉 Welcome to {server}, {ign}!')
-    .replace(/{server}/g, serverName)
-    .replace(/{ign}/g, ign);
+  const welcomeTitle = resolveCustomEmojiShortcodes(
+    (config.welcomeTitle || '🎉 Welcome to {server}, {ign}!')
+      .replace(/{server}/g, serverName)
+      .replace(/{ign}/g, ign),
+    guild
+  );
 
-  const welcomeDescription = (config.welcomeContent || DEFAULT_CONFIG.welcomeContent)
-    .replace(/{server}/g, serverName)
-    .replace(/{ign}/g, ign)
-    .replace(/{roles}/g, rolesText)
-    .replace(/{user}/g, `<@${member.id}>`);
+  const welcomeDescription = resolveCustomEmojiShortcodes(
+    (config.welcomeContent || DEFAULT_CONFIG.welcomeContent)
+      .replace(/{server}/g, serverName)
+      .replace(/{ign}/g, ign)
+      .replace(/{roles}/g, rolesText)
+      .replace(/{user}/g, `<@${member.id}>`),
+    guild
+  );
 
   const welcomeFooterText = (config.welcomeFooter || '{server} • AION 2')
     .replace(/{server}/g, serverName)

@@ -1,6 +1,6 @@
-import { DEFAULT_RULES_TEMPLATE } from '../presets.js';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js';
-import { postEmbed } from '../api.js';
+import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=4.9';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=4.9';
+import { postEmbed } from '../api.js?v=4.9';
 
 export function renderRulesEditor(cfg) {
   const title = cfg.rulesTitle || DEFAULT_RULES_TEMPLATE.title;
@@ -19,7 +19,7 @@ export function updateRulesPreview() {
   const content = document.getElementById('rules-content-input').value || DEFAULT_RULES_TEMPLATE.content;
   const footer = document.getElementById('rules-footer-input').value || DEFAULT_RULES_TEMPLATE.footer;
 
-  document.getElementById('sim-rules-title').textContent = title;
+  document.getElementById('sim-rules-title').innerHTML = formatDiscordMarkdown(title);
   document.getElementById('sim-rules-desc').innerHTML = formatDiscordMarkdown(content);
   document.getElementById('sim-rules-footer').textContent = footer;
 }

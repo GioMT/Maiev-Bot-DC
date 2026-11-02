@@ -19,6 +19,8 @@ import {
   processBossList,
   buildBossTable
 } from './boss.embed.js';
+import { getActiveGuild } from '../../shared/discord-resolvers.js';
+import { ensureGuildEmojisLoaded, resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 const BOSS_CONFIG_FILE = path.join(ROOT_DIR, 'bossTimerConfig.json');
 
@@ -297,11 +299,13 @@ async function checkMajorBossAlerts(client, bosses) {
     });
 
     if (alertChannel && alertChannel.isTextBased()) {
+      await ensureGuildEmojisLoaded(alertChannel.guild);
       for (const boss of due) {
         const ts = Math.floor(boss.time / 1000);
+        const rawAlertDesc = `**Major Boss Spawning Soon: ${boss.name}** <t:${ts}:R> (<t:${ts}:t>)`;
         const alertEmbed = new EmbedBuilder()
           .setColor(0xe67e22)
-          .setDescription(`**Major Boss Spawning Soon: ${boss.name}** <t:${ts}:R> (<t:${ts}:t>)`)
+          .setDescription(resolveCustomEmojiShortcodes(rawAlertDesc, alertChannel.guild))
           .setFooter({ text: 'Aion 2 Major Boss Alert' })
           .setTimestamp();
 
@@ -333,11 +337,14 @@ export async function renderBossTimers(client, options = {}) {
   try {
     const cfg = getBossTimerConfig();
     const targetChannelId = options.channelId || cfg.channelId;
+    const guild = getActiveGuild(client);
+    await ensureGuildEmojisLoaded(guild);
     const payload = buildPayload(activeBosses, Date.now(), {
       majorBossSet: MAJOR_BOSSES,
       abyssTitle: cfg.abyssTitle,
       elyosTitle: cfg.elyosTitle,
-      footerText: cfg.footerText
+      footerText: cfg.footerText,
+      guild
     });
 
     if (options.forceNew) {

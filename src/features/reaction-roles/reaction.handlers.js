@@ -3,7 +3,8 @@ import { configStore } from '../../core/storage/config-store.js';
 import { resolveRole, getActiveGuild } from '../../shared/discord-resolvers.js';
 import {
   findNationalityByEmoji,
-  extractFlagIsoCode
+  extractFlagIsoCode,
+  ensureGuildEmojisLoaded
 } from '../../shared/emoji-utils.js';
 import {
   trackUserReaction,
@@ -71,6 +72,7 @@ export async function handlePostNationalityCommand(interaction, { client }) {
 
     const config = configStore.get();
     const forceNew = interaction.options.getBoolean('force_new') || false;
+    await ensureGuildEmojisLoaded(interaction.guild);
     const payload = createNationalityMessage(interaction.guild);
 
     let targetMsg = null;
@@ -523,6 +525,7 @@ export async function handlePostReactionRolesApi(req, res, { client }) {
     const finalContent = reactionContent !== undefined ? reactionContent : (nationalityContent || config.nationalityContent);
     const finalFooter = reactionFooter !== undefined ? reactionFooter : (nationalityFooter || config.nationalityFooter);
 
+    await ensureGuildEmojisLoaded(guild);
     const payload = createNationalityMessage(guild, {
       roles: rolesToPost,
       title: finalTitle,

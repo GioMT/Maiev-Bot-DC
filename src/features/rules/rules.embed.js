@@ -5,13 +5,16 @@ import {
   ActionRowBuilder
 } from 'discord.js';
 import { configStore, DEFAULT_CONFIG } from '../../core/storage/config-store.js';
+import { resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
-export function createRulesMessage() {
+export function createRulesMessage(guild = null) {
   const config = configStore.get();
+  const rawTitle = config.rulesTitle || DEFAULT_CONFIG.rulesTitle;
+  const rawDesc = config.rulesContent || DEFAULT_CONFIG.rulesContent;
   const embed = new EmbedBuilder()
     .setColor(0x2B2D31)
-    .setTitle(config.rulesTitle || DEFAULT_CONFIG.rulesTitle)
-    .setDescription(config.rulesContent || DEFAULT_CONFIG.rulesContent)
+    .setTitle(resolveCustomEmojiShortcodes(rawTitle, guild))
+    .setDescription(resolveCustomEmojiShortcodes(rawDesc, guild))
     .setFooter({ text: config.rulesFooter || DEFAULT_CONFIG.rulesFooter });
 
   const button = new ButtonBuilder()

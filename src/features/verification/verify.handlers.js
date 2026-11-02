@@ -7,6 +7,7 @@ import {
   createVerifyModal,
   createWelcomePopupEmbed
 } from './verify.embed.js';
+import { ensureGuildEmojisLoaded } from '../../shared/emoji-utils.js';
 
 export async function handleOpenIgnModalButton(interaction) {
   const modal = createVerifyModal();
@@ -95,6 +96,7 @@ export async function handleVerifyModalSubmit(interaction) {
   }
 
   const rolesText = addedNames.length > 0 ? addedNames.join(' and ') : 'your verified roles';
+  await ensureGuildEmojisLoaded(guild);
   const welcomeEmbed = createWelcomePopupEmbed({ guild, member, ign, rolesText });
 
   await interaction.reply({
@@ -111,6 +113,7 @@ export async function handleVerifyModalSubmit(interaction) {
 export async function handlePostVerifyCommand(interaction) {
   await interaction.deferReply({ ephemeral: true });
   try {
+    await ensureGuildEmojisLoaded(interaction.guild);
     const payload = createVerifyMessage(interaction.guild);
     await interaction.channel.send(payload);
     await interaction.editReply({ content: '✅ Maiev AION 2 verification card posted successfully!' });
@@ -185,6 +188,7 @@ export async function handlePostVerifyApi(req, res, { client }) {
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
+    await ensureGuildEmojisLoaded(guild);
     const payload = createVerifyMessage(guild);
     await channel.send(payload);
     res.json({ success: true });

@@ -2,7 +2,7 @@ import path from 'node:path';
 import { EmbedBuilder } from 'discord.js';
 import { JsonStore } from '../../core/storage/json-store.js';
 import { ROOT_DIR, configStore } from '../../core/storage/config-store.js';
-import { resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
+import { ensureGuildEmojisLoaded, resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 const ALERTS_CONFIG_FILE = path.join(ROOT_DIR, 'alertsConfig.json');
 
@@ -442,6 +442,7 @@ export async function dispatchAlertMessage(client, alert, options = {}) {
     throw new Error('Selected channel was not found or is not a text channel.');
   }
 
+  await ensureGuildEmojisLoaded(channel.guild);
   const payload = buildAlertDiscordPayload(alert, { ...options, guild: channel.guild });
   const sentMsg = await channel.send(payload);
 

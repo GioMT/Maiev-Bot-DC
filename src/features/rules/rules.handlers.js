@@ -7,6 +7,7 @@ import {
   getActiveGuild
 } from '../../shared/discord-resolvers.js';
 import { createRulesMessage } from './rules.embed.js';
+import { ensureGuildEmojisLoaded } from '../../shared/emoji-utils.js';
 
 export async function handleAcceptRulesButton(interaction) {
   const { guild, member } = interaction;
@@ -94,7 +95,8 @@ export async function handleAcceptRulesButton(interaction) {
 export async function handlePostRulesCommand(interaction) {
   await interaction.deferReply({ ephemeral: true });
   try {
-    const payload = createRulesMessage();
+    await ensureGuildEmojisLoaded(interaction.guild);
+    const payload = createRulesMessage(interaction.guild);
     await interaction.channel.send(payload);
     await interaction.editReply({ content: '✅ Rules card posted successfully in this channel!' });
   } catch (sendErr) {
@@ -111,7 +113,8 @@ export async function handlePostRulesApi(req, res, { client }) {
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
-    const payload = createRulesMessage();
+    await ensureGuildEmojisLoaded(guild);
+    const payload = createRulesMessage(guild);
     await channel.send(payload);
     res.json({ success: true });
   } catch (err) {

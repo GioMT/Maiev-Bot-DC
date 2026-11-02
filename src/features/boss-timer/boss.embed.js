@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { MAJOR_BOSSES } from './questlog.api.js';
+import { resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 /**
  * Filters, deduplicates by name, sorts (alive first, then soonest respawn),
@@ -92,8 +93,15 @@ export function buildPayload(rawBosses, now = Date.now(), options = {}) {
   const abyssRaw = rawBosses.filter((b) => b.id < 10000);
   const elyosRaw = rawBosses.filter((b) => b.id >= 100000 && b.id < 110000);
   const majorBossSet = options.majorBossSet || MAJOR_BOSSES;
-  const abyssTitle = options.abyssTitle || '🔥 Fregion — Reshanta Bosses';
-  const elyosTitle = options.elyosTitle || '🪽 Fregion — Verteron Field Bosses';
+  const guild = options.guild || null;
+  const abyssTitle = resolveCustomEmojiShortcodes(
+    options.abyssTitle || '🔥 Fregion — Reshanta Bosses',
+    guild
+  );
+  const elyosTitle = resolveCustomEmojiShortcodes(
+    options.elyosTitle || '🪽 Fregion — Verteron Field Bosses',
+    guild
+  );
   const footerText = options.footerText || '● Alive  ○ Respawning (00d 00h 00m)  ★ Major boss  •  Updates every 1m';
 
   const abyssEmbed = createBossEmbed({

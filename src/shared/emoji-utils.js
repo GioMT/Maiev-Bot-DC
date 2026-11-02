@@ -33,15 +33,32 @@ export function resolveEmojiToReactable(emojiStr, guild = null) {
     return shortcodeMap[s.toLowerCase()];
   }
 
-  // Custom guild emoji shortcode: :Cleric:, :Abyss:, etc.
+  // Custom guild emoji shortcode: :Cleric:, :Abyss:, :WorldBoss:, etc.
   const customShortcodeMatch = s.match(/^:([a-zA-Z0-9_]+):$/);
   if (customShortcodeMatch && guild?.emojis?.cache) {
     const targetName = customShortcodeMatch[1].toLowerCase();
-    const guildEmoji = guild.emojis.cache.find(e => e.name && e.name.toLowerCase() === targetName);
+    const cleanTarget = targetName.replace(/[^a-z0-9]/g, '');
+    const guildEmoji = guild.emojis.cache.find(e =>
+      e.name && (e.name.toLowerCase() === targetName || e.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTarget)
+    );
     if (guildEmoji) return guildEmoji.id;
   }
 
   return s;
+}
+
+let lastEmojiFetchAt = 0;
+
+/**
+ * Ensure guild emojis are loaded into guild.emojis.cache so custom shortcodes resolve reliably.
+ */
+export async function ensureGuildEmojisLoaded(guild) {
+  if (!guild?.emojis) return;
+  const now = Date.now();
+  if (guild.emojis.cache.size === 0 || now - lastEmojiFetchAt > 60_000) {
+    lastEmojiFetchAt = now;
+    await guild.emojis.fetch().catch(() => null);
+  }
 }
 
 /**
@@ -50,8 +67,11 @@ export function resolveEmojiToReactable(emojiStr, guild = null) {
 export function resolveCustomEmojiShortcodes(text, guild) {
   if (!text || !guild?.emojis?.cache) return text;
   return String(text).replace(/(?<![<a]):([a-zA-Z0-9_]+):(?!\d+>)/g, (full, name) => {
-    const guildEmoji = guild.emojis.cache.find(e => e.name && e.name.toLowerCase() === name.toLowerCase());
-    return guildEmoji ? guildEmoji.toString() : full;
+    const cleanTarget = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const guildEmoji = guild.emojis.cache.find(e =>
+      e.name && (e.name.toLowerCase() === name.toLowerCase() || e.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTarget)
+    );
+    return guildEmoji ? `<${guildEmoji.animated ? 'a' : ''}:${guildEmoji.name}:${guildEmoji.id}>` : full;
   });
 }
 

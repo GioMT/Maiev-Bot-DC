@@ -1,10 +1,10 @@
 import {
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE
-} from '../presets.js';
-import { state, getActiveServerName } from '../state.js';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js';
-import { postEmbed } from '../api.js';
+} from '../presets.js?v=4.9';
+import { state, getActiveServerName } from '../state.js?v=4.9';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=4.9';
+import { postEmbed } from '../api.js?v=4.9';
 
 export function renderVerifyEditor(cfg) {
   const title = cfg.verifyTitle || DEFAULT_VERIFY_TEMPLATE.title;
@@ -24,7 +24,7 @@ export function updateVerifyPreview() {
   const content = (document.getElementById('verify-content-input').value || DEFAULT_VERIFY_TEMPLATE.content).replace(/{server}/g, serverName);
   const footer = (document.getElementById('verify-footer-input').value || DEFAULT_VERIFY_TEMPLATE.footer).replace(/{server}/g, serverName);
 
-  document.getElementById('sim-verify-title').textContent = title;
+  document.getElementById('sim-verify-title').innerHTML = formatDiscordMarkdown(title);
   document.getElementById('sim-verify-desc').innerHTML = formatDiscordMarkdown(content);
   document.getElementById('sim-verify-footer').textContent = footer;
 }
@@ -103,7 +103,7 @@ export function setupVerifyTabListeners() {
             <img src="${serverIcon}" style="width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0,210,255,0.4);" alt="Server Profile">
             <strong style="color: #00d2ff; font-size: 0.85rem;">${serverName}</strong>
           </div>
-          <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 6px;">${welcomeTitle}</div>
+          <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 6px;">${formatDiscordMarkdown(welcomeTitle)}</div>
           <div style="line-height: 1.45; color: #dbdee1; font-size: 0.84rem;">${formatDiscordMarkdown(welcomeBody)}</div>
           <div style="font-size: 0.72rem; color: #949ba4; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px;">${welcomeFoot}</div>
         </div>

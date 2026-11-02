@@ -1,12 +1,12 @@
-import { state, getActiveServerName } from './state.js';
+import { state, getActiveServerName } from './state.js?v=4.9';
 import {
   DEFAULT_RULES_TEMPLATE,
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE,
   DEFAULT_NATIONALITY_TEMPLATE
-} from './presets.js';
-import { showToast } from './utils.js';
-import { saveBossTimerSettings } from './tabs/boss-timer-tab.js';
+} from './presets.js?v=4.9';
+import { showToast } from './utils.js?v=4.9';
+import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=4.9';
 
 export async function postEmbed(endpoint, channelId, successMessage) {
   try {

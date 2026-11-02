@@ -1,5 +1,5 @@
-import { state } from '../state.js';
-import { refreshIcons, showToast } from '../utils.js';
+import { state } from '../state.js?v=4.9';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=4.9';
 
 const DEFAULT_BOSS_TITLES = {
   abyssTitle: '🔥 Fregion — Reshanta / Abyss Bosses',
@@ -299,8 +299,8 @@ export function updateBossTimerPreview() {
   const simAbyssTable = document.getElementById('sim-boss-abyss-table');
   const simElyosTable = document.getElementById('sim-boss-elyos-table');
 
-  if (simAbyssTitle) simAbyssTitle.textContent = abyssTitle;
-  if (simElyosTitle) simElyosTitle.textContent = elyosTitle;
+  if (simAbyssTitle) simAbyssTitle.innerHTML = formatDiscordMarkdown(abyssTitle);
+  if (simElyosTitle) simElyosTitle.innerHTML = formatDiscordMarkdown(elyosTitle);
   if (simFooter) simFooter.textContent = footerText;
 
   const now = Date.now();
@@ -325,7 +325,7 @@ export function updateBossTimerPreview() {
   const firstMajor = Array.from(majorBossesSet)[0] || 'Watcher Kaira';
   const simAlertDesc = document.getElementById('sim-boss-alert-desc');
   if (simAlertDesc) {
-    simAlertDesc.innerHTML = `<strong>Major Boss Spawning Soon: ${firstMajor}</strong> <span style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-size: 0.78rem;">in 10 minutes</span>`;
+    simAlertDesc.innerHTML = `${formatDiscordMarkdown(`**Major Boss Spawning Soon: ${firstMajor}**`)} <span style="background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; font-size: 0.78rem;">in 10 minutes</span>`;
   }
 }
 

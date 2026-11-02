@@ -1,6 +1,7 @@
 import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
 import { resolveChannel, getActiveGuild } from '../../shared/discord-resolvers.js';
+import { ensureGuildEmojisLoaded, resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 export async function sendPublicWelcomeAnnouncement({ guild, member, ign, rolesText }) {
   const config = configStore.get();
@@ -22,11 +23,15 @@ export async function sendPublicWelcomeAnnouncement({ guild, member, ign, rolesT
     const serverIcon = guild.iconURL({ dynamic: true, size: 256 }) || undefined;
     const defaultPublicTemplate = 'Welcome to **{server}**, {user}! Glad to have you here, Daeva!';
     const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
-    const publicMessage = rawPublicTemplate
-      .replace(/{user}/g, `<@${member.id}>`)
-      .replace(/{ign}/g, ign)
-      .replace(/{server}/g, guild.name)
-      .replace(/{roles}/g, rolesText);
+    await ensureGuildEmojisLoaded(guild);
+    const publicMessage = resolveCustomEmojiShortcodes(
+      rawPublicTemplate
+        .replace(/{user}/g, `<@${member.id}>`)
+        .replace(/{ign}/g, ign)
+        .replace(/{server}/g, guild.name)
+        .replace(/{roles}/g, rolesText),
+      guild
+    );
 
     const publicEmbed = new EmbedBuilder()
       .setColor(0x00d2ff)
@@ -60,13 +65,17 @@ export async function handleTestWelcomeApi(req, res, { client }) {
     const serverIcon = guild?.iconURL({ dynamic: true, size: 256 }) || undefined;
     const template = message || config.welcomeAnnouncementMessage || 'Welcome to **{server}**, {user}! Glad to have you here, Daeva!';
 
-    const formatted = template
-      .replace(/{user}/g, client.user ? `<@${client.user.id}>` : '@NewPlayer')
-      .replace(/{ign}/g, 'DaevaLegend')
-      .replace(/{server}/g, serverName)
-      .replace(/{flag}/g, '🇵🇭')
-      .replace(/{nationality}/g, 'Philippines')
-      .replace(/{roles}/g, '@Unverified, @Elyos Fregion');
+    await ensureGuildEmojisLoaded(guild);
+    const formatted = resolveCustomEmojiShortcodes(
+      template
+        .replace(/{user}/g, client.user ? `<@${client.user.id}>` : '@NewPlayer')
+        .replace(/{ign}/g, 'DaevaLegend')
+        .replace(/{server}/g, serverName)
+        .replace(/{flag}/g, '🇵🇭')
+        .replace(/{nationality}/g, 'Philippines')
+        .replace(/{roles}/g, '@Unverified, @Elyos Fregion'),
+      guild
+    );
 
     const embed = new EmbedBuilder()
       .setColor(0x00d2ff)

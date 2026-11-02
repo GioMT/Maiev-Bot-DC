@@ -8,6 +8,7 @@ import {
   renderBossTimers
 } from './boss.scheduler.js';
 import { DEFAULT_MAJOR_BOSSES } from './questlog.api.js';
+import { ensureGuildEmojisLoaded, resolveCustomEmojiShortcodes } from '../../shared/emoji-utils.js';
 
 export const bossTimerFeature = {
   id: 'boss-timer',
@@ -141,10 +142,12 @@ export const bossTimerFeature = {
           return res.status(400).json({ error: 'Invalid or non-text alert channel specified.' });
         }
 
+        await ensureGuildEmojisLoaded(alertChannel.guild);
         const ts = Math.floor((Date.now() + 10 * 60 * 1000) / 1000);
+        const rawAlertDesc = `**Major Boss Spawning Soon: ${bossName}** <t:${ts}:R> (<t:${ts}:t>)`;
         const alertEmbed = new EmbedBuilder()
           .setColor(0xe67e22)
-          .setDescription(`**Major Boss Spawning Soon: ${bossName}** <t:${ts}:R> (<t:${ts}:t>)`)
+          .setDescription(resolveCustomEmojiShortcodes(rawAlertDesc, alertChannel.guild))
           .setFooter({ text: 'Aion 2 Major Boss Alert (Test)' })
           .setTimestamp();
 

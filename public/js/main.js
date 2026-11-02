@@ -1,44 +1,44 @@
 /**
  * Maiev Bot Control Center — Modular ES Entry Point
  */
-import { state } from './state.js?v=4.8';
-import { refreshIcons, showToast } from './utils.js?v=4.8';
-import { saveAllConfiguration } from './api.js?v=4.8';
+import { state } from './state.js?v=4.9';
+import { refreshIcons, showToast } from './utils.js?v=4.9';
+import { saveAllConfiguration } from './api.js?v=4.9';
 import {
   setupTabs,
   renderHeaderTelemetry,
   renderRoleDropdowns,
   renderChannelDropdowns,
   setupServerNameEditing
-} from './tabs/header-telemetry.js?v=4.8';
-import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=4.8';
+} from './tabs/header-telemetry.js?v=4.9';
+import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=4.9';
 import {
   renderVerifyEditor,
   renderWelcomeEditor,
   setupVerifyTabListeners
-} from './tabs/verify-tab.js?v=4.8';
+} from './tabs/verify-tab.js?v=4.9';
 import {
   renderWelcomeAnnouncementEditor,
   setupWelcomeTabListeners
-} from './tabs/welcome-tab.js?v=4.8';
+} from './tabs/welcome-tab.js?v=4.9';
 import {
   renderNationalityRolesManager,
   setupReactionRolesTabListeners,
   applyRemoteNationalitySync
-} from './tabs/reaction-roles-tab.js?v=4.8';
+} from './tabs/reaction-roles-tab.js?v=4.9';
 import {
   renderDiagnostics,
   fetchMembers,
   setupDiagnosticsTabListeners
-} from './tabs/diagnostics-tab.js?v=4.8';
+} from './tabs/diagnostics-tab.js?v=4.9';
 import {
   fetchBossTimerState,
   setupBossTimerTabListeners
-} from './tabs/boss-timer-tab.js?v=4.8';
+} from './tabs/boss-timer-tab.js?v=4.9';
 import {
   fetchAlertsState,
   setupAlertsTabListeners
-} from './tabs/alerts-tab.js?v=4.8';
+} from './tabs/alerts-tab.js?v=4.9';
 
 export async function fetchServerState() {
   try {

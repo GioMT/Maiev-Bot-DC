@@ -2,4 +2,4 @@
  * Backwards-compatible shim for Maiev Bot Control Center.
  * Loads the modular ES entry point in ./js/main.js
  */
-import('./js/main.js?v=4.8');
+import('./js/main.js?v=4.9');
