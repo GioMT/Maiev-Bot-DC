@@ -113,6 +113,42 @@ let schedulerInterval = null;
 /**
  * Format minutes difference into clean human text (e.g. "in 10 minutes", "in 1 minute")
  */
+export const TIMEZONE_PHT = 'Asia/Manila';
+
+/**
+ * Get current time components explicitly in Philippine Standard Time (PHT, UTC+8)
+ * regardless of the host server location (e.g. Germany, US, UTC).
+ */
+export function getManilaNow(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE_PHT,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    weekday: 'short',
+    hourCycle: 'h23'
+  }).formatToParts(date);
+  const m = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const h24 = String(m.hour).padStart(2, '0');
+  const min = String(m.minute).padStart(2, '0');
+
+  return {
+    year: Number(m.year),
+    month: Number(m.month),
+    day: Number(m.day),
+    hour: Number(m.hour),
+    minute: Number(m.minute),
+    second: Number(m.second),
+    dayOfWeek: dayMap[m.weekday] ?? 0,
+    currentHHMM: `${h24}:${min}`,
+    dateKey: `${m.year}-${m.month}-${m.day}`
+  };
+}
+
 export function formatMinutesDiffText(diffMinutes) {
   if (diffMinutes <= 0) return 'now';
   const hrs = Math.floor(diffMinutes / 60);
@@ -124,7 +160,7 @@ export function formatMinutesDiffText(diffMinutes) {
 }
 
 /**
- * Compute the nearest upcoming Event Unix Timestamp (seconds) across one or more daily eventTimes
+ * Compute the nearest upcoming Event Unix Timestamp (seconds) in Asia/Manila (UTC+8)
  */
 export function computeNextEventTargetTime(alert, referenceDate = new Date()) {
   const rawList = Array.isArray(alert?.eventTimes) && alert.eventTimes.length > 0
@@ -137,21 +173,27 @@ export function computeNextEventTargetTime(alert, referenceDate = new Date()) {
     return { eventUnixSec: fallbackSec, diffMinutes: 0, countdownText: 'now', matchedEventHHMM: '20:00' };
   }
 
+  const manila = getManilaNow(referenceDate);
   let bestTargetMs = null;
   let bestHHMM = validTimes[0];
 
   for (const hhmm of validTimes) {
     const [evH, evM] = hhmm.split(':').map(Number);
-    const candidate = new Date(referenceDate);
-    candidate.setHours(evH, evM, 0, 0);
+    const mStr = String(manila.month).padStart(2, '0');
+    const dStr = String(manila.day).padStart(2, '0');
+    const hStr = String(evH).padStart(2, '0');
+    const minStr = String(evM).padStart(2, '0');
 
-    // If candidate is more than 1 minute in the past relative to referenceDate, roll to tomorrow
-    if (candidate.getTime() < referenceDate.getTime() - 60 * 1000) {
-      candidate.setDate(candidate.getDate() + 1);
+    // Parse explicitly with PHT (+08:00) offset so it produces the true UTC instant regardless of server timezone
+    let candidateMs = Date.parse(`${manila.year}-${mStr}-${dStr}T${hStr}:${minStr}:00+08:00`);
+
+    // If candidate is more than 1 minute in the past relative to referenceDate, roll to tomorrow (+24h)
+    if (candidateMs < referenceDate.getTime() - 60 * 1000) {
+      candidateMs += 24 * 60 * 60 * 1000;
     }
 
-    if (bestTargetMs === null || candidate.getTime() < bestTargetMs) {
-      bestTargetMs = candidate.getTime();
+    if (bestTargetMs === null || candidateMs < bestTargetMs) {
+      bestTargetMs = candidateMs;
       bestHHMM = hhmm;
     }
   }
@@ -462,11 +504,8 @@ async function checkScheduledAlertsTick(client) {
   if (!client || typeof client.isReady !== 'function' || !client.isReady()) return;
 
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const currentHHMM = `${hh}:${mm}`;
-  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // Evaluate day, hour, and minute strictly in Asia/Manila (PHT) regardless of host server location
+  const { dayOfWeek, currentHHMM, dateKey } = getManilaNow(now);
 
   const { alerts } = getAlertsConfig();
 
