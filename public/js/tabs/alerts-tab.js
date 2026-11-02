@@ -39,6 +39,40 @@ function phtToServerTime24h(hhmm) {
 }
 
 /**
+ * Detect current browser's local timezone (e.g. America/Los_Angeles, Europe/Berlin)
+ */
+export function getUserLocalTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Manila';
+  } catch (_) {
+    return 'Asia/Manila';
+  }
+}
+
+/**
+ * Convert a 24h PHT (UTC+8) time string (e.g. "17:47") into the viewer's local device clock time string
+ */
+export function phtToUserLocalTimeStr(phtHHMM) {
+  if (!phtHHMM || !/^\d{2}:\d{2}$/.test(phtHHMM)) return '';
+  const userTz = getUserLocalTimezone();
+  const [h, m] = phtHHMM.split(':').map(Number);
+  // Construct an explicit ISO timestamp with +08:00 (PHT)
+  const isoPHT = `2026-11-02T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+08:00`;
+  const parsed = new Date(isoPHT);
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: userTz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    }).format(parsed);
+  } catch (_) {
+    return formatTime12h(phtHHMM);
+  }
+}
+
+/**
  * Compute minutes remaining from alertHHMM to eventHHMM
  */
 function computeRemainingMinutesBetween(alertHHMM, eventHHMM) {
@@ -402,12 +436,18 @@ function renderEventTimesPills(active) {
   active.eventTime = evTimes[0] || '20:00';
 
   container.innerHTML = '';
+  const userTz = getUserLocalTimezone();
+  const isManilaUser = userTz === 'Asia/Manila';
+
   evTimes.forEach(ev => {
+    const localStr = isManilaUser ? '' : phtToUserLocalTimeStr(ev);
+    const localNote = localStr ? `<span style="font-size: 0.7rem; color: #58a6ff; background: rgba(88,166,255,0.15); padding: 1px 5px; border-radius: 4px;">Your Time: ${escapeHtml(localStr)}</span>` : '';
     const pill = document.createElement('div');
     pill.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(240, 178, 50, 0.14); border: 1px solid rgba(240, 178, 50, 0.45); color: #fff; padding: 4px 9px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;';
     pill.innerHTML = `
       <span style="color: #f0b232;">🔥 ${escapeHtml(formatTime12h(ev))} PHT</span>
       <span style="font-size: 0.7rem; color: var(--text-muted);">(${escapeHtml(phtToServerTime24h(ev))})</span>
+      ${localNote}
       <button type="button" title="Remove Event Time ${escapeHtml(ev)}" style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 0.95rem; line-height: 1; padding: 0 2px;">&times;</button>
     `;
 
@@ -427,6 +467,21 @@ function renderEventTimesPills(active) {
 
     container.appendChild(pill);
   });
+
+  // Update dynamic timezone banner for the viewing moderator
+  const tzBanner = document.getElementById('alert-user-tz-note');
+  const tzText = document.getElementById('alert-user-tz-text');
+  if (tzBanner && tzText) {
+    const firstEv = evTimes[0] || '20:00';
+    const localFormatted = phtToUserLocalTimeStr(firstEv);
+    if (isManilaUser) {
+      tzText.innerHTML = `<strong>Reference Clock:</strong> Philippine Standard Time (PHT / GMT+8). Your device matches server reference time.`;
+      tzBanner.style.color = 'var(--text-muted)';
+    } else {
+      tzText.innerHTML = `💡 <strong>Timezone Converter:</strong> Master schedule uses <strong>PHT (GMT+8)</strong>. <strong>${formatTime12h(firstEv)} PHT</strong> corresponds to <strong>${localFormatted}</strong> in your local device timezone (<code>${userTz}</code>).`;
+      tzBanner.style.color = '#58a6ff';
+    }
+  }
 }
 
 function renderOffsetsPills(active) {
@@ -513,15 +568,22 @@ function renderScheduledTimesPills(active) {
   }
 
   container.innerHTML = '';
+  const userTz = getUserLocalTimezone();
+  const isManilaUser = userTz === 'Asia/Manila';
+
   times.forEach(t => {
     const { matchedEventHHMM, diffMins } = findNearestEventForAlertSlot(t, active.eventTimes);
     const offsetStr = formatShortOffsetLabel(diffMins, matchedEventHHMM);
+    const localStr = isManilaUser ? '' : phtToUserLocalTimeStr(t);
+    const localNote = localStr ? `<span style="font-size: 0.69rem; color: #a5d6ff; background: rgba(51,127,213,0.22); padding: 1px 5px; border-radius: 4px;" title="Your device clock time">${escapeHtml(localStr)}</span>` : '';
+
     const pill = document.createElement('div');
     pill.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(51, 127, 213, 0.14); border: 1px solid rgba(51, 127, 213, 0.4); color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;';
     pill.innerHTML = `
       <i data-lucide="clock" style="width: 13px; height: 13px; color: #337fd5;"></i>
-      <span>${escapeHtml(formatTime12h(t))}</span>
+      <span>${escapeHtml(formatTime12h(t))} PHT</span>
       <span style="font-size: 0.72rem; color: #58a6ff; background: rgba(51,127,213,0.18); padding: 1px 6px; border-radius: 4px;">${escapeHtml(offsetStr)}</span>
+      ${localNote}
       <button type="button" title="Remove ${escapeHtml(t)}" style="background: none; border: none; color: #949ba4; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 2px;">&times;</button>
     `;
 
@@ -534,6 +596,15 @@ function renderScheduledTimesPills(active) {
 
     container.appendChild(pill);
   });
+
+  const slotNote = document.getElementById('alert-slot-user-tz-note');
+  if (slotNote) {
+    if (!isManilaUser) {
+      slotNote.innerHTML = `🌐 <em>Times above are in <strong>PHT (GMT+8)</strong>. Each pill also shows the converted time for your timezone (<code>${userTz}</code>).</em>`;
+    } else {
+      slotNote.innerHTML = '';
+    }
+  }
 
   refreshIcons();
 }

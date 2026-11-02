@@ -1284,7 +1284,7 @@
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                       <label for="input-alert-event-time" style="font-size: 0.84rem; font-weight: 700; color: #fff; margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
                         <i data-lucide="flame" style="width: 16px; height: 16px; color: #f0b232;"></i>
-                        <span>Event Start Time (PHT):</span>
+                        <span>Event Start Time (PHT / GMT+8):</span>
                       </label>
                       <input type="time" id="input-alert-event-time" class="form-input" value="02:00" style="width: 135px; padding: 5px 10px; font-weight: 700;" title="02:00 PHT = 03:00 Server Time">
                       <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-add-event-time" title="Add single Event Start Time">
@@ -1305,6 +1305,10 @@
                     Active Event Start Times (<code>{countdown}</code> automatically counts down to the next upcoming event time; note: PHT = Server Time - 1h):
                   </div>
                   <div id="alert-event-times-pills-container" style="display: flex; gap: 6px; flex-wrap: wrap; min-height: 30px; align-items: center;"></div>
+                  <div id="alert-user-tz-note" style="margin-top: 8px; font-size: 0.75rem; color: #58a6ff; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="globe" style="width: 14px; height: 14px;"></i>
+                    <span id="alert-user-tz-text">Loading timezone conversion...</span>
+                  </div>
 
                   <!-- Pre-Event Offsets Row (e.g. 10m and 1m before every Event Time) -->
                   <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
@@ -1345,13 +1349,14 @@
                 <!-- Add Multiple Times -->
                 <div class="form-group mt-2">
                   <label class="form-label">Scheduled Alert Times (Fires on active days &amp; computes <code>{countdown}</code> to Event Time):</label>
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px;">
                     <input type="time" id="input-alert-new-time" class="form-input" value="19:00" style="width: 145px; padding: 6px 10px;">
                     <button type="button" class="btn btn-primary btn-sm" id="btn-alert-add-time">
                       <i data-lucide="plus"></i> Add Alert Time
                     </button>
                     <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-clear-times" style="margin-left: auto; color: #f23f43;">Clear All</button>
                   </div>
+                  <div id="alert-slot-user-tz-note" style="margin-bottom: 8px; font-size: 0.74rem; color: #949ba4;"></div>
                   <div id="alert-times-pills-container" style="display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 12px; background: #14171f; border: 1px solid var(--border-subtle); border-radius: 6px; min-height: 44px; align-items: center;"></div>
                 </div>
               </div>
