@@ -54,6 +54,7 @@ export async function autoSaveNationalityRoles() {
 }
 
 export async function saveAllConfiguration() {
+  const autoJoinRoleIds = Array.from(document.querySelectorAll('input[name="role_auto_join"]:checked')).map(el => el.value);
   const onboardedRoleId = document.getElementById('select-onboarded-role')?.value || '';
   const rulesChannelId = document.getElementById('select-rules-channel')?.value || '';
   const verifyChannelId = document.getElementById('select-verify-channel')?.value || '';
@@ -90,6 +91,7 @@ export async function saveAllConfiguration() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        autoJoinRoleIds,
         serverName,
         onboardedRoleId,
         ignRolesToAdd,

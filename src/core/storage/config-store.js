@@ -10,6 +10,7 @@ export const ROOT_DIR = path.resolve(__dirname, '..', '..', '..');
 export const CONFIG_FILE = path.join(ROOT_DIR, 'config.json');
 
 export const DEFAULT_CONFIG = {
+  autoJoinRoleIds: [],
   onboardedRoleId: process.env.ONBOARDED_ROLE_ID || '',
   ignRolesToAdd: [],
   ignRolesToRemove: [],

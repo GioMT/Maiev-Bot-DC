@@ -127,6 +127,33 @@ export function renderRoleDropdowns(data) {
     onboardedSelect.appendChild(opt);
   });
 
+  // Render Instant Auto-Role on Join Checkboxes
+  const autoJoinContainer = document.getElementById('roles-auto-join-container');
+  const autoJoinCountBadge = document.getElementById('auto-join-roles-count');
+  if (autoJoinContainer) {
+    autoJoinContainer.innerHTML = '';
+    const selectedAutoJoin = Array.isArray(currentConfig.autoJoinRoleIds) ? currentConfig.autoJoinRoleIds : [];
+    if (autoJoinCountBadge) {
+      autoJoinCountBadge.textContent = `${selectedAutoJoin.length} Selected`;
+    }
+
+    roles.forEach(role => {
+      if (role.name === '@everyone') return;
+      const label = document.createElement('label');
+      label.className = 'role-checkbox-item';
+      const isChecked = selectedAutoJoin.includes(role.id);
+      label.innerHTML = `
+        <input type="checkbox" name="role_auto_join" value="${role.id}" ${isChecked ? 'checked' : ''}>
+        <span class="role-name">@${role.name}</span>
+      `;
+      label.querySelector('input')?.addEventListener('change', () => {
+        const count = document.querySelectorAll('input[name="role_auto_join"]:checked').length;
+        if (autoJoinCountBadge) autoJoinCountBadge.textContent = `${count} Selected`;
+      });
+      autoJoinContainer.appendChild(label);
+    });
+  }
+
   const addContainer = document.getElementById('roles-to-add-container');
   addContainer.innerHTML = '';
 

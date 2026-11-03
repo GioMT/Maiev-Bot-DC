@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { configStore } from '../../core/storage/config-store.js';
 import {
   handleOpenIgnModalButton,
   handleVerifyModalSubmit,
@@ -77,8 +78,27 @@ export const verificationFeature = {
     client.on('guildMemberAdd', async (member) => {
       try {
         const userTag = member.user?.tag || member.user?.username || member.id;
-        console.log(`[Member Join] 👋 ${userTag} (${member.id}) joined ${member.guild.name}. Must complete rules acknowledgement and IGN verification.`);
-        member.roles.cache.clear();
+        console.log(`[Member Join] 👋 ${userTag} (${member.id}) joined ${member.guild.name}.`);
+
+        const config = configStore.get();
+        const autoRoles = Array.isArray(config.autoJoinRoleIds) ? config.autoJoinRoleIds : [];
+
+        if (autoRoles.length > 0) {
+          const botMember = member.guild.members.me;
+          if (botMember && botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
+            const validRoles = autoRoles.filter(roleId => {
+              const r = member.guild.roles.cache.get(roleId);
+              return r && botMember.roles.highest.position > r.position;
+            });
+
+            if (validRoles.length > 0) {
+              await member.roles.add(validRoles, 'Maiev Instant Auto-Role on join');
+              console.log(`[Auto-Role] ⚡ Instantly assigned ${validRoles.length} role(s) to ${userTag} upon joining.`);
+            }
+          } else {
+            console.warn('[Auto-Role] ⚠️ Bot lacks Manage Roles permission to assign join roles.');
+          }
+        }
       } catch (err) {
         console.error('[Member Join] Error handling guildMemberAdd:', err);
       }

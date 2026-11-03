@@ -138,6 +138,7 @@ export const statusFeature = {
     app.post('/api/config', (req, res) => {
       const config = configStore.get();
       const {
+        autoJoinRoleIds,
         serverName,
         onboardedRoleId,
         ignRolesToAdd,
@@ -166,6 +167,7 @@ export const statusFeature = {
       } = req.body;
 
       const updated = configStore.save({
+        autoJoinRoleIds: Array.isArray(autoJoinRoleIds) ? autoJoinRoleIds : config.autoJoinRoleIds || [],
         serverName: serverName !== undefined ? serverName : config.serverName,
         onboardedRoleId: onboardedRoleId !== undefined ? onboardedRoleId : config.onboardedRoleId,
         ignRolesToAdd: Array.isArray(ignRolesToAdd) ? ignRolesToAdd : config.ignRolesToAdd,
