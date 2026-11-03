@@ -36,7 +36,7 @@ export function updateWelcomeAnnouncementPreview() {
   if (authorEl) authorEl.textContent = `${serverName} • New Daeva Arrival`;
 
   const footEl = document.getElementById('sim-welcome-announcement-footer');
-  if (footEl) footEl.textContent = `${serverName} • Welcome Channel`;
+  if (footEl) footEl.textContent = `${serverName} • 467 👤 • Welcome Channel`;
 }
 
 export function setupWelcomeTabListeners() {

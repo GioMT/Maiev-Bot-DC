@@ -20,6 +20,9 @@ export async function sendPublicWelcomeAnnouncement({ guild, member, ign, rolesT
       return;
     }
 
+    const freshGuild = await guild.fetch().catch(() => guild);
+    const memberCount = freshGuild?.memberCount || guild.memberCount || 1;
+
     const serverIcon = guild.iconURL({ dynamic: true, size: 256 }) || undefined;
     const defaultPublicTemplate = 'Welcome to **{server}**, {user}! Glad to have you here, Daeva!';
     const rawPublicTemplate = config.welcomeAnnouncementMessage || defaultPublicTemplate;
@@ -33,12 +36,15 @@ export async function sendPublicWelcomeAnnouncement({ guild, member, ign, rolesT
       guild
     );
 
+    const sName = config.serverName || guild?.name || 'Asia Fregion';
+    const footerText = `${sName} • ${memberCount} 👤 • Welcome Channel`;
+
     const publicEmbed = new EmbedBuilder()
       .setColor(0x00d2ff)
       .setAuthor({ name: `${guild.name} • New Daeva Arrival`, iconURL: serverIcon })
       .setDescription(publicMessage)
       .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-      .setFooter({ text: `${config.serverName || guild?.name || 'Asia Fregion'} • Member #${guild.memberCount}`, iconURL: serverIcon })
+      .setFooter({ text: footerText, iconURL: serverIcon })
       .setTimestamp();
 
     await welcomeChan.send({
@@ -77,12 +83,15 @@ export async function handleTestWelcomeApi(req, res, { client }) {
       guild
     );
 
+    const freshGuild = guild ? await guild.fetch().catch(() => guild) : null;
+    const memberCount = freshGuild?.memberCount || guild?.memberCount || 1;
+
     const embed = new EmbedBuilder()
       .setColor(0x00d2ff)
       .setAuthor({ name: `${serverName} • New Daeva Arrival (Test)`, iconURL: serverIcon })
       .setDescription(formatted)
       .setThumbnail(serverIcon)
-      .setFooter({ text: `Maiev Verification Test • Member Count: ${guild?.memberCount || 1}`, iconURL: serverIcon })
+      .setFooter({ text: `${serverName} • ${memberCount} 👤 • Welcome Channel (Test)`, iconURL: serverIcon })
       .setTimestamp();
 
     await channel.send({ content: client.user ? `<@${client.user.id}>` : undefined, embeds: [embed] });
