@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { PermissionFlagsBits } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
 import { getActiveGuild } from '../../shared/discord-resolvers.js';
@@ -10,6 +12,7 @@ const AION2_EMOJI_NAMES = [
   'Chanter',
   'Cleric',
   'Elyos',
+  'ElyosArtifact',
   'Gladiator',
   'PVP',
   'Ranger',
@@ -40,6 +43,18 @@ export const statusFeature = {
         if (missingAny) {
           lastEmojiFetchAt = Date.now();
           await guild.emojis.fetch().catch(() => null);
+
+          if (botMember?.permissions?.has(PermissionFlagsBits.ManageGuildExpressions)) {
+            const hasElyosArtifact = guild.emojis.cache.some(e => e.name && e.name.toLowerCase() === 'elyosartifact');
+            if (!hasElyosArtifact) {
+              const imgPath = path.join(process.cwd(), 'public/emojis/ElyosArtifact.png');
+              if (fs.existsSync(imgPath)) {
+                guild.emojis.create({ attachment: imgPath, name: 'ElyosArtifact' })
+                  .then(e => console.log(`[Status] Auto-uploaded server emoji :${e.name}: (${e.id})`))
+                  .catch(err => console.warn('[Status] Could not auto-upload ElyosArtifact emoji to guild:', err.message));
+              }
+            }
+          }
         }
       }
 
@@ -58,12 +73,13 @@ export const statusFeature = {
       const aion2NameSet = new Set(AION2_EMOJI_NAMES.map(n => n.toLowerCase()));
       const builtInEmojis = AION2_EMOJI_NAMES.map(name => {
         const liveMatch = guild?.emojis?.cache?.find(e => e.name && e.name.toLowerCase() === name.toLowerCase());
+        const hasWebp = fs.existsSync(path.join(process.cwd(), `public/emojis/${name}.webp`));
         return {
           id: liveMatch ? liveMatch.id : name,
           name,
           animated: Boolean(liveMatch?.animated),
           identifier: `:${name}:`,
-          url: `/emojis/${name}.webp`
+          url: `/emojis/${name}.${hasWebp ? 'webp' : 'png'}`
         };
       });
 
