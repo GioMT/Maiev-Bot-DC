@@ -4,24 +4,25 @@ import { PermissionFlagsBits } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
 import { getActiveGuild } from '../../shared/discord-resolvers.js';
 
-const AION2_EMOJI_NAMES = [
-  'Abyss',
-  'Asmodian',
-  'Assassin',
-  'Chanter',
-  'Cleric',
-  'Dungeon',
-  'Elyos',
-  'ElyosArtifact',
-  'Gladiator',
-  'PVP',
-  'Ranger',
-  'Rift',
-  'Sorcerer',
-  'Spiritmaster',
-  'Templar',
-  'WorldBoss'
-];
+const EMOJIS_DIR = path.join(process.cwd(), 'public/emojis');
+
+function getAvailableLocalEmojiFiles() {
+  if (!fs.existsSync(EMOJIS_DIR)) return [];
+  try {
+    return fs.readdirSync(EMOJIS_DIR)
+      .filter(f => /\.(png|webp|jpg|jpeg|gif)$/i.test(f))
+      .map(f => {
+        const parsed = path.parse(f);
+        return {
+          name: parsed.name,
+          ext: parsed.ext.replace('.', '').toLowerCase(),
+          fileName: f
+        };
+      });
+  } catch {
+    return [];
+  }
+}
 
 let lastEmojiFetchAt = 0;
 
@@ -37,21 +38,21 @@ export const statusFeature = {
       const botMember = guild?.members.me;
 
       if (guild && Date.now() - lastEmojiFetchAt > 30000) {
-        const missingAny = AION2_EMOJI_NAMES.some(
-          name => !guild.emojis.cache.some(e => e.name && e.name.toLowerCase() === name.toLowerCase())
-        );
-        if (missingAny) {
-          lastEmojiFetchAt = Date.now();
-          await guild.emojis.fetch().catch(() => null);
+        lastEmojiFetchAt = Date.now();
+        await guild.emojis.fetch().catch(() => null);
 
-          if (botMember?.permissions?.has(PermissionFlagsBits.ManageGuildExpressions)) {
-            const hasElyosArtifact = guild.emojis.cache.some(e => e.name && e.name.toLowerCase() === 'elyosartifact');
-            if (!hasElyosArtifact) {
-              const imgPath = path.join(process.cwd(), 'public/emojis/ElyosArtifact.png');
+        if (botMember?.permissions?.has(PermissionFlagsBits.ManageGuildExpressions)) {
+          const localEmojiFiles = getAvailableLocalEmojiFiles();
+          for (const item of localEmojiFiles) {
+            const hasEmoji = guild.emojis.cache.some(
+              e => e.name && e.name.toLowerCase() === item.name.toLowerCase()
+            );
+            if (!hasEmoji) {
+              const imgPath = path.join(EMOJIS_DIR, item.fileName);
               if (fs.existsSync(imgPath)) {
-                guild.emojis.create({ attachment: imgPath, name: 'ElyosArtifact' })
+                guild.emojis.create({ attachment: imgPath, name: item.name })
                   .then(e => console.log(`[Status] Auto-uploaded server emoji :${e.name}: (${e.id})`))
-                  .catch(err => console.warn('[Status] Could not auto-upload ElyosArtifact emoji to guild:', err.message));
+                  .catch(err => console.warn(`[Status] Could not auto-upload ${item.name} emoji to guild:`, err.message));
               }
             }
           }
@@ -70,21 +71,21 @@ export const statusFeature = {
         .filter(c => c.isTextBased())
         .map(c => ({ id: c.id, name: c.name, type: c.type })) : [];
 
-      const aion2NameSet = new Set(AION2_EMOJI_NAMES.map(n => n.toLowerCase()));
-      const builtInEmojis = AION2_EMOJI_NAMES.map(name => {
+      const localEmojiFiles = getAvailableLocalEmojiFiles();
+      const localNameSet = new Set(localEmojiFiles.map(e => e.name.toLowerCase()));
+      const builtInEmojis = localEmojiFiles.map(({ name, ext }) => {
         const liveMatch = guild?.emojis?.cache?.find(e => e.name && e.name.toLowerCase() === name.toLowerCase());
-        const hasWebp = fs.existsSync(path.join(process.cwd(), `public/emojis/${name}.webp`));
         return {
           id: liveMatch ? liveMatch.id : name,
           name,
-          animated: Boolean(liveMatch?.animated),
+          animated: Boolean(liveMatch?.animated || ext === 'gif'),
           identifier: `:${name}:`,
-          url: `/emojis/${name}.${hasWebp ? 'webp' : 'png'}`
+          url: `/emojis/${name}.${ext}`
         };
       });
 
       const extraGuildEmojis = guild ? guild.emojis.cache
-        .filter(e => e.name && !aion2NameSet.has(e.name.toLowerCase()))
+        .filter(e => e.name && !localNameSet.has(e.name.toLowerCase()))
         .map(e => ({
           id: e.id,
           name: e.name,
