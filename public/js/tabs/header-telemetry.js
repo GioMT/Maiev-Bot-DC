@@ -1,12 +1,12 @@
-import { state } from '../state.js?v=4.9';
-import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=4.9';
-import { persistServerName } from '../api.js?v=4.9';
-import { updateRulesPreview } from './rules-tab.js?v=4.9';
-import { updateVerifyPreview } from './verify-tab.js?v=4.9';
-import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=4.9';
-import { updateNationalityPreview } from './reaction-roles-tab.js?v=4.9';
-import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=4.9';
-import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=4.9';
+import { state } from '../state.js?v=6.0';
+import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=6.0';
+import { persistServerName } from '../api.js?v=6.0';
+import { updateRulesPreview } from './rules-tab.js?v=6.0';
+import { updateVerifyPreview } from './verify-tab.js?v=6.0';
+import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=6.0';
+import { updateNationalityPreview } from './reaction-roles-tab.js?v=6.0';
+import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=6.0';
+import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=6.0';
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',

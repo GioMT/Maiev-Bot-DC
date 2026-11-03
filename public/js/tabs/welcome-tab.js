@@ -1,6 +1,6 @@
-import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=4.9';
-import { getActiveServerName } from '../state.js?v=4.9';
-import { formatDiscordMarkdown, showToast } from '../utils.js?v=4.9';
+import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=6.0';
+import { getActiveServerName } from '../state.js?v=6.0';
+import { formatDiscordMarkdown, showToast } from '../utils.js?v=6.0';
 
 export function renderWelcomeAnnouncementEditor(cfg) {
   const enable = cfg.enableWelcomeAnnouncement !== false;

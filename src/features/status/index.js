@@ -6,7 +6,6 @@ import { getActiveGuild } from '../../shared/discord-resolvers.js';
 
 const AION2_EMOJI_NAMES = [
   'Abyss',
-  'Artifact',
   'Asmodian',
   'Assassin',
   'Chanter',
