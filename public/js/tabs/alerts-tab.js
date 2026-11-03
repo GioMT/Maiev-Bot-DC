@@ -379,11 +379,7 @@ export function renderActiveAlertForm() {
   const scheduleModeSelect = document.getElementById('select-alert-schedule-mode');
   if (scheduleModeSelect) scheduleModeSelect.value = active.scheduleMode || 'daily';
 
-  const daysWrap = document.getElementById('alert-days-picker-wrap');
-  if (daysWrap) {
-    daysWrap.style.opacity = active.scheduleMode === 'days' ? '1' : '0.45';
-    daysWrap.style.pointerEvents = active.scheduleMode === 'days' ? 'auto' : 'none';
-  }
+  updateDaysWrapState(active);
 
   renderEventTimesPills(active);
   renderOffsetsPills(active);
@@ -514,6 +510,22 @@ function renderOffsetsPills(active) {
   });
 }
 
+function updateDaysWrapState(active) {
+  const daysWrap = document.getElementById('alert-days-picker-wrap');
+  const hint = document.getElementById('alert-days-status-hint');
+  if (daysWrap && active) {
+    const isDaysMode = active.scheduleMode === 'days';
+    daysWrap.style.opacity = isDaysMode ? '1' : '0.55';
+    daysWrap.style.pointerEvents = isDaysMode ? 'auto' : 'none';
+    if (hint) {
+      hint.textContent = isDaysMode 
+        ? '(Alert fires only on highlighted days)' 
+        : '(Fires every day — set frequency to custom days to edit)';
+      hint.style.color = isDaysMode ? '#5865f2' : 'var(--text-muted)';
+    }
+  }
+}
+
 function renderDaysOfWeekPills(active) {
   const container = document.getElementById('alert-days-pills-container');
   if (!container) return;
@@ -527,7 +539,15 @@ function renderDaysOfWeekPills(active) {
     btn.type = 'button';
     btn.title = full;
     btn.className = `btn btn-xs ${isSelected ? 'btn-primary' : 'btn-secondary'}`;
-    btn.style.minWidth = '48px';
+    btn.style.flex = '1';
+    btn.style.minWidth = '42px';
+    btn.style.padding = '6px 4px';
+    btn.style.fontWeight = '600';
+    btn.style.fontSize = '0.8rem';
+    btn.style.textAlign = 'center';
+    btn.style.display = 'inline-flex';
+    btn.style.justifyContent = 'center';
+    btn.style.alignItems = 'center';
     btn.textContent = short;
 
     btn.addEventListener('click', () => {
@@ -859,22 +879,15 @@ export function setupAlertsTabListeners() {
   inputsToWatch.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('input', () => {
+    const handleChange = () => {
       syncCurrentFormToActiveAlert();
       const active = getActiveAlert();
-      const daysWrap = document.getElementById('alert-days-picker-wrap');
-      if (daysWrap && active) {
-        daysWrap.style.opacity = active.scheduleMode === 'days' ? '1' : '0.45';
-        daysWrap.style.pointerEvents = active.scheduleMode === 'days' ? 'auto' : 'none';
-      }
+      if (active) updateDaysWrapState(active);
       renderAlertsSubtabs();
       updateAlertsPreview();
-    });
-    el.addEventListener('change', () => {
-      syncCurrentFormToActiveAlert();
-      renderAlertsSubtabs();
-      updateAlertsPreview();
-    });
+    };
+    el.addEventListener('input', handleChange);
+    el.addEventListener('change', handleChange);
   });
 
   // Add Single Event Start Time

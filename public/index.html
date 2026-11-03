@@ -1358,26 +1358,27 @@
                   </div>
                 </div>
 
-                <div class="form-row mt-3">
-                  <div class="form-group" style="min-width: 210px;">
-                    <label for="select-alert-schedule-mode" class="form-label">Schedule Frequency:</label>
-                    <select id="select-alert-schedule-mode" class="form-select">
-                      <option value="daily">Every Day (Daily)</option>
-                      <option value="days">Chosen Days of the Week Only</option>
-                    </select>
-                  </div>
+                <div class="form-group mt-3">
+                  <label for="select-alert-schedule-mode" class="form-label">Schedule Frequency:</label>
+                  <select id="select-alert-schedule-mode" class="form-select" style="max-width: 320px;">
+                    <option value="daily">Every Day (Daily)</option>
+                    <option value="days">Chosen Days of the Week Only</option>
+                  </select>
+                </div>
 
-                  <div class="form-group flex-1" id="alert-days-picker-wrap">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                      <label class="form-label" style="margin-bottom: 0;">Active Days of the Week:</label>
-                      <div style="display: flex; gap: 4px;">
-                        <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-all">All</button>
-                        <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-weekdays">Weekdays</button>
-                        <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-weekends">Weekend</button>
-                      </div>
+                <div class="form-group mt-3" id="alert-days-picker-wrap" style="transition: opacity 0.2s ease;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <label class="form-label" style="margin-bottom: 0; white-space: nowrap;">Active Days of the Week:</label>
+                      <span id="alert-days-status-hint" style="font-size: 0.74rem; color: var(--text-muted);">(Fires every day)</span>
                     </div>
-                    <div id="alert-days-pills-container" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                    <div style="display: flex; gap: 6px;">
+                      <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-all">All</button>
+                      <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-weekdays">Weekdays</button>
+                      <button type="button" class="btn btn-xs btn-secondary" id="btn-alert-days-weekends">Weekend</button>
+                    </div>
                   </div>
+                  <div id="alert-days-pills-container" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
                 </div>
 
                 <!-- Add Multiple Times -->
@@ -1976,6 +1977,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=4.9"></script>
+  <script type="module" src="js/main.js?v=5.0"></script>
 </body>
 </html>
