@@ -16,12 +16,15 @@ export class JsonStore {
     this.debounceMs = options.debounceMs || 0;
     this.data = structuredClone(defaultData);
     this._timeout = null;
+    this._lastMtime = 0;
     this.load();
   }
 
   load() {
     try {
       if (fs.existsSync(this.filePath)) {
+        const stat = fs.statSync(this.filePath);
+        this._lastMtime = stat.mtimeMs;
         const raw = fs.readFileSync(this.filePath, 'utf-8');
         const parsed = JSON.parse(raw);
         this.data = { ...structuredClone(this.defaultData), ...parsed };
@@ -34,6 +37,14 @@ export class JsonStore {
   }
 
   get() {
+    try {
+      if (fs.existsSync(this.filePath)) {
+        const stat = fs.statSync(this.filePath);
+        if (stat.mtimeMs > (this._lastMtime || 0)) {
+          this.load();
+        }
+      }
+    } catch (_) {}
     return this.data;
   }
 
@@ -63,6 +74,9 @@ export class JsonStore {
   _writeSync() {
     try {
       fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf-8');
+      try {
+        this._lastMtime = fs.statSync(this.filePath).mtimeMs;
+      } catch (_) {}
     } catch (err) {
       console.error(`⚠️ [JsonStore] Failed to save ${this.filePath}:`, err.message);
     }
