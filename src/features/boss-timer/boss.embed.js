@@ -80,7 +80,7 @@ export function createBossEmbed({ title, color, bosses, latestSeen, now, majorBo
     .setTitle(title)
     .setColor(color)
     .setDescription(
-      `📡 Data last synced: <t:${latestSeen}:R>\n` + buildBossTable(bosses, now, majorBossSet)
+      `Data last synced: <t:${latestSeen}:R>\n` + buildBossTable(bosses, now, majorBossSet)
     );
 }
 
