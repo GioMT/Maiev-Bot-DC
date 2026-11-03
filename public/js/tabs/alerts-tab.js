@@ -1080,9 +1080,8 @@ export function setupAlertsTabListeners() {
     });
   });
 
-  // Save buttons
+  // Save alerts configuration
   document.getElementById('btn-save-alerts-top')?.addEventListener('click', () => saveAlertsToBackend(true));
-  document.getElementById('btn-save-alerts-bottom')?.addEventListener('click', () => saveAlertsToBackend(true));
 
   // Send Alert Now (Live Dispatch)
   document.getElementById('btn-send-alert-now')?.addEventListener('click', async () => {
