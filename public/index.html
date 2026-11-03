@@ -271,6 +271,40 @@
       <main class="dashboard-grid">
         <!-- Configuration Column -->
         <div class="grid-col config-column">
+          <!-- Card 1: Instant Auto-Role on Join -->
+          <div class="card glass-card mb-4">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon" style="color: #5865F2;"><i data-lucide="zap"></i></span>
+                <div>
+                  <h2 class="card-title">Instant Auto-Role on Join</h2>
+                  <p class="card-subtitle">Automatically grant role(s) to new members the millisecond they join the server.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge badge-accent" id="auto-join-roles-count">0 Selected</span>
+                <button class="btn btn-primary btn-sm btn-save-section" title="Save Auto-Role Configuration">
+                  <i data-lucide="save"></i> Save
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="form-group mb-0">
+                <label class="form-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <span>Select role(s) to assign automatically upon joining:</span>
+                </label>
+                <div id="roles-auto-join-container" class="roles-checkbox-grid" style="max-height: 180px; overflow-y: auto; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border-subtle);">
+                  <p class="text-muted">Loading roles...</p>
+                </div>
+                <span class="form-hint" style="margin-top: 8px; display: block;">
+                  ⚡ <strong>Millisecond Assignment:</strong> Assigned instantly via Discord's Gateway upon arrival without requiring the member to click any buttons. Ideal replacement for Discord onboarding pre-question roles.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Rules Acknowledgment Action -->
           <div class="card glass-card">
             <div class="card-header">
               <div class="card-title-group">
@@ -286,22 +320,6 @@
             </div>
 
             <div class="card-body">
-              <!-- Instant Auto-Role on Join -->
-              <div class="form-group" style="background: rgba(88, 101, 242, 0.08); border: 1px solid rgba(88, 101, 242, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
-                <label class="form-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                  <span style="font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
-                    <i data-lucide="zap" style="width: 16px; height: 16px; color: #5865F2;"></i> Instant Auto-Role on Join:
-                  </span>
-                  <span class="badge badge-accent" id="auto-join-roles-count">0 Selected</span>
-                </label>
-                <div id="roles-auto-join-container" class="roles-checkbox-grid" style="max-height: 140px; overflow-y: auto; padding: 4px;">
-                  <p class="text-muted">Loading roles...</p>
-                </div>
-                <span class="form-hint" style="margin-top: 6px;">
-                  ⚡ Automatically and instantly assigned within milliseconds the moment a new member joins the server (replaces onboarding pre-question role grants).
-                </span>
-              </div>
-
               <div class="form-group">
                 <label for="select-onboarded-role" class="form-label">
                   Role to grant upon acknowledging rules:
