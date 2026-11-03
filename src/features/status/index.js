@@ -11,6 +11,7 @@ const AION2_EMOJI_NAMES = [
   'Assassin',
   'Chanter',
   'Cleric',
+  'Dungeon',
   'Elyos',
   'ElyosArtifact',
   'Gladiator',
