@@ -56,14 +56,14 @@ export const ROLE_PRESETS = {
     defaultTitle: '⚔️ Choose Your Class Archetype',
     defaultFooter: 'React with an emoji below to choose your class',
     roles: [
-      { emoji: '🛡️', name: 'Templar', code: 'templar', intent: 'unique', category: 'Classes' },
-      { emoji: '⚔️', name: 'Gladiator', code: 'gladiator', intent: 'unique', category: 'Classes' },
-      { emoji: '🏹', name: 'Ranger', code: 'ranger', intent: 'unique', category: 'Classes' },
-      { emoji: '🗡️', name: 'Assassin', code: 'assassin', intent: 'unique', category: 'Classes' },
-      { emoji: '🔮', name: 'Sorcerer', code: 'sorcerer', intent: 'unique', category: 'Classes' },
-      { emoji: '🌀', name: 'Spiritmaster', code: 'spiritmaster', intent: 'unique', category: 'Classes' },
-      { emoji: '⚕️', name: 'Cleric', code: 'cleric', intent: 'unique', category: 'Classes' },
-      { emoji: '🎶', name: 'Chanter', code: 'chanter', intent: 'unique', category: 'Classes' }
+      { emoji: ':Templar:', name: 'Templar', code: 'templar', intent: 'unique', category: 'Classes' },
+      { emoji: ':Gladiator:', name: 'Gladiator', code: 'gladiator', intent: 'unique', category: 'Classes' },
+      { emoji: ':Ranger:', name: 'Ranger', code: 'ranger', intent: 'unique', category: 'Classes' },
+      { emoji: ':Assassin:', name: 'Assassin', code: 'assassin', intent: 'unique', category: 'Classes' },
+      { emoji: ':Sorcerer:', name: 'Sorcerer', code: 'sorcerer', intent: 'unique', category: 'Classes' },
+      { emoji: ':Spiritmaster:', name: 'Spiritmaster', code: 'spiritmaster', intent: 'unique', category: 'Classes' },
+      { emoji: ':Cleric:', name: 'Cleric', code: 'cleric', intent: 'unique', category: 'Classes' },
+      { emoji: ':Chanter:', name: 'Chanter', code: 'chanter', intent: 'unique', category: 'Classes' }
     ]
   },
   nationality: {
@@ -94,8 +94,8 @@ export const ROLE_PRESETS = {
     defaultFooter: 'React with an emoji below to toggle notification pings',
     roles: [
       { emoji: '🔔', name: 'Announcements', code: 'announcements', intent: 'toggle', category: 'Notification Alerts' },
-      { emoji: '🌌', name: 'Abyss Group Farming', code: 'abyss-farming', intent: 'toggle', category: 'Notification Alerts' },
-      { emoji: '🌀', name: 'Spacetime Rift', code: 'spacetime-rift', intent: 'toggle', category: 'Notification Alerts' },
+      { emoji: ':Abyss:', name: 'Abyss Group Farming', code: 'abyss-farming', intent: 'toggle', category: 'Notification Alerts' },
+      { emoji: ':Rift:', name: 'Spacetime Rift', code: 'spacetime-rift', intent: 'toggle', category: 'Notification Alerts' },
       { emoji: '🎮', name: 'Community Events', code: 'events', intent: 'toggle', category: 'Notification Alerts' }
     ]
   },

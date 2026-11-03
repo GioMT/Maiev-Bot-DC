@@ -1432,7 +1432,7 @@
 
                 <div class="form-group mt-3">
                   <label for="input-alert-title" class="form-label">Embed Title (Optional — leave blank for compact Boss-Timer alert style):</label>
-                  <input type="text" id="input-alert-title" class="form-input" placeholder="e.g. 🌌 Abyss Group Farming Alert">
+                  <input type="text" id="input-alert-title" class="form-input" placeholder="e.g. :Abyss: Abyss Group Farming Alert">
                 </div>
 
                 <div class="form-group">
@@ -1491,7 +1491,7 @@
                   <span class="discord-hash">#</span>
                   <span class="discord-channel-name" id="sim-alert-channel-name">alerts-channel</span>
                   <span class="discord-topic">Automated &amp; Custom Alerts</span>
-                  <span class="badge badge-accent" id="sim-alert-active-badge" style="margin-left: auto; font-size: 0.72rem;">🌌 Abyss Group Farming</span>
+                  <span class="badge badge-accent" id="sim-alert-active-badge" style="margin-left: auto; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;"><img src="/emojis/Abyss.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Abyss Group Farming</span>
                 </div>
 
                 <div class="discord-message-group" id="sim-alert-messages-list">
@@ -1509,7 +1509,7 @@
                       </div>
 
                       <div class="discord-embed" id="sim-alert-embed-box" style="border-left: 4px solid #9b59b6;">
-                        <div class="embed-title" id="sim-alert-embed-title">🌌 Abyss Group Farming Alert</div>
+                        <div class="embed-title" id="sim-alert-embed-title" style="display: flex; align-items: center; gap: 6px;"><img src="/emojis/Abyss.webp" class="twemoji-inline" style="width: 18px; height: 18px;" alt=""> Abyss Group Farming Alert</div>
                         <div class="embed-description" id="sim-alert-embed-desc">
                           <strong>Abyss Group Farming Session</strong> is forming up! Gather your party and rally in Reshanta.
                         </div>
@@ -1684,12 +1684,12 @@
             </div>
             <p>Single-choice class selection for legion build channels.</p>
             <div class="preset-preview-pills">
-              <span class="preset-preview-pill">🛡️ Templar</span>
-              <span class="preset-preview-pill">⚔️ Gladiator</span>
-              <span class="preset-preview-pill">🏹 Ranger</span>
-              <span class="preset-preview-pill">🗡️ Assassin</span>
-              <span class="preset-preview-pill">🔮 Sorcerer</span>
-              <span class="preset-preview-pill">⚕️ Cleric</span>
+              <span class="preset-preview-pill"><img src="/emojis/Templar.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Templar</span>
+              <span class="preset-preview-pill"><img src="/emojis/Gladiator.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Gladiator</span>
+              <span class="preset-preview-pill"><img src="/emojis/Ranger.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Ranger</span>
+              <span class="preset-preview-pill"><img src="/emojis/Assassin.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Assassin</span>
+              <span class="preset-preview-pill"><img src="/emojis/Sorcerer.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Sorcerer</span>
+              <span class="preset-preview-pill"><img src="/emojis/Cleric.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Cleric</span>
             </div>
           </div>
 
@@ -1717,8 +1717,8 @@
             <p>Opt-in server pings for announcements, abyss farming, rifts, and events.</p>
             <div class="preset-preview-pills">
               <span class="preset-preview-pill">🔔 Announcements</span>
-              <span class="preset-preview-pill">🌌 Abyss Group Farming</span>
-              <span class="preset-preview-pill">🌀 Spacetime Rift</span>
+              <span class="preset-preview-pill"><img src="/emojis/Abyss.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Abyss Group Farming</span>
+              <span class="preset-preview-pill"><img src="/emojis/Rift.webp" class="twemoji-inline" style="width: 14px; height: 14px;" alt=""> Spacetime Rift</span>
               <span class="preset-preview-pill">🎮 Events</span>
             </div>
           </div>
@@ -1800,7 +1800,7 @@
           <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 8px;">
             Enter one role per line in format: <code>Emoji, Label, Code</code> (e.g. <code>🔔, Announcements, announcements</code>):
           </p>
-          <textarea id="multi-role-paste-textarea" class="form-textarea" rows="6" placeholder="🔔, Announcements, announcements&#10;🌌, Abyss Group Farming, abyss-farming&#10;🌀, Spacetime Rift, spacetime-rift"></textarea>
+          <textarea id="multi-role-paste-textarea" class="form-textarea" rows="6" placeholder="🔔, Announcements, announcements&#10;:Abyss:, Abyss Group Farming, abyss-farming&#10;:Rift:, Spacetime Rift, spacetime-rift"></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -1974,6 +1974,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=5.4"></script>
+  <script type="module" src="js/main.js?v=5.5"></script>
 </body>
 </html>

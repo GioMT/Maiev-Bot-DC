@@ -38,7 +38,7 @@
   ],
   "nationalityRoles": [
     {
-      "emoji": "🛡️",
+      "emoji": ":Templar:",
       "name": "Templar",
       "code": "templar",
       "roleId": "",
@@ -46,7 +46,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "⚔️",
+      "emoji": ":Gladiator:",
       "name": "Gladiator",
       "code": "gladiator",
       "roleId": "",
@@ -54,7 +54,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "🏹",
+      "emoji": ":Ranger:",
       "name": "Ranger",
       "code": "ranger",
       "roleId": "",
@@ -62,7 +62,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "🗡️",
+      "emoji": ":Assassin:",
       "name": "Assassin",
       "code": "assassin",
       "roleId": "",
@@ -70,7 +70,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "🔮",
+      "emoji": ":Sorcerer:",
       "name": "Sorcerer",
       "code": "sorcerer",
       "roleId": "",
@@ -78,7 +78,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "🌀",
+      "emoji": ":Spiritmaster:",
       "name": "Spiritmaster",
       "code": "spiritmaster",
       "roleId": "",
@@ -86,7 +86,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "⚕️",
+      "emoji": ":Cleric:",
       "name": "Cleric",
       "code": "cleric",
       "roleId": "",
@@ -94,7 +94,7 @@
       "category": "Classes"
     },
     {
-      "emoji": "🎶",
+      "emoji": ":Chanter:",
       "name": "Chanter",
       "code": "chanter",
       "roleId": "",
@@ -187,7 +187,7 @@
       "category": "Notification Alerts"
     },
     {
-      "emoji": "🌌",
+      "emoji": ":Abyss:",
       "name": "Abyss Group Farming",
       "code": "abyss-farming",
       "roleId": "",
@@ -195,7 +195,7 @@
       "category": "Notification Alerts"
     },
     {
-      "emoji": "🌀",
+      "emoji": ":Rift:",
       "name": "Spacetime Rift",
       "code": "spacetime-rift",
       "roleId": "",
@@ -226,7 +226,7 @@
       "intent": "unique",
       "roles": [
         {
-          "emoji": "🛡️",
+          "emoji": ":Templar:",
           "name": "Templar",
           "code": "templar",
           "roleId": "",
@@ -234,7 +234,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "⚔️",
+          "emoji": ":Gladiator:",
           "name": "Gladiator",
           "code": "gladiator",
           "roleId": "",
@@ -242,7 +242,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "🏹",
+          "emoji": ":Ranger:",
           "name": "Ranger",
           "code": "ranger",
           "roleId": "",
@@ -250,7 +250,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "🗡️",
+          "emoji": ":Assassin:",
           "name": "Assassin",
           "code": "assassin",
           "roleId": "",
@@ -258,7 +258,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "🔮",
+          "emoji": ":Sorcerer:",
           "name": "Sorcerer",
           "code": "sorcerer",
           "roleId": "",
@@ -266,7 +266,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "🌀",
+          "emoji": ":Spiritmaster:",
           "name": "Spiritmaster",
           "code": "spiritmaster",
           "roleId": "",
@@ -274,7 +274,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "⚕️",
+          "emoji": ":Cleric:",
           "name": "Cleric",
           "code": "cleric",
           "roleId": "",
@@ -282,7 +282,7 @@
           "category": "Classes"
         },
         {
-          "emoji": "🎶",
+          "emoji": ":Chanter:",
           "name": "Chanter",
           "code": "chanter",
           "roleId": "",
@@ -403,7 +403,7 @@
           "category": "Notification Alerts"
         },
         {
-          "emoji": "🌌",
+          "emoji": ":Abyss:",
           "name": "Abyss Group Farming",
           "code": "abyss-farming",
           "roleId": "",
@@ -411,7 +411,7 @@
           "category": "Notification Alerts"
         },
         {
-          "emoji": "🌀",
+          "emoji": ":Rift:",
           "name": "Spacetime Rift",
           "code": "spacetime-rift",
           "roleId": "",
