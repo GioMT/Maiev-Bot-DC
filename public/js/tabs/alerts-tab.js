@@ -316,14 +316,12 @@ export function renderAlertsSubtabs() {
     const isActive = alert.id === activeAlertId;
     btn.type = 'button';
     btn.className = `reaction-subtab-btn ${isActive ? 'active' : ''}`;
-    const timeCount = Array.isArray(alert.times) ? alert.times.length : 0;
     const statusDotColor = alert.enabled ? '#23a55a' : '#6b7280';
 
     btn.innerHTML = `
       <span style="width: 7px; height: 7px; border-radius: 50%; background: ${statusDotColor}; display: inline-block;"></span>
       <span>${renderEmojiHtml(alert.emoji || '🔔')}</span>
       <span>${escapeHtml(alert.name)}</span>
-      <span class="subtab-count-pill">${timeCount}t</span>
     `;
 
     btn.addEventListener('click', () => {
