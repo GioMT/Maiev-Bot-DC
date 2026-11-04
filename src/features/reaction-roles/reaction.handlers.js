@@ -14,7 +14,8 @@ import {
 } from './reaction.tracker.js';
 import {
   createNationalityMessage,
-  reactToNationalityCard
+  reactToNationalityCard,
+  getPresetForMessage
 } from './reaction.embed.js';
 
 export async function handleNationalityButton(interaction) {
@@ -73,7 +74,15 @@ export async function handlePostNationalityCommand(interaction, { client }) {
     const config = configStore.get();
     const forceNew = interaction.options.getBoolean('force_new') || false;
     await ensureGuildEmojisLoaded(interaction.guild);
-    const payload = createNationalityMessage(interaction.guild);
+
+    const preset = config.reactionPresets?.nationality || null;
+    const rolesToUse = preset?.roles || config.nationalityRoles || [];
+    const payload = createNationalityMessage(interaction.guild, {
+      roles: rolesToUse,
+      title: preset?.title || config.nationalityTitle,
+      content: preset?.content || config.nationalityContent,
+      footer: preset?.footer || config.nationalityFooter
+    });
 
     let targetMsg = null;
 
@@ -118,11 +127,11 @@ export async function handlePostNationalityCommand(interaction, { client }) {
     const nationalityMessageIds = Array.isArray(config.nationalityMessageIds) ? [...config.nationalityMessageIds] : [];
     const alreadyTracked = nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === targetMsg.id);
     if (!alreadyTracked) {
-      nationalityMessageIds.push({ messageId: targetMsg.id, channelId: interaction.channelId });
+      nationalityMessageIds.push({ messageId: targetMsg.id, channelId: interaction.channelId, presetId: 'nationality' });
       configStore.save({ nationalityMessageIds });
     }
 
-    await reactToNationalityCard(targetMsg);
+    await reactToNationalityCard(targetMsg, rolesToUse);
 
     const responseText = wasUpdated
       ? '✅ Existing nationality card updated in-place! **All previous user reactions and roles are preserved**, old text buttons were removed, and any new flag emojis were added.'
@@ -279,19 +288,25 @@ export async function handleCleanReactionsCommand(interaction, { client }) {
 export async function handleMessageCreate(message, client) {
   try {
     if (message.author?.id !== client.user?.id) return;
-    const isNationalityCard = message.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title));
+    const isNationalityCard = message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|class archetype/i.test(e.title));
     if (isNationalityCard) {
       const config = configStore.get();
+      const preset = getPresetForMessage(message, config);
       const nationalityMessageIds = Array.isArray(config.nationalityMessageIds) ? [...config.nationalityMessageIds] : [];
       const alreadyTracked = nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
       if (!alreadyTracked) {
-        nationalityMessageIds.push({ messageId: message.id, channelId: message.channelId });
+        nationalityMessageIds.push({
+          messageId: message.id,
+          channelId: message.channelId,
+          presetId: preset?.id || null
+        });
         configStore.save({ nationalityMessageIds });
       }
-      await reactToNationalityCard(message);
+      // Note: Message posting handlers already call reactToNationalityCard explicitly.
+      // We avoid calling it here to prevent concurrent reaction race conditions.
     }
   } catch (err) {
-    console.error('Error auto-reacting on messageCreate:', err);
+    console.error('Error tracking on messageCreate:', err);
   }
 }
 
@@ -325,20 +340,29 @@ export async function handleReactionAdd(reaction, user, client) {
     const isReactionMessage =
       (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
       (message.author?.id === client.user?.id && (
-        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role/i.test(e.title)) ||
+        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role|class archetype/i.test(e.title)) ||
         message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
       ));
 
     if (!isReactionMessage) return;
 
+    const preset = getPresetForMessage(message, config);
+    const candidateRoles = preset && Array.isArray(preset.roles) && preset.roles.length > 0
+      ? preset.roles
+      : (config.nationalityRoles || []);
+
     const nationalityMessageIds = Array.isArray(config.nationalityMessageIds) ? [...config.nationalityMessageIds] : [];
     const alreadyTracked = nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
     if (!alreadyTracked) {
-      nationalityMessageIds.push({ messageId: message.id, channelId: message.channelId });
+      nationalityMessageIds.push({
+        messageId: message.id,
+        channelId: message.channelId,
+        presetId: preset?.id || null
+      });
       configStore.save({ nationalityMessageIds });
     }
 
-    const natConfig = findNationalityByEmoji(emoji, config.nationalityRoles);
+    const natConfig = findNationalityByEmoji(emoji, candidateRoles);
     if (!natConfig) return;
 
     const targetRole = await resolveRole(guild, natConfig.roleId, [
@@ -360,7 +384,7 @@ export async function handleReactionAdd(reaction, user, client) {
       return;
     }
 
-    const intent = (natConfig.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
+    const intent = (natConfig.intent || preset?.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
 
     if (intent === 'remove_only') {
       if (member.roles.cache.has(targetRole.id)) {
@@ -371,9 +395,9 @@ export async function handleReactionAdd(reaction, user, client) {
     }
 
     if (intent === 'unique') {
-      const targetCategory = natConfig.category || natConfig.group || null;
-      const otherRoleIds = (config.nationalityRoles || [])
-        .filter(n => n && n.roleId && n.roleId !== targetRole.id && (!targetCategory || n.category === targetCategory || n.group === targetCategory))
+      const targetCategory = natConfig.category || natConfig.group || preset?.id || preset?.name || null;
+      const otherRoleIds = candidateRoles
+        .filter(n => n && n.roleId && n.roleId !== targetRole.id && (!targetCategory || n.category === targetCategory || n.group === targetCategory || preset))
         .map(n => n.roleId);
       for (const otherId of otherRoleIds) {
         if (member.roles.cache.has(otherId)) {
@@ -421,16 +445,21 @@ export async function handleReactionRemove(reaction, user, client) {
     const isReactionMessage =
       (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
       (message.author?.id === client.user?.id && (
-        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role/i.test(e.title)) ||
+        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role|class archetype/i.test(e.title)) ||
         message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
       ));
 
     if (!isReactionMessage) return;
 
-    const natConfig = findNationalityByEmoji(emoji, config.nationalityRoles);
+    const preset = getPresetForMessage(message, config);
+    const candidateRoles = preset && Array.isArray(preset.roles) && preset.roles.length > 0
+      ? preset.roles
+      : (config.nationalityRoles || []);
+
+    const natConfig = findNationalityByEmoji(emoji, candidateRoles);
     if (!natConfig) return;
 
-    const intent = (natConfig.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
+    const intent = (natConfig.intent || preset?.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
     if (intent === 'give_only' || intent === 'remove_only') return;
 
     const targetRole = await resolveRole(guild, natConfig.roleId, [

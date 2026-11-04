@@ -29,11 +29,13 @@
   "nationalityMessageIds": [
     {
       "messageId": "1559545015619817524",
-      "channelId": "1559205186088472596"
+      "channelId": "1559205186088472596",
+      "presetId": "nationality"
     },
     {
       "messageId": "1559556029979697197",
-      "channelId": "1559205186088472596"
+      "channelId": "1559205186088472596",
+      "presetId": "classes"
     }
   ],
   "nationalityRoles": [
