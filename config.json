@@ -1,4 +1,5 @@
 {
+  "autoJoinRoleIds": [],
   "onboardedRoleId": "1559242680561569842",
   "ignRolesToAdd": [
     "1559238369089683567",
@@ -40,6 +41,16 @@
     {
       "messageId": "1566536387958677606",
       "channelId": "1559205186088472596"
+    },
+    {
+      "messageId": "1567629483501027329",
+      "channelId": "1567050290300059719",
+      "presetId": "classes"
+    },
+    {
+      "messageId": "1567636178176442369",
+      "channelId": "1567050290300059719",
+      "presetId": "classes"
     }
   ],
   "nationalityRoles": [

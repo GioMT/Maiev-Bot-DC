@@ -325,17 +325,13 @@ export function updateNationalityPreview() {
       listStr = categoryKeys.map(cat => {
         const catHeader = `<div style="font-size: 0.82rem; font-weight: 700; color: #00d2ff; margin-top: 8px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${cat || 'Roles'}</div>`;
         const items = categories[cat].map(n => {
-          const codeStr = n.code ? ` (<code>${n.code.toUpperCase()}</code>)` : '';
-          const intentTag = n.intent && n.intent !== 'toggle' ? ` <small class="text-muted">[${n.intent}]</small>` : '';
-          return `${renderEmojiHtml(n.emoji)} <strong>${n.name}</strong>${codeStr}${intentTag}`;
+          return `${renderEmojiHtml(n.emoji)} <strong>${n.name}</strong>`;
         }).join('<br>');
         return `${catHeader}${items}`;
       }).join('<br>');
     } else {
       listStr = list.map(n => {
-        const codeStr = n.code ? ` (<code>${n.code.toUpperCase()}</code>)` : '';
-        const intentTag = n.intent && n.intent !== 'toggle' ? ` <small class="text-muted">[${n.intent}]</small>` : '';
-        return `${renderEmojiHtml(n.emoji)} <strong>${n.name}</strong>${codeStr}${intentTag}`;
+        return `${renderEmojiHtml(n.emoji)} <strong>${n.name}</strong>`;
       }).join('<br>');
     }
 

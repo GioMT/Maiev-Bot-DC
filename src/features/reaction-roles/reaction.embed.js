@@ -115,17 +115,13 @@ export function createNationalityMessage(guild, options = {}) {
     formattedList = categoryKeys.map(cat => {
       const catHeader = cat ? `### ${cat}` : '### Other Roles';
       const items = categories[cat].map(n => {
-        const codePart = n.code ? ` (\`${n.code.toUpperCase()}\`)` : '';
-        const intentPart = n.intent && n.intent !== 'toggle' ? ` [${n.intent}]` : '';
-        return `${n.emoji} **${n.name}**${codePart}${intentPart}`;
+        return `${n.emoji} **${n.name}**`;
       }).join('\n');
       return `${catHeader}\n${items}`;
     }).join('\n\n');
   } else {
     formattedList = activeRoles.map(n => {
-      const codePart = n.code ? ` (\`${n.code.toUpperCase()}\`)` : '';
-      const intentPart = n.intent && n.intent !== 'toggle' ? ` [${n.intent}]` : '';
-      return `${n.emoji} **${n.name}**${codePart}${intentPart}`;
+      return `${n.emoji} **${n.name}**`;
     }).join('\n');
   }
 
