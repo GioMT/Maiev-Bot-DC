@@ -1,13 +1,13 @@
-import { state, getActiveServerName } from './state.js?v=7.2';
+import { state, getActiveServerName } from './state.js?v=7.3';
 import {
   DEFAULT_RULES_TEMPLATE,
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE,
   DEFAULT_NATIONALITY_TEMPLATE
-} from './presets.js?v=7.2';
-import { showToast } from './utils.js?v=7.2';
-import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.2';
-import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.2';
+} from './presets.js?v=7.3';
+import { showToast } from './utils.js?v=7.3';
+import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.3';
+import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.3';
 
 export async function postEmbed(endpoint, channelId, successMessage) {
   try {

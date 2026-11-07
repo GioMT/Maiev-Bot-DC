@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=7.2';
-import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.2';
-import { persistServerName } from '../api.js?v=7.2';
-import { updateRulesPreview } from './rules-tab.js?v=7.2';
-import { updateVerifyPreview } from './verify-tab.js?v=7.2';
-import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.2';
-import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.2';
-import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.2';
-import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.2';
-import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.2';
+import { state } from '../state.js?v=7.3';
+import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.3';
+import { persistServerName } from '../api.js?v=7.3';
+import { updateRulesPreview } from './rules-tab.js?v=7.3';
+import { updateVerifyPreview } from './verify-tab.js?v=7.3';
+import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.3';
+import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.3';
+import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.3';
+import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.3';
+import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.3';
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',
@@ -90,6 +90,8 @@ export function renderHeaderTelemetry(data) {
     if (simAvatar8) simAvatar8.src = data.avatar;
     const simAvatar9 = document.getElementById('sim-bot-avatar-9');
     if (simAvatar9) simAvatar9.src = data.avatar;
+    const simAvatar10 = document.getElementById('sim-bot-avatar-10');
+    if (simAvatar10) simAvatar10.src = data.avatar;
   }
   document.getElementById('bot-connection-string').textContent = `${data.botName} • Connected to Discord Gateway`;
   document.getElementById('ping-value').textContent = `${Math.max(data.ping, 1)} ms`;
@@ -214,6 +216,7 @@ export function updateSimChannelHeaders() {
   const rName = document.getElementById('select-rules-channel')?.selectedOptions[0]?.text?.replace('#', '') || 'rules';
   const vName = document.getElementById('select-verify-channel')?.selectedOptions[0]?.text?.replace('#', '') || 'identity-verification';
   const uvName = document.getElementById('select-user-verify-channel')?.selectedOptions[0]?.text?.replace('#', '') || 'user-verify';
+  const uvStaffName = document.getElementById('select-user-verify-staff-channel')?.selectedOptions[0]?.text?.replace('#', '') || 'verify-reviews';
   const wName = document.getElementById('select-welcome-channel')?.selectedOptions[0]?.text?.replace('#', '') || 'welcome';
   const nName = document.getElementById('select-nationality-roles-channel')?.selectedOptions[0]?.text?.replace('#', '') || 'roles';
 
@@ -223,6 +226,8 @@ export function updateSimChannelHeaders() {
   if (elV) elV.textContent = vName;
   const elUV = document.getElementById('sim-uverify-channel-name');
   if (elUV && !uvName.includes('--')) elUV.textContent = uvName;
+  const elUVStaff = document.getElementById('sim-uverify-staff-channel-name');
+  if (elUVStaff) elUVStaff.textContent = uvStaffName.includes('--') ? 'verify-reviews' : uvStaffName;
   const elW = document.getElementById('sim-welcome-channel-name');
   if (elW) elW.textContent = wName;
   const elN = document.getElementById('sim-nationality-channel-name');
@@ -236,6 +241,7 @@ export function renderChannelDropdowns(data) {
   const rulesSelect = document.getElementById('select-rules-channel');
   const verifySelect = document.getElementById('select-verify-channel');
   const userVerifySelect = document.getElementById('select-user-verify-channel');
+  const userVerifyStaffSelect = document.getElementById('select-user-verify-staff-channel');
   const welcomeSelect = document.getElementById('select-welcome-channel');
   const natSelect = document.getElementById('select-nationality-roles-channel');
 
@@ -256,6 +262,20 @@ export function renderChannelDropdowns(data) {
   populate(rulesSelect, currentConfig.rulesChannelId, 'rule');
   populate(verifySelect, currentConfig.verifyChannelId, 'verify');
   populate(userVerifySelect, currentConfig.userVerifyChannelId, 'user-verify');
+
+  if (userVerifyStaffSelect) {
+    userVerifyStaffSelect.innerHTML = '<option value="">-- Optional: In-Thread /review Only (No Staff Channel) --</option>';
+    channels.forEach(ch => {
+      const opt = document.createElement('option');
+      opt.value = ch.id;
+      opt.textContent = `#${ch.name}`;
+      if (currentConfig.userVerifyStaffChannelId && ch.id === currentConfig.userVerifyStaffChannelId) {
+        opt.selected = true;
+      }
+      userVerifyStaffSelect.appendChild(opt);
+    });
+  }
+
   populate(welcomeSelect, currentConfig.welcomeAnnouncementChannelId, 'welcome');
   populate(natSelect, currentConfig.nationalityChannelId, 'nation');
   renderBossTimerChannelDropdowns(channels);
@@ -269,6 +289,7 @@ export function renderChannelDropdowns(data) {
   rulesSelect?.addEventListener('change', updateSimChannelHeaders);
   verifySelect?.addEventListener('change', updateSimChannelHeaders);
   userVerifySelect?.addEventListener('change', updateSimChannelHeaders);
+  userVerifyStaffSelect?.addEventListener('change', updateSimChannelHeaders);
   welcomeSelect?.addEventListener('change', updateSimChannelHeaders);
   natSelect?.addEventListener('change', updateSimChannelHeaders);
 }

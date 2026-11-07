@@ -62,6 +62,7 @@ export const DEFAULT_CONFIG = {
     { code: 'ph', name: 'Philippines', emoji: '🇵🇭', roleId: '', category: 'Region' }
   ],
   userVerifyChannelId: '',
+  userVerifyStaffChannelId: '',
   userVerifyMessageId: '',
   userVerifyReviewerRoleIds: [],
   userVerifyRolesToAdd: [],

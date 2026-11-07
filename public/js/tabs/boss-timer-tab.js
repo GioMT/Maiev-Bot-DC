@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.2';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.2';
+import { state } from '../state.js?v=7.3';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
 
 const DEFAULT_BOSS_TITLES = {
   abyssTitle: '🔥 Fregion — Reshanta / Abyss Bosses',

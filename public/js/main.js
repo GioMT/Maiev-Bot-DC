@@ -1,48 +1,48 @@
 /**
  * Maiev Bot Control Center — Modular ES Entry Point
  */
-import { state } from './state.js?v=7.2';
-import { refreshIcons, showToast } from './utils.js?v=7.2';
-import { saveAllConfiguration } from './api.js?v=7.2';
+import { state } from './state.js?v=7.3';
+import { refreshIcons, showToast } from './utils.js?v=7.3';
+import { saveAllConfiguration } from './api.js?v=7.3';
 import {
   setupTabs,
   renderHeaderTelemetry,
   renderRoleDropdowns,
   renderChannelDropdowns,
   setupServerNameEditing
-} from './tabs/header-telemetry.js?v=7.2';
-import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.2';
+} from './tabs/header-telemetry.js?v=7.3';
+import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.3';
 import {
   renderVerifyEditor,
   renderWelcomeEditor,
   setupVerifyTabListeners
-} from './tabs/verify-tab.js?v=7.2';
+} from './tabs/verify-tab.js?v=7.3';
 import {
   renderUserVerifyEditor,
   setupUserVerifyTabListeners
-} from './tabs/user-verify-tab.js?v=7.2';
+} from './tabs/user-verify-tab.js?v=7.3';
 import {
   renderWelcomeAnnouncementEditor,
   setupWelcomeTabListeners
-} from './tabs/welcome-tab.js?v=7.2';
+} from './tabs/welcome-tab.js?v=7.3';
 import {
   renderNationalityRolesManager,
   setupReactionRolesTabListeners,
   applyRemoteNationalitySync
-} from './tabs/reaction-roles-tab.js?v=7.2';
+} from './tabs/reaction-roles-tab.js?v=7.3';
 import {
   renderDiagnostics,
   fetchMembers,
   setupDiagnosticsTabListeners
-} from './tabs/diagnostics-tab.js?v=7.2';
+} from './tabs/diagnostics-tab.js?v=7.3';
 import {
   fetchBossTimerState,
   setupBossTimerTabListeners
-} from './tabs/boss-timer-tab.js?v=7.2';
+} from './tabs/boss-timer-tab.js?v=7.3';
 import {
   fetchAlertsState,
   setupAlertsTabListeners
-} from './tabs/alerts-tab.js?v=7.2';
+} from './tabs/alerts-tab.js?v=7.3';
 
 export async function fetchServerState() {
   try {

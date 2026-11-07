@@ -1,9 +1,10 @@
-import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.2';
-import { state, getActiveServerName } from '../state.js?v=7.2';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.2';
+import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.3';
+import { state, getActiveServerName } from '../state.js?v=7.3';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
 
 let currentUploadedVideoPath = '';
 let simReasonMode = 'reupload'; // 'reupload' | 'reject'
+let simClaimed = false;
 
 export function getUploadedUserVerifyVideoPath() {
   return currentUploadedVideoPath;
@@ -204,26 +205,56 @@ export function updateUserVerifyPreview() {
   if (threadFooterEl) {
     threadFooterEl.textContent = `${serverName} • Case #0001 Private Verification`;
   }
+
+  const staffFooterEl = document.getElementById('sim-uverify-staff-footer');
+  if (staffFooterEl && !staffFooterEl.getAttribute('data-finalized')) {
+    staffFooterEl.textContent = `${serverName} • Claim a case before reviewing to prevent duplicate actions`;
+  }
 }
 
 function switchSimulatorView(mode) {
-  const isThread = mode === 'thread';
-  document.getElementById('btn-sim-uverify-view-channel')?.classList.toggle('active', !isThread);
-  document.getElementById('btn-sim-uverify-view-thread')?.classList.toggle('active', isThread);
-  document.getElementById('sim-uverify-channel-pane')?.classList.toggle('hidden', isThread);
-  document.getElementById('sim-uverify-thread-pane')?.classList.toggle('hidden', !isThread);
+  document.getElementById('btn-sim-uverify-view-channel')?.classList.toggle('active', mode === 'channel');
+  document.getElementById('btn-sim-uverify-view-thread')?.classList.toggle('active', mode === 'thread');
+  document.getElementById('btn-sim-uverify-view-staff')?.classList.toggle('active', mode === 'staff');
+
+  document.getElementById('sim-uverify-channel-pane')?.classList.toggle('hidden', mode !== 'channel');
+  document.getElementById('sim-uverify-thread-pane')?.classList.toggle('hidden', mode !== 'thread');
+  document.getElementById('sim-uverify-staff-pane')?.classList.toggle('hidden', mode !== 'staff');
   refreshIcons();
 }
 
 function setSimulatedReviewerButtonsDisabled(disabled) {
-  ['sim-btn-uverify-approve', 'sim-btn-uverify-reupload', 'sim-btn-uverify-reject'].forEach(id => {
+  [
+    'sim-btn-uverify-claim',
+    'sim-btn-uverify-approve',
+    'sim-btn-uverify-reupload',
+    'sim-btn-uverify-reject',
+    'sim-btn-staff-claim',
+    'sim-btn-staff-approve',
+    'sim-btn-staff-reupload',
+    'sim-btn-staff-reject'
+  ].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = disabled;
   });
 }
 
+function syncClaimButtonUI() {
+  ['sim-btn-uverify-claim', 'sim-btn-staff-claim'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.textContent = simClaimed ? '🔓 Unclaim' : '🙋 Claim Case';
+    btn.classList.toggle('discord-btn-primary', !simClaimed);
+    btn.classList.toggle('discord-btn-secondary', simClaimed);
+  });
+}
+
 function resetThreadSimulation() {
+  simClaimed = false;
+  syncClaimButtonUI();
   setSimulatedReviewerButtonsDisabled(false);
+
+  const serverName = getActiveServerName();
   const statusEl = document.getElementById('sim-uverify-thread-status');
   if (statusEl) {
     statusEl.innerHTML = '⏳ Pending — Waiting for recording &amp; reviewer check';
@@ -237,6 +268,7 @@ function resetThreadSimulation() {
   if (ephDescEl) {
     ephDescEl.innerHTML = `
       <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+      <strong>Claimed By:</strong> 🟢 Unclaimed — Available<br>
       <strong>Case Status:</strong> ⏳ Pending Review<br><br>
       <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
     `;
@@ -246,10 +278,52 @@ function resetThreadSimulation() {
     logEl.classList.add('hidden');
     logEl.innerHTML = '';
   }
+
+  // Reset Staff Review Queue Card
+  const staffEmbed = document.getElementById('sim-uverify-staff-embed');
+  if (staffEmbed) staffEmbed.style.borderLeftColor = '#5865F2';
+  const staffTitle = document.getElementById('sim-uverify-staff-title');
+  if (staffTitle) staffTitle.textContent = '🛡️ Case #0001 — Video Verification Queue';
+  const staffFields = document.getElementById('sim-uverify-staff-fields');
+  if (staffFields) {
+    staffFields.innerHTML = `
+      <div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+        <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
+      </div>
+      <div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+        <div style="color: #dbdee1;">@DaevaLegend</div>
+      </div>
+      <div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🧵 Private Thread</div>
+        <div style="color: #949cf7;">#verify-0001-DaevaLegend</div>
+      </div>
+      <div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🙋 Claimed By</div>
+        <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">🟢 Unclaimed — Available</div>
+      </div>
+      <div style="grid-column: span 2;">
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Queue Status</div>
+        <div id="sim-uverify-staff-status" style="color: #dbdee1;">📹 Submission Posted — Ready for Review</div>
+      </div>
+    `;
+  }
+  const staffFooter = document.getElementById('sim-uverify-staff-footer');
+  if (staffFooter) {
+    staffFooter.removeAttribute('data-finalized');
+    staffFooter.textContent = `${serverName} • Claim a case before reviewing to prevent duplicate actions`;
+  }
+  ['sim-btn-staff-claim', 'sim-btn-staff-approve', 'sim-btn-staff-reupload', 'sim-btn-staff-reject'].forEach(id => {
+    document.getElementById(id)?.classList.remove('hidden');
+  });
+  const openThreadBtn = document.getElementById('sim-btn-staff-open-thread');
+  if (openThreadBtn) openThreadBtn.textContent = '↗️ Open Thread';
 }
 
 export function collectUserVerifyFormValues() {
   const userVerifyChannelId = document.getElementById('select-user-verify-channel')?.value || '';
+  const userVerifyStaffChannelId = document.getElementById('select-user-verify-staff-channel')?.value || '';
   const userVerifyReviewerRoleIds = Array.from(document.querySelectorAll('input[name="role_uverify_reviewer"]:checked')).map(el => el.value);
   const userVerifyRolesToAdd = Array.from(document.querySelectorAll('input[name="role_uverify_add"]:checked')).map(el => el.value);
   const userVerifyRolesToRemove = Array.from(document.querySelectorAll('input[name="role_uverify_remove"]:checked')).map(el => el.value);
@@ -264,6 +338,7 @@ export function collectUserVerifyFormValues() {
 
   return {
     userVerifyChannelId,
+    userVerifyStaffChannelId,
     userVerifyReviewerRoleIds,
     userVerifyRolesToAdd,
     userVerifyRolesToRemove,
@@ -424,23 +499,68 @@ export function setupUserVerifyTabListeners() {
   document.getElementById('btn-post-user-verify-channel')?.addEventListener('click', () => deployUserVerifyPanel(true));
   document.getElementById('btn-update-user-verify-channel')?.addEventListener('click', () => deployUserVerifyPanel(false));
 
-  // Simulator Switcher & Interactive Option C Flow
+  // Simulator Switcher & Interactive Option C + Claim Case + Staff Queue Flow
   document.getElementById('btn-sim-uverify-view-channel')?.addEventListener('click', () => switchSimulatorView('channel'));
   document.getElementById('btn-sim-uverify-view-thread')?.addEventListener('click', () => switchSimulatorView('thread'));
+  document.getElementById('btn-sim-uverify-view-staff')?.addEventListener('click', () => switchSimulatorView('staff'));
 
   document.getElementById('sim-btn-uverify-start')?.addEventListener('click', () => {
     resetThreadSimulation();
     switchSimulatorView('thread');
-    showToast('Simulated Private Thread "verify-0001-DaevaLegend" (Case #0001) created!', 'success');
+    showToast('Simulated Private Thread "verify-0001-DaevaLegend" (Case #0001) & Staff Queue card created!', 'success');
   });
 
-  document.getElementById('sim-btn-uverify-reset-sim')?.addEventListener('click', () => {
+  document.getElementById('sim-btn-staff-open-thread')?.addEventListener('click', () => {
+    switchSimulatorView('thread');
+  });
+
+  const handleResetSim = () => {
     resetThreadSimulation();
-    showToast('Reset private thread simulation state.', 'success');
-  });
+    showToast('Reset Case #0001 simulation state.', 'success');
+  };
+  document.getElementById('sim-btn-uverify-reset-sim')?.addEventListener('click', handleResetSim);
+  document.getElementById('sim-btn-uverify-reset-staff-sim')?.addEventListener('click', handleResetSim);
 
-  // Simulated Approve Button
-  document.getElementById('sim-btn-uverify-approve')?.addEventListener('click', () => {
+  // Simulated Claim / Unclaim Case
+  const handleSimClaim = () => {
+    simClaimed = !simClaimed;
+    syncClaimButtonUI();
+
+    const statusEl = document.getElementById('sim-uverify-thread-status');
+    if (statusEl) {
+      statusEl.innerHTML = simClaimed
+        ? '🔒 Under Review by <strong>@AdminReviewer</strong>'
+        : '⏳ Pending — Waiting for recording &amp; reviewer check';
+      statusEl.style.color = simClaimed ? '#c9cdfb' : '#dbdee1';
+    }
+    const staffClaimEl = document.getElementById('sim-uverify-staff-claimed');
+    if (staffClaimEl) {
+      staffClaimEl.innerHTML = simClaimed
+        ? '🔒 Claimed by <strong>@AdminReviewer</strong>'
+        : '🟢 Unclaimed — Available';
+    }
+    const ephDescEl = document.getElementById('sim-uverify-ephemeral-desc');
+    if (ephDescEl) {
+      ephDescEl.innerHTML = `
+        <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+        <strong>Claimed By:</strong> ${simClaimed ? '🔒 <strong>@AdminReviewer</strong>' : '🟢 Unclaimed — Available'}<br>
+        <strong>Case Status:</strong> ${simClaimed ? '🔒 Locked to you' : '⏳ Pending Review'}<br><br>
+        <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
+      `;
+    }
+    showToast(
+      simClaimed
+        ? 'Claimed Case #0001! Other reviewers are now prevented from double-reviewing.'
+        : 'Released Case #0001 back to the queue.',
+      'success'
+    );
+  };
+  document.getElementById('sim-btn-uverify-claim')?.addEventListener('click', handleSimClaim);
+  document.getElementById('sim-btn-staff-claim')?.addEventListener('click', handleSimClaim);
+
+  // Simulated Approve Button (from either Staff Queue or In-Thread /review)
+  const handleSimApprove = () => {
+    const serverName = getActiveServerName();
     const addRoles = getSelectedRoleNames('role_uverify_add', '@Verified');
     const remRoles = getSelectedRoleNames('role_uverify_remove', '');
 
@@ -458,6 +578,7 @@ export function setupUserVerifyTabListeners() {
     if (ephDescEl) {
       ephDescEl.innerHTML = `
         <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+        <strong>Claimed By:</strong> 🔒 <strong>@AdminReviewer</strong><br>
         <strong>Case Status:</strong> ✅ Approved &amp; Verified! Private thread archived.<br><br>
         <em>This verification case has already been finalized.</em>
       `;
@@ -478,7 +599,51 @@ export function setupUserVerifyTabListeners() {
         </div>
       `;
     }
-  });
+
+    // Transform Staff Review Channel Card into Permanent Green Audit Card!
+    const staffEmbed = document.getElementById('sim-uverify-staff-embed');
+    if (staffEmbed) staffEmbed.style.borderLeftColor = '#2ecc71';
+    const staffTitle = document.getElementById('sim-uverify-staff-title');
+    if (staffTitle) staffTitle.textContent = '✅ Case #0001 — Verification Approved';
+    const staffFields = document.getElementById('sim-uverify-staff-fields');
+    if (staffFields) {
+      const rolesSummary = `Granted: <code>${addRoles}</code>${remRoles ? ` • Removed: <code>${remRoles}</code>` : ''}`;
+      staffFields.innerHTML = `
+        <div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+          <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
+        </div>
+        <div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+          <div style="color: #dbdee1;">@DaevaLegend</div>
+        </div>
+        <div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🛡️ Approved By</div>
+          <div style="color: #2ecc71; font-weight: 600;">@AdminReviewer</div>
+        </div>
+        <div style="grid-column: span 2;">
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🎭 Roles Updated</div>
+          <div style="color: #dbdee1;">${rolesSummary}</div>
+        </div>
+        <div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Final Status</div>
+          <div style="color: #2ecc71;">✅ Approved &amp; Thread Archived</div>
+        </div>
+      `;
+    }
+    const staffFooter = document.getElementById('sim-uverify-staff-footer');
+    if (staffFooter) {
+      staffFooter.setAttribute('data-finalized', 'true');
+      staffFooter.textContent = `${serverName} • Case #0001 Approved`;
+    }
+    ['sim-btn-staff-claim', 'sim-btn-staff-approve', 'sim-btn-staff-reupload', 'sim-btn-staff-reject'].forEach(id => {
+      document.getElementById(id)?.classList.add('hidden');
+    });
+    const openThreadBtn = document.getElementById('sim-btn-staff-open-thread');
+    if (openThreadBtn) openThreadBtn.textContent = '↗️ View Archived Thread';
+  };
+  document.getElementById('sim-btn-uverify-approve')?.addEventListener('click', handleSimApprove);
+  document.getElementById('sim-btn-staff-approve')?.addEventListener('click', handleSimApprove);
 
   // Simulated Re-upload & Reject Reason Modal
   const reasonModal = document.getElementById('sim-uverify-reason-modal');
@@ -499,12 +664,15 @@ export function setupUserVerifyTabListeners() {
 
   document.getElementById('sim-btn-uverify-reupload')?.addEventListener('click', () => openSimReasonModal('reupload'));
   document.getElementById('sim-btn-uverify-reject')?.addEventListener('click', () => openSimReasonModal('reject'));
+  document.getElementById('sim-btn-staff-reupload')?.addEventListener('click', () => openSimReasonModal('reupload'));
+  document.getElementById('sim-btn-staff-reject')?.addEventListener('click', () => openSimReasonModal('reject'));
 
   document.getElementById('sim-uverify-reason-close')?.addEventListener('click', () => reasonModal?.classList.add('hidden'));
   document.getElementById('sim-uverify-reason-cancel')?.addEventListener('click', () => reasonModal?.classList.add('hidden'));
 
   document.getElementById('sim-uverify-reason-submit')?.addEventListener('click', () => {
     const reason = document.getElementById('sim-uverify-reason-input')?.value.trim() || 'No reason provided.';
+    const serverName = getActiveServerName();
     reasonModal?.classList.add('hidden');
 
     const isReupload = simReasonMode === 'reupload';
@@ -513,6 +681,8 @@ export function setupUserVerifyTabListeners() {
     const logEl = document.getElementById('sim-uverify-thread-log');
 
     if (isReupload) {
+      simClaimed = true;
+      syncClaimButtonUI();
       setSimulatedReviewerButtonsDisabled(false);
       if (statusEl) {
         statusEl.innerHTML = '🔄 Re-upload Requested by <strong>@AdminReviewer</strong>';
@@ -525,6 +695,7 @@ export function setupUserVerifyTabListeners() {
       if (ephDescEl) {
         ephDescEl.innerHTML = `
           <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+          <strong>Claimed By:</strong> 🔒 <strong>@AdminReviewer</strong><br>
           <strong>Case Status:</strong> 🔄 Re-upload Requested — Thread remains open<br><br>
           <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
         `;
@@ -537,8 +708,41 @@ export function setupUserVerifyTabListeners() {
             <div style="color: #dbdee1; font-size: 0.83rem; line-height: 1.45;">
               Hello <strong>@DaevaLegend</strong>, a reviewer requested an update:<br>
               <blockquote style="margin: 6px 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #fff;">${formatDiscordMarkdown(reason)}</blockquote>
-              <span style="color: #949ba4; font-size: 0.78rem;">🔓 Private thread stays OPEN — Reviewer controls remain available via <code>/review</code>!</span>
+              <span style="color: #949ba4; font-size: 0.78rem;">🔓 Private thread stays OPEN — Staff Queue &amp; <code>/review</code> stay synced!</span>
             </div>
+          </div>
+        `;
+      }
+
+      // Sync Staff Queue Card to Amber Re-upload Requested
+      const staffEmbed = document.getElementById('sim-uverify-staff-embed');
+      if (staffEmbed) staffEmbed.style.borderLeftColor = '#f39c12';
+      const staffFields = document.getElementById('sim-uverify-staff-fields');
+      if (staffFields) {
+        staffFields.innerHTML = `
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+            <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
+          </div>
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+            <div style="color: #dbdee1;">@DaevaLegend</div>
+          </div>
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🧵 Private Thread</div>
+            <div style="color: #949cf7;">#verify-0001-DaevaLegend</div>
+          </div>
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🙋 Claimed By</div>
+            <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">🔒 Claimed by <strong>@AdminReviewer</strong></div>
+          </div>
+          <div style="grid-column: span 2;">
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Queue Status</div>
+            <div id="sim-uverify-staff-status" style="color: #f39c12;">🔄 Re-upload Requested by <strong>@AdminReviewer</strong></div>
+          </div>
+          <div style="grid-column: span 3;">
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📝 Latest Reviewer Note</div>
+            <blockquote style="margin: 2px 0 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #dbdee1;">${formatDiscordMarkdown(reason)}</blockquote>
           </div>
         `;
       }
@@ -555,6 +759,7 @@ export function setupUserVerifyTabListeners() {
       if (ephDescEl) {
         ephDescEl.innerHTML = `
           <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+          <strong>Claimed By:</strong> 🔒 <strong>@AdminReviewer</strong><br>
           <strong>Case Status:</strong> ❌ Rejected &amp; Private Thread Archived<br><br>
           <em>This verification case has already been finalized.</em>
         `;
@@ -572,6 +777,47 @@ export function setupUserVerifyTabListeners() {
           </div>
         `;
       }
+
+      // Transform Staff Queue Card into Permanent Red Audit Card!
+      const staffEmbed = document.getElementById('sim-uverify-staff-embed');
+      if (staffEmbed) staffEmbed.style.borderLeftColor = '#e74c3c';
+      const staffTitle = document.getElementById('sim-uverify-staff-title');
+      if (staffTitle) staffTitle.textContent = '❌ Case #0001 — Verification Declined';
+      const staffFields = document.getElementById('sim-uverify-staff-fields');
+      if (staffFields) {
+        staffFields.innerHTML = `
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+            <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
+          </div>
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+            <div style="color: #dbdee1;">@DaevaLegend</div>
+          </div>
+          <div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🛡️ Declined By</div>
+            <div style="color: #e74c3c; font-weight: 600;">@AdminReviewer</div>
+          </div>
+          <div style="grid-column: span 3;">
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📝 Rejection Reason</div>
+            <blockquote style="margin: 2px 0 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #dbdee1;">${formatDiscordMarkdown(reason)}</blockquote>
+          </div>
+          <div style="grid-column: span 2;">
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Final Status</div>
+            <div style="color: #e74c3c;">❌ Rejected &amp; Thread Archived</div>
+          </div>
+        `;
+      }
+      const staffFooter = document.getElementById('sim-uverify-staff-footer');
+      if (staffFooter) {
+        staffFooter.setAttribute('data-finalized', 'true');
+        staffFooter.textContent = `${serverName} • Case #0001 Closed`;
+      }
+      ['sim-btn-staff-claim', 'sim-btn-staff-approve', 'sim-btn-staff-reupload', 'sim-btn-staff-reject'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+      const openThreadBtn = document.getElementById('sim-btn-staff-open-thread');
+      if (openThreadBtn) openThreadBtn.textContent = '↗️ View Archived Thread';
     }
   });
 }

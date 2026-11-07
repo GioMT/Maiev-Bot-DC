@@ -1,6 +1,6 @@
-import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=7.2';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.2';
-import { postEmbed } from '../api.js?v=7.2';
+import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=7.3';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
+import { postEmbed } from '../api.js?v=7.3';
 
 export function renderRulesEditor(cfg) {
   const title = cfg.rulesTitle || DEFAULT_RULES_TEMPLATE.title;

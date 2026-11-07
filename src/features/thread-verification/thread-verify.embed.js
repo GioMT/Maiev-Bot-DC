@@ -152,14 +152,216 @@ export function createThreadControlPayload({
 }
 
 /**
- * Creates the hidden ("Only you can see this") Ephemeral Reviewer Panel
- * summoned inside a verification thread via /review or Right-Click -> Apps -> Review Verification.
+ * Creates the Staff Review Queue & Permanent Audit Card posted automatically
+ * in the private Staff Review Channel (e.g. #verify-reviews).
  */
-export function createEphemeralReviewerPanelPayload({
+export function createStaffReviewCardPayload({
+  guild,
+  threadId,
   caseCode = '0001',
   userId,
   userTag,
   displayName,
+  status = 'pending',
+  claimedBy = null,
+  reviewedBy = null,
+  grantedRoles = [],
+  removedRoles = [],
+  lastReason = '',
+  lastSubmissionUrl = ''
+}) {
+  const config = configStore.get();
+  const serverName = config.serverName || guild?.name || 'Server';
+  const guildId = guild?.id || '@me';
+  const threadJumpUrl = `https://discord.com/channels/${guildId}/${threadId}`;
+  const userLabel = displayName || userTag || userId;
+
+  // 1. APPROVED — Permanent Green Audit Log Card
+  if (status === 'approved') {
+    const roleParts = [];
+    if (grantedRoles.length > 0) {
+      roleParts.push(`Granted: ${grantedRoles.map(r => `\`${r}\``).join(', ')}`);
+    }
+    if (removedRoles.length > 0) {
+      roleParts.push(`Removed: ${removedRoles.map(r => `\`${r}\``).join(', ')}`);
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle(`✅ Case #${caseCode} — Verification Approved`)
+      .addFields(
+        { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
+        { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+        { name: '🛡️ Approved By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
+        {
+          name: '🎭 Roles Updated',
+          value: roleParts.length > 0 ? roleParts.join(' • ') : 'Verified access unlocked',
+          inline: true
+        },
+        { name: '📋 Final Status', value: '✅ Approved & Thread Archived', inline: true }
+      )
+      .setFooter({ text: `${serverName} • Case #${caseCode} Approved` })
+      .setTimestamp();
+
+    const archiveRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('↗️ View Archived Thread')
+        .setStyle(ButtonStyle.Link)
+        .setURL(threadJumpUrl)
+    );
+
+    return {
+      embeds: [embed],
+      components: [archiveRow]
+    };
+  }
+
+  // 2. REJECTED — Permanent Red Audit Log Card
+  if (status === 'rejected') {
+    const embed = new EmbedBuilder()
+      .setColor(0xe74c3c)
+      .setTitle(`❌ Case #${caseCode} — Verification Declined`)
+      .addFields(
+        { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
+        { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+        { name: '🛡️ Declined By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
+        {
+          name: '📝 Rejection Reason',
+          value: `> ${String(lastReason || 'No reason provided.').slice(0, 900).replace(/\n/g, '\n> ')}`,
+          inline: false
+        },
+        { name: '📋 Final Status', value: '❌ Rejected & Thread Archived', inline: true }
+      )
+      .setFooter({ text: `${serverName} • Case #${caseCode} Closed` })
+      .setTimestamp();
+
+    const archiveRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('↗️ View Archived Thread')
+        .setStyle(ButtonStyle.Link)
+        .setURL(threadJumpUrl)
+    );
+
+    return {
+      embeds: [embed],
+      components: [archiveRow]
+    };
+  }
+
+  // 3. CLOSED (APPLICANT LEFT SERVER) — Permanent Slate Audit Log Card
+  if (status === 'closed_left') {
+    const embed = new EmbedBuilder()
+      .setColor(0x95a5a6)
+      .setTitle(`⚪ Case #${caseCode} — Closed (Applicant Left)`)
+      .addFields(
+        { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
+        { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+        { name: '🛡️ Closed By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
+        { name: '📋 Final Status', value: '⚠️ Applicant left the server — Thread archived', inline: false }
+      )
+      .setFooter({ text: `${serverName} • Case #${caseCode} Closed` })
+      .setTimestamp();
+
+    const archiveRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('↗️ View Archived Thread')
+        .setStyle(ButtonStyle.Link)
+        .setURL(threadJumpUrl)
+    );
+
+    return {
+      embeds: [embed],
+      components: [archiveRow]
+    };
+  }
+
+  // 4. ACTIVE QUEUE CARD (pending | submitted | reupload_requested)
+  let cardColor = 0x00d2ff;
+  let queueStatusValue = '⏳ Opened — Waiting for video upload';
+
+  if (status === 'reupload_requested') {
+    cardColor = 0xf39c12;
+    queueStatusValue = reviewedBy
+      ? `🔄 Re-upload Requested by <@${reviewedBy}>`
+      : '🔄 Re-upload Requested — Waiting for updated video';
+  } else if (status === 'submitted') {
+    cardColor = 0x5865F2;
+    queueStatusValue = lastSubmissionUrl
+      ? `📹 Submission Posted — [Jump to Recording](${lastSubmissionUrl})`
+      : '📹 Submission Posted — Ready for Review';
+  } else if (claimedBy) {
+    cardColor = 0x5865F2;
+  }
+
+  const fields = [
+    { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
+    { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+    { name: '🧵 Private Thread', value: `<#${threadId}>`, inline: true },
+    {
+      name: '🙋 Claimed By',
+      value: claimedBy ? `🔒 Claimed by <@${claimedBy}>` : '🟢 Unclaimed — Available',
+      inline: true
+    },
+    { name: '📋 Queue Status', value: queueStatusValue, inline: true }
+  ];
+
+  if (lastReason && status === 'reupload_requested') {
+    fields.push({
+      name: '📝 Latest Reviewer Note',
+      value: `> ${String(lastReason).slice(0, 900).replace(/\n/g, '\n> ')}`,
+      inline: false
+    });
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(cardColor)
+    .setTitle(`🛡️ Case #${caseCode} — Video Verification Queue`)
+    .addFields(fields)
+    .setFooter({
+      text: `${serverName} • Claim a case before reviewing to prevent duplicate actions`
+    })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`btn_vthread_claim_${threadId}_${userId}`)
+      .setLabel(claimedBy ? '🔓 Unclaim' : '🙋 Claim Case')
+      .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`btn_vthread_approve_${threadId}_${userId}`)
+      .setLabel('✅ Approve')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`btn_vthread_reupload_${threadId}_${userId}`)
+      .setLabel('🔄 Request Re-upload')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`btn_vthread_reject_${threadId}_${userId}`)
+      .setLabel('❌ Reject & Close')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setLabel('↗️ Open Thread')
+      .setStyle(ButtonStyle.Link)
+      .setURL(lastSubmissionUrl || threadJumpUrl)
+  );
+
+  return {
+    embeds: [embed],
+    components: [row]
+  };
+}
+
+/**
+ * Creates the hidden ("Only you can see this") Ephemeral Reviewer Panel
+ * summoned inside a verification thread via /review or Right-Click -> Apps -> Review Verification.
+ */
+export function createEphemeralReviewerPanelPayload({
+  threadId,
+  caseCode = '0001',
+  userId,
+  userTag,
+  displayName,
+  claimedBy = null,
   statusText = '⏳ Pending Review',
   targetMessageUrl = '',
   embedColor = 0x5865F2,
@@ -168,6 +370,7 @@ export function createEphemeralReviewerPanelPayload({
   const userLabel = displayName || userTag || userId;
   const lines = [
     `**Applicant:** <@${userId}> (\`${userLabel}\`)`,
+    `**Claimed By:** ${claimedBy ? `🔒 <@${claimedBy}>` : '🟢 Unclaimed — Available'}`,
     `**Case Status:** ${statusText}`
   ];
 
@@ -190,19 +393,26 @@ export function createEphemeralReviewerPanelPayload({
     })
     .setTimestamp();
 
+  const idSegment = threadId ? `${threadId}_${userId}` : userId;
+
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`btn_vthread_approve_${userId}`)
+      .setCustomId(`btn_vthread_claim_${idSegment}`)
+      .setLabel(claimedBy ? '🔓 Unclaim' : '🙋 Claim Case')
+      .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
+      .setDisabled(disableButtons),
+    new ButtonBuilder()
+      .setCustomId(`btn_vthread_approve_${idSegment}`)
       .setLabel('✅ Approve')
       .setStyle(ButtonStyle.Success)
       .setDisabled(disableButtons),
     new ButtonBuilder()
-      .setCustomId(`btn_vthread_reupload_${userId}`)
+      .setCustomId(`btn_vthread_reupload_${idSegment}`)
       .setLabel('🔄 Request Re-upload')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(disableButtons),
     new ButtonBuilder()
-      .setCustomId(`btn_vthread_reject_${userId}`)
+      .setCustomId(`btn_vthread_reject_${idSegment}`)
       .setLabel('❌ Reject & Close')
       .setStyle(ButtonStyle.Danger)
       .setDisabled(disableButtons)
@@ -217,10 +427,11 @@ export function createEphemeralReviewerPanelPayload({
 /**
  * Builds the Reviewer reason prompt modal for either "Request Re-upload" or "Reject & Close".
  */
-export function createReviewerReasonModal({ mode, userId }) {
+export function createReviewerReasonModal({ mode, threadId, userId }) {
   const isReupload = mode === 'reupload';
+  const idSegment = threadId ? `${threadId}_${userId}` : userId;
   const modal = new ModalBuilder()
-    .setCustomId(`modal_vthread_${mode}_${userId}`)
+    .setCustomId(`modal_vthread_${mode}_${idSegment}`)
     .setTitle(isReupload ? 'Request New Recording' : 'Reject & Close Verification');
 
   const reasonInput = new TextInputBuilder()

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=7.2">
+  <link rel="stylesheet" href="style.css?v=7.3">
   <script src="lucide.min.js"></script>
 </head>
 <body>
@@ -676,6 +676,19 @@
                 </div>
               </div>
 
+              <!-- Staff Review Queue & Audit Channel -->
+              <div class="form-group mt-2">
+                <label for="select-user-verify-staff-channel" class="form-label">
+                  Staff Review Queue &amp; Audit Channel (Recommended):
+                </label>
+                <select id="select-user-verify-staff-channel" class="form-select">
+                  <option value="">-- Optional: In-Thread /review Only (No Staff Channel) --</option>
+                </select>
+                <span class="form-hint">
+                  Select a private staff-only channel (e.g. <strong>#verify-reviews</strong>). Maiev automatically posts each <strong>Case #0001</strong> queue card there with <strong>🙋 Claim Case</strong>, <strong>✅ Approve</strong>, <strong>🔄 Request Re-upload</strong>, and <strong>❌ Reject &amp; Close</strong> buttons — no slash commands needed, and finalized cases transform into a permanent audit log!
+                </span>
+              </div>
+
               <!-- Reference Video Upload / URL -->
               <div class="personalized-rules-box mt-4">
                 <div class="rules-editor-header">
@@ -824,10 +837,13 @@
             <div class="card-body">
               <div class="sim-preview-switcher mb-3" style="margin-bottom: 12px;">
                 <button type="button" class="sim-preview-switch-btn active" id="btn-sim-uverify-view-channel">
-                  <i data-lucide="hash" style="width: 14px; height: 14px;"></i> Channel Embed View
+                  <i data-lucide="hash" style="width: 14px; height: 14px;"></i> #user-verify
                 </button>
                 <button type="button" class="sim-preview-switch-btn" id="btn-sim-uverify-view-thread">
-                  <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Private Thread View
+                  <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Private Thread
+                </button>
+                <button type="button" class="sim-preview-switch-btn" id="btn-sim-uverify-view-staff">
+                  <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Staff Queue
                 </button>
               </div>
 
@@ -932,13 +948,17 @@
                           <div class="embed-title" style="font-size: 0.9rem;">🛡️ Reviewer Controls — Case #0001</div>
                           <div class="embed-description" id="sim-uverify-ephemeral-desc" style="font-size: 0.82rem;">
                             <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+                            <strong>Claimed By:</strong> 🟢 Unclaimed — Available<br>
                             <strong>Case Status:</strong> ⏳ Pending Review<br><br>
                             <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
                           </div>
                           <div class="embed-footer">🔒 Hidden Reviewer Panel • Only visible to you</div>
                         </div>
 
-                        <div class="discord-action-row">
+                        <div class="discord-action-row" style="flex-wrap: wrap;">
+                          <button type="button" class="discord-btn discord-btn-primary" id="sim-btn-uverify-claim">
+                            🙋 Claim Case
+                          </button>
                           <button type="button" class="discord-btn discord-btn-success" id="sim-btn-uverify-approve">
                             ✅ Approve
                           </button>
@@ -949,6 +969,78 @@
                             ❌ Reject &amp; Close
                           </button>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- View 3: Staff Review Queue & Audit Channel (#verify-reviews) -->
+              <div id="sim-uverify-staff-pane" class="discord-preview-container hidden">
+                <div class="discord-chat-header" style="justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="discord-hash">#</span>
+                    <span class="discord-channel-name" id="sim-uverify-staff-channel-name">verify-reviews</span>
+                    <span class="discord-topic">Staff-Only Queue &amp; Audit Log</span>
+                  </div>
+                  <button type="button" class="btn btn-xs btn-secondary" id="sim-btn-uverify-reset-staff-sim" title="Reset simulated queue state">
+                    <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i> Reset
+                  </button>
+                </div>
+
+                <div class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-10" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Just now</span>
+                      </div>
+
+                      <div class="discord-embed" id="sim-uverify-staff-embed" style="border-left-color: #5865F2;">
+                        <div class="embed-title" id="sim-uverify-staff-title">🛡️ Case #0001 — Video Verification Queue</div>
+                        <div id="sim-uverify-staff-fields" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; font-size: 0.8rem;">
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+                            <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
+                          </div>
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+                            <div style="color: #dbdee1;">@DaevaLegend</div>
+                          </div>
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🧵 Private Thread</div>
+                            <div style="color: #949cf7;">#verify-0001-DaevaLegend</div>
+                          </div>
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🙋 Claimed By</div>
+                            <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">🟢 Unclaimed — Available</div>
+                          </div>
+                          <div style="grid-column: span 2;">
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Queue Status</div>
+                            <div id="sim-uverify-staff-status" style="color: #dbdee1;">📹 Submission Posted — Ready for Review</div>
+                          </div>
+                        </div>
+                        <div class="embed-footer" id="sim-uverify-staff-footer">Asia Fregion • Claim a case before reviewing to prevent duplicate actions</div>
+                      </div>
+
+                      <div class="discord-action-row" id="sim-uverify-staff-actions" style="flex-wrap: wrap;">
+                        <button type="button" class="discord-btn discord-btn-primary" id="sim-btn-staff-claim">
+                          🙋 Claim Case
+                        </button>
+                        <button type="button" class="discord-btn discord-btn-success" id="sim-btn-staff-approve">
+                          ✅ Approve
+                        </button>
+                        <button type="button" class="discord-btn discord-btn-secondary" id="sim-btn-staff-reupload">
+                          🔄 Request Re-upload
+                        </button>
+                        <button type="button" class="discord-btn discord-btn-danger" id="sim-btn-staff-reject">
+                          ❌ Reject &amp; Close
+                        </button>
+                        <button type="button" class="discord-btn discord-btn-secondary" id="sim-btn-staff-open-thread">
+                          ↗️ Open Thread
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2352,6 +2444,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=7.2"></script>
+  <script type="module" src="js/main.js?v=7.3"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import {
   handleStartVideoVerifyButton,
+  handleVerifyThreadMessage,
   handleReviewCommand,
   handleReviewerActionButton,
   handleReviewerReasonModal,
@@ -48,6 +49,10 @@ export const threadVerificationFeature = {
 
   modalPrefixes: {
     'modal_vthread_': handleReviewerReasonModal
+  },
+
+  registerEvents({ client }) {
+    client.on('messageCreate', handleVerifyThreadMessage);
   },
 
   registerRoutes(app, context) {
