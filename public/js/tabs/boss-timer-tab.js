@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.3';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
+import { state } from '../state.js?v=7.4';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
 
 const DEFAULT_BOSS_TITLES = {
   abyssTitle: '🔥 Fregion — Reshanta / Abyss Bosses',
@@ -92,7 +92,7 @@ function buildClientBossTable(bosses, now = Date.now()) {
 
 export async function fetchBossTimerState() {
   try {
-    const res = await fetch('/api/boss-timer');
+    const res = await fetch('/api/boss-timer', { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     bossTimerData = data;
@@ -330,6 +330,7 @@ export function updateBossTimerPreview() {
 }
 
 export async function saveBossTimerSettings() {
+  if (!bossTimerData) return null;
   const serverId = Number(document.getElementById('boss-server-id-input')?.value) || 1507;
   const channelId = document.getElementById('select-boss-timer-channel')?.value || '';
   const alertChannelId = document.getElementById('select-boss-alert-channel')?.value || '';

@@ -1,19 +1,24 @@
 import {
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE
-} from '../presets.js?v=7.3';
-import { state, getActiveServerName } from '../state.js?v=7.3';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
-import { postEmbed } from '../api.js?v=7.3';
+} from '../presets.js?v=7.4';
+import { state, getActiveServerName } from '../state.js?v=7.4';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
+import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.4';
 
 export function renderVerifyEditor(cfg) {
   const title = cfg.verifyTitle || DEFAULT_VERIFY_TEMPLATE.title;
   const content = cfg.verifyContent || DEFAULT_VERIFY_TEMPLATE.content;
   const footer = cfg.verifyFooter || DEFAULT_VERIFY_TEMPLATE.footer;
 
-  document.getElementById('verify-title-input').value = title;
-  document.getElementById('verify-content-input').value = content;
-  document.getElementById('verify-footer-input').value = footer;
+  const titleEl = document.getElementById('verify-title-input');
+  const contentEl = document.getElementById('verify-content-input');
+  const footerEl = document.getElementById('verify-footer-input');
+  const active = document.activeElement;
+
+  if (titleEl && active !== titleEl) titleEl.value = title;
+  if (contentEl && active !== contentEl) contentEl.value = content;
+  if (footerEl && active !== footerEl) footerEl.value = footer;
 
   updateVerifyPreview();
 }
@@ -34,9 +39,14 @@ export function renderWelcomeEditor(cfg) {
   const content = cfg.welcomeContent || DEFAULT_WELCOME_TEMPLATE.content;
   const footer = cfg.welcomeFooter || DEFAULT_WELCOME_TEMPLATE.footer;
 
-  document.getElementById('welcome-title-input').value = title;
-  document.getElementById('welcome-content-input').value = content;
-  document.getElementById('welcome-footer-input').value = footer;
+  const titleEl = document.getElementById('welcome-title-input');
+  const contentEl = document.getElementById('welcome-content-input');
+  const footerEl = document.getElementById('welcome-footer-input');
+  const active = document.activeElement;
+
+  if (titleEl && active !== titleEl) titleEl.value = title;
+  if (contentEl && active !== contentEl) contentEl.value = content;
+  if (footerEl && active !== footerEl) footerEl.value = footer;
 }
 
 export function setupVerifyTabListeners() {
@@ -44,15 +54,24 @@ export function setupVerifyTabListeners() {
   const verifyContentInput = document.getElementById('verify-content-input');
   const verifyFooterInput = document.getElementById('verify-footer-input');
 
-  verifyTitleInput?.addEventListener('input', updateVerifyPreview);
-  verifyContentInput?.addEventListener('input', updateVerifyPreview);
-  verifyFooterInput?.addEventListener('input', updateVerifyPreview);
+  const onVerifyInput = () => {
+    updateVerifyPreview();
+    scheduleAutoSave(450);
+  };
+  verifyTitleInput?.addEventListener('input', onVerifyInput);
+  verifyContentInput?.addEventListener('input', onVerifyInput);
+  verifyFooterInput?.addEventListener('input', onVerifyInput);
+
+  ['welcome-title-input', 'welcome-content-input', 'welcome-footer-input'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => scheduleAutoSave(450));
+  });
 
   document.getElementById('btn-reset-verify-template')?.addEventListener('click', () => {
     verifyTitleInput.value = DEFAULT_VERIFY_TEMPLATE.title;
     verifyContentInput.value = DEFAULT_VERIFY_TEMPLATE.content;
     verifyFooterInput.value = DEFAULT_VERIFY_TEMPLATE.footer;
     updateVerifyPreview();
+    scheduleAutoSave(200);
     showToast('Reset verification editor to standard template!', 'success');
   });
 
@@ -60,6 +79,7 @@ export function setupVerifyTabListeners() {
     document.getElementById('welcome-title-input').value = DEFAULT_WELCOME_TEMPLATE.title;
     document.getElementById('welcome-content-input').value = DEFAULT_WELCOME_TEMPLATE.content;
     document.getElementById('welcome-footer-input').value = DEFAULT_WELCOME_TEMPLATE.footer;
+    scheduleAutoSave(200);
     showToast('Reset welcome popup card to standard template!', 'success');
   });
 
@@ -69,6 +89,7 @@ export function setupVerifyTabListeners() {
       showToast('Please select a setup channel first.', 'error');
       return;
     }
+    await saveAllConfiguration({ silent: true, skipBossTimer: true });
     postEmbed('/api/post-verify', channelId, 'AION 2 IGN Setup card posted successfully!');
   });
 

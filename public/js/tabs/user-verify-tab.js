@@ -1,13 +1,55 @@
-import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.3';
-import { state, getActiveServerName } from '../state.js?v=7.3';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
+import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.4';
+import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.4';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
 
 let currentUploadedVideoPath = '';
+let videoExplicitlyCleared = false;
+let userVerifySaveTimer = null;
 let simReasonMode = 'reupload'; // 'reupload' | 'reject'
 let simClaimed = false;
 
 export function getUploadedUserVerifyVideoPath() {
   return currentUploadedVideoPath;
+}
+
+async function persistUserVerifyValuesNow(keepalive = false) {
+  if (!state.initialLoadComplete) return;
+  const values = collectUserVerifyFormValues();
+  state.pendingConfigSave = true;
+  syncCachedConfig(values);
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(values),
+      keepalive
+    });
+    if (res.ok && !keepalive) {
+      const data = await res.json().catch(() => null);
+      if (data?.config) {
+        syncCachedConfig(data.config, true);
+      }
+    }
+  } catch (err) {
+    if (!keepalive) {
+      console.error('Failed to auto-save Video Verify settings:', err);
+    }
+  } finally {
+    state.pendingConfigSave = false;
+  }
+}
+
+export function scheduleUserVerifyAutoSave(delayMs = 350) {
+  if (!state.initialLoadComplete) return;
+  state.pendingConfigSave = true;
+  syncCachedConfig(collectUserVerifyFormValues());
+
+  if (userVerifySaveTimer) clearTimeout(userVerifySaveTimer);
+  userVerifySaveTimer = setTimeout(() => {
+    userVerifySaveTimer = null;
+    persistUserVerifyValuesNow(false);
+  }, delayMs);
 }
 
 export function renderUserVerifyRoleCheckboxes(data) {
@@ -44,6 +86,7 @@ export function renderUserVerifyRoleCheckboxes(data) {
       label.querySelector('input')?.addEventListener('change', () => {
         updateBadge(badgeId, inputName);
         if (onChangeCb) onChangeCb();
+        scheduleUserVerifyAutoSave(250);
       });
       container.appendChild(label);
     });
@@ -57,6 +100,9 @@ export function renderUserVerifyRoleCheckboxes(data) {
 
 function renderUploadedVideoBadge(videoPath) {
   currentUploadedVideoPath = videoPath || '';
+  if (currentUploadedVideoPath) {
+    videoExplicitlyCleared = false;
+  }
   const statusEl = document.getElementById('uverify-uploaded-video-status');
   const removeBtn = document.getElementById('btn-remove-uverify-video');
 
@@ -82,13 +128,14 @@ export function renderUserVerifyEditor(cfg = {}) {
   const threadContentEl = document.getElementById('uverify-thread-content-input');
   const deployBadge = document.getElementById('uverify-deploy-badge');
 
-  if (titleEl) titleEl.value = cfg.userVerifyTitle || DEFAULT_USER_VERIFY_TEMPLATE.title;
-  if (contentEl) contentEl.value = cfg.userVerifyContent || DEFAULT_USER_VERIFY_TEMPLATE.content;
-  if (footerEl) footerEl.value = cfg.userVerifyFooter || DEFAULT_USER_VERIFY_TEMPLATE.footer;
-  if (btnLabelEl) btnLabelEl.value = cfg.userVerifyButtonLabel || DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel;
-  if (videoUrlEl) videoUrlEl.value = cfg.userVerifyVideoUrl || '';
-  if (threadTitleEl) threadTitleEl.value = cfg.userVerifyThreadTitle || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
-  if (threadContentEl) threadContentEl.value = cfg.userVerifyThreadContent || DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
+  const active = document.activeElement;
+  if (titleEl && active !== titleEl) titleEl.value = cfg.userVerifyTitle || DEFAULT_USER_VERIFY_TEMPLATE.title;
+  if (contentEl && active !== contentEl) contentEl.value = cfg.userVerifyContent || DEFAULT_USER_VERIFY_TEMPLATE.content;
+  if (footerEl && active !== footerEl) footerEl.value = cfg.userVerifyFooter || DEFAULT_USER_VERIFY_TEMPLATE.footer;
+  if (btnLabelEl && active !== btnLabelEl) btnLabelEl.value = cfg.userVerifyButtonLabel || DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel;
+  if (videoUrlEl && active !== videoUrlEl) videoUrlEl.value = cfg.userVerifyVideoUrl || '';
+  if (threadTitleEl && active !== threadTitleEl) threadTitleEl.value = cfg.userVerifyThreadTitle || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
+  if (threadContentEl && active !== threadContentEl) threadContentEl.value = cfg.userVerifyThreadContent || DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
 
   if (deployBadge) {
     if (cfg.userVerifyMessageId) {
@@ -321,12 +368,35 @@ function resetThreadSimulation() {
   if (openThreadBtn) openThreadBtn.textContent = '↗️ Open Thread';
 }
 
+function readUserVerifyRoleCheckboxes(inputName, fallbackArray) {
+  const allInputs = document.querySelectorAll(`input[name="${inputName}"]`);
+  if (allInputs.length === 0) {
+    return Array.isArray(fallbackArray) ? fallbackArray : [];
+  }
+  const checkedIds = Array.from(allInputs).filter(el => el.checked).map(el => el.value);
+  if (!state.serverState?.guildReady && Array.isArray(fallbackArray)) {
+    const renderedIds = new Set(Array.from(allInputs).map(el => el.value));
+    const unrendered = fallbackArray.filter(id => !renderedIds.has(id));
+    return [...new Set([...checkedIds, ...unrendered])];
+  }
+  return checkedIds;
+}
+
+function readUserVerifyChannelSelect(selectId, fallbackValue) {
+  const el = document.getElementById(selectId);
+  if (!el || !state.initialLoadComplete || el.options.length <= 1) {
+    return el?.value || fallbackValue || '';
+  }
+  return el.value;
+}
+
 export function collectUserVerifyFormValues() {
-  const userVerifyChannelId = document.getElementById('select-user-verify-channel')?.value || '';
-  const userVerifyStaffChannelId = document.getElementById('select-user-verify-staff-channel')?.value || '';
-  const userVerifyReviewerRoleIds = Array.from(document.querySelectorAll('input[name="role_uverify_reviewer"]:checked')).map(el => el.value);
-  const userVerifyRolesToAdd = Array.from(document.querySelectorAll('input[name="role_uverify_add"]:checked')).map(el => el.value);
-  const userVerifyRolesToRemove = Array.from(document.querySelectorAll('input[name="role_uverify_remove"]:checked')).map(el => el.value);
+  const cfg = state.serverState?.config || {};
+  const userVerifyChannelId = readUserVerifyChannelSelect('select-user-verify-channel', cfg.userVerifyChannelId);
+  const userVerifyStaffChannelId = readUserVerifyChannelSelect('select-user-verify-staff-channel', cfg.userVerifyStaffChannelId);
+  const userVerifyReviewerRoleIds = readUserVerifyRoleCheckboxes('role_uverify_reviewer', cfg.userVerifyReviewerRoleIds);
+  const userVerifyRolesToAdd = readUserVerifyRoleCheckboxes('role_uverify_add', cfg.userVerifyRolesToAdd);
+  const userVerifyRolesToRemove = readUserVerifyRoleCheckboxes('role_uverify_remove', cfg.userVerifyRolesToRemove);
 
   const userVerifyTitle = document.getElementById('uverify-title-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.title;
   const userVerifyContent = document.getElementById('uverify-content-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.content;
@@ -335,6 +405,8 @@ export function collectUserVerifyFormValues() {
   const userVerifyVideoUrl = document.getElementById('uverify-video-url-input')?.value.trim() || '';
   const userVerifyThreadTitle = document.getElementById('uverify-thread-title-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
   const userVerifyThreadContent = document.getElementById('uverify-thread-content-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
+  const effectiveUploadedVideo = currentUploadedVideoPath ||
+    (!videoExplicitlyCleared ? (cfg.userVerifyUploadedVideo || '') : '');
 
   return {
     userVerifyChannelId,
@@ -347,7 +419,7 @@ export function collectUserVerifyFormValues() {
     userVerifyFooter,
     userVerifyButtonLabel,
     userVerifyVideoUrl,
-    userVerifyUploadedVideo: currentUploadedVideoPath,
+    userVerifyUploadedVideo: effectiveUploadedVideo,
     userVerifyThreadTitle,
     userVerifyThreadContent
   };
@@ -380,6 +452,15 @@ async function deployUserVerifyPanel(forceNew) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to deploy verification card');
+
+    if (data.config) {
+      syncCachedConfig(data.config, true);
+    } else {
+      syncCachedConfig({
+        ...values,
+        ...(data.messageId ? { userVerifyMessageId: data.messageId } : {})
+      });
+    }
 
     const deployBadge = document.getElementById('uverify-deploy-badge');
     if (deployBadge && data.messageId) {
@@ -414,10 +495,29 @@ export function setupUserVerifyTabListeners() {
     'uverify-thread-title-input',
     'uverify-thread-content-input'
   ].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', updateUserVerifyPreview);
+    document.getElementById(id)?.addEventListener('input', () => {
+      updateUserVerifyPreview();
+      scheduleUserVerifyAutoSave(400);
+    });
   });
 
-  document.getElementById('select-user-verify-channel')?.addEventListener('change', updateUserVerifyPreview);
+  document.getElementById('select-user-verify-channel')?.addEventListener('change', () => {
+    updateUserVerifyPreview();
+    scheduleUserVerifyAutoSave(200);
+  });
+
+  document.getElementById('select-user-verify-staff-channel')?.addEventListener('change', () => {
+    updateUserVerifyPreview();
+    scheduleUserVerifyAutoSave(200);
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (userVerifySaveTimer) {
+      clearTimeout(userVerifySaveTimer);
+      userVerifySaveTimer = null;
+      persistUserVerifyValuesNow(true);
+    }
+  });
 
   // Reset Templates
   document.getElementById('btn-reset-uverify-template')?.addEventListener('click', () => {
@@ -426,6 +526,7 @@ export function setupUserVerifyTabListeners() {
     document.getElementById('uverify-footer-input').value = DEFAULT_USER_VERIFY_TEMPLATE.footer;
     document.getElementById('uverify-btn-label-input').value = DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel;
     updateUserVerifyPreview();
+    scheduleUserVerifyAutoSave(150);
     showToast('Reset channel verification embed to default template!', 'success');
   });
 
@@ -433,6 +534,7 @@ export function setupUserVerifyTabListeners() {
     document.getElementById('uverify-thread-title-input').value = DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
     document.getElementById('uverify-thread-content-input').value = DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
     updateUserVerifyPreview();
+    scheduleUserVerifyAutoSave(150);
     showToast('Reset private thread welcome message to default template!', 'success');
   });
 
@@ -470,9 +572,16 @@ export function setupUserVerifyTabListeners() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
 
+      videoExplicitlyCleared = false;
       renderUploadedVideoBadge(data.videoPath);
+      if (data.config) {
+        syncCachedConfig(data.config, true);
+      } else {
+        syncCachedConfig({ userVerifyUploadedVideo: data.videoPath });
+      }
+      await persistUserVerifyValuesNow(false);
       updateUserVerifyPreview();
-      showToast(`Reference video "${file.name}" uploaded & ready to post!`, 'success');
+      showToast(`Reference video "${file.name}" uploaded & saved!`, 'success');
     } catch (err) {
       showToast(`Video upload failed: ${err.message}`, 'error');
     } finally {
@@ -486,8 +595,15 @@ export function setupUserVerifyTabListeners() {
   removeVideoBtn?.addEventListener('click', async () => {
     try {
       const res = await fetch('/api/upload-verify-video', { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error('Failed to remove video');
+      videoExplicitlyCleared = true;
       renderUploadedVideoBadge('');
+      if (data?.config) {
+        syncCachedConfig(data.config, true);
+      } else {
+        syncCachedConfig({ userVerifyUploadedVideo: '' });
+      }
       updateUserVerifyPreview();
       showToast('Removed attached reference video.', 'success');
     } catch (err) {

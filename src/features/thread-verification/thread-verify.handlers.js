@@ -1179,14 +1179,15 @@ export function handleUploadVerifyVideoApi(req, res) {
       }
 
       const publicVideoPath = `/uploads/${finalFileName}`;
-      configStore.save({ userVerifyUploadedVideo: publicVideoPath });
+      const updatedConfig = configStore.save({ userVerifyUploadedVideo: publicVideoPath });
 
       console.log(`[Video Verify] 📤 Reference video uploaded: ${finalFileName} (${(receivedBytes / (1024 * 1024)).toFixed(2)} MB)`);
       res.json({
         success: true,
         videoPath: publicVideoPath,
         fileName: finalFileName,
-        size: receivedBytes
+        size: receivedBytes,
+        config: updatedConfig
       });
     });
 
@@ -1213,8 +1214,8 @@ export function handleDeleteVerifyVideoApi(req, res) {
         fs.unlink(oldDisk, () => {});
       }
     }
-    configStore.save({ userVerifyUploadedVideo: '' });
-    res.json({ success: true });
+    const updatedConfig = configStore.save({ userVerifyUploadedVideo: '' });
+    res.json({ success: true, config: updatedConfig });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1296,7 +1297,8 @@ export async function handlePostUserVerifyApi(req, res, { client }) {
       updated: wasUpdated,
       posted: !wasUpdated,
       messageId: targetMsg.id,
-      channelName: channel.name
+      channelName: channel.name,
+      config: configStore.get()
     });
   } catch (err) {
     console.error('[Video Verify] Error in /api/post-user-verify:', err);

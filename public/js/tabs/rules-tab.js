@@ -1,15 +1,20 @@
-import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=7.3';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.3';
-import { postEmbed } from '../api.js?v=7.3';
+import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=7.4';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
+import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.4';
 
 export function renderRulesEditor(cfg) {
   const title = cfg.rulesTitle || DEFAULT_RULES_TEMPLATE.title;
   const content = cfg.rulesContent || DEFAULT_RULES_TEMPLATE.content;
   const footer = cfg.rulesFooter || DEFAULT_RULES_TEMPLATE.footer;
 
-  document.getElementById('rules-title-input').value = title;
-  document.getElementById('rules-content-input').value = content;
-  document.getElementById('rules-footer-input').value = footer;
+  const titleEl = document.getElementById('rules-title-input');
+  const contentEl = document.getElementById('rules-content-input');
+  const footerEl = document.getElementById('rules-footer-input');
+  const active = document.activeElement;
+
+  if (titleEl && active !== titleEl) titleEl.value = title;
+  if (contentEl && active !== contentEl) contentEl.value = content;
+  if (footerEl && active !== footerEl) footerEl.value = footer;
 
   updateRulesPreview();
 }
@@ -29,15 +34,20 @@ export function setupRulesTabListeners() {
   const contentInput = document.getElementById('rules-content-input');
   const footerInput = document.getElementById('rules-footer-input');
 
-  titleInput?.addEventListener('input', updateRulesPreview);
-  contentInput?.addEventListener('input', updateRulesPreview);
-  footerInput?.addEventListener('input', updateRulesPreview);
+  const onInput = () => {
+    updateRulesPreview();
+    scheduleAutoSave(450);
+  };
+  titleInput?.addEventListener('input', onInput);
+  contentInput?.addEventListener('input', onInput);
+  footerInput?.addEventListener('input', onInput);
 
   document.getElementById('btn-reset-rules-template')?.addEventListener('click', () => {
     titleInput.value = DEFAULT_RULES_TEMPLATE.title;
     contentInput.value = DEFAULT_RULES_TEMPLATE.content;
     footerInput.value = DEFAULT_RULES_TEMPLATE.footer;
     updateRulesPreview();
+    scheduleAutoSave(200);
     showToast('Reset rules editor to standard AION 2 template!', 'success');
   });
 
@@ -47,6 +57,7 @@ export function setupRulesTabListeners() {
       showToast('Please select a rules channel first.', 'error');
       return;
     }
+    await saveAllConfiguration({ silent: true, skipBossTimer: true });
     postEmbed('/api/post-rules', channelId, 'Rules card posted successfully to Discord!');
   });
 

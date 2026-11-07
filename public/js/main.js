@@ -1,60 +1,58 @@
 /**
  * Maiev Bot Control Center — Modular ES Entry Point
  */
-import { state } from './state.js?v=7.3';
-import { refreshIcons, showToast } from './utils.js?v=7.3';
-import { saveAllConfiguration } from './api.js?v=7.3';
+import { state, syncCachedConfig } from './state.js?v=7.4';
+import { refreshIcons, showToast } from './utils.js?v=7.4';
+import { saveAllConfiguration, flushPendingAutoSaveOnUnload } from './api.js?v=7.4';
 import {
   setupTabs,
   renderHeaderTelemetry,
   renderRoleDropdowns,
   renderChannelDropdowns,
   setupServerNameEditing
-} from './tabs/header-telemetry.js?v=7.3';
-import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.3';
+} from './tabs/header-telemetry.js?v=7.4';
+import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.4';
 import {
   renderVerifyEditor,
   renderWelcomeEditor,
   setupVerifyTabListeners
-} from './tabs/verify-tab.js?v=7.3';
+} from './tabs/verify-tab.js?v=7.4';
 import {
   renderUserVerifyEditor,
   setupUserVerifyTabListeners
-} from './tabs/user-verify-tab.js?v=7.3';
+} from './tabs/user-verify-tab.js?v=7.4';
 import {
   renderWelcomeAnnouncementEditor,
   setupWelcomeTabListeners
-} from './tabs/welcome-tab.js?v=7.3';
+} from './tabs/welcome-tab.js?v=7.4';
 import {
   renderNationalityRolesManager,
   setupReactionRolesTabListeners,
   applyRemoteNationalitySync
-} from './tabs/reaction-roles-tab.js?v=7.3';
+} from './tabs/reaction-roles-tab.js?v=7.4';
 import {
   renderDiagnostics,
   fetchMembers,
   setupDiagnosticsTabListeners
-} from './tabs/diagnostics-tab.js?v=7.3';
+} from './tabs/diagnostics-tab.js?v=7.4';
 import {
   fetchBossTimerState,
   setupBossTimerTabListeners
-} from './tabs/boss-timer-tab.js?v=7.3';
+} from './tabs/boss-timer-tab.js?v=7.4';
 import {
   fetchAlertsState,
   setupAlertsTabListeners
-} from './tabs/alerts-tab.js?v=7.3';
+} from './tabs/alerts-tab.js?v=7.4';
 
 export async function fetchServerState() {
   try {
-    const res = await fetch('/api/status');
+    const res = await fetch('/api/status', { cache: 'no-store' });
     if (!res.ok) throw new Error('API request failed');
     const data = await res.json();
     state.serverState = data;
 
     if (data.config) {
-      try {
-        localStorage.setItem('maiev_config_cache', JSON.stringify(data.config));
-      } catch (_) {}
+      syncCachedConfig(data.config, true);
     }
 
     renderHeaderTelemetry(data);
@@ -67,6 +65,8 @@ export async function fetchServerState() {
     renderWelcomeAnnouncementEditor(data.config || {});
     renderNationalityRolesManager(data);
     renderDiagnostics(data);
+    state.initialLoadComplete = true;
+
     fetchMembers();
     fetchBossTimerState();
     fetchAlertsState();
@@ -94,6 +94,8 @@ function setupGlobalListeners() {
     showToast('Refreshed live data from Discord Gateway!', 'success');
   });
 
+  window.addEventListener('beforeunload', flushPendingAutoSaveOnUnload);
+
   setupRulesTabListeners();
   setupVerifyTabListeners();
   setupUserVerifyTabListeners();
@@ -110,7 +112,8 @@ function setupRealtimeSync() {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'config_updated' && data.config) {
+        if (data.type === 'config_updated' && data.config && !state.pendingConfigSave) {
+          syncCachedConfig(data.config, true);
           applyRemoteNationalitySync(data.config);
         }
       } catch (_) {}
@@ -118,12 +121,14 @@ function setupRealtimeSync() {
   }
 
   setInterval(async () => {
+    if (state.pendingConfigSave) return;
     try {
-      const res = await fetch('/api/status');
-      if (res.ok) {
+      const res = await fetch('/api/status', { cache: 'no-store' });
+      if (res.ok && !state.pendingConfigSave) {
         const data = await res.json();
         state.serverState = data;
         if (data.config) {
+          syncCachedConfig(data.config, true);
           applyRemoteNationalitySync(data.config);
         }
       }
@@ -137,6 +142,8 @@ function bootstrap() {
     const cached = localStorage.getItem('maiev_config_cache');
     if (cached) initialCfg = JSON.parse(cached);
   } catch (_) {}
+
+  state.serverState = { config: initialCfg, guildReady: false };
 
   setupTabs();
   renderRulesEditor(initialCfg);

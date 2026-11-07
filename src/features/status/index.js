@@ -59,6 +59,13 @@ export const statusFeature = {
         }
       }
 
+      if (guild && guild.roles.cache.size <= 1) {
+        await guild.roles.fetch().catch(() => null);
+      }
+      if (guild && guild.channels.cache.size === 0) {
+        await guild.channels.fetch().catch(() => null);
+      }
+
       let roles = guild ? guild.roles.cache.map(r => ({
         id: r.id,
         name: r.name,
@@ -99,7 +106,24 @@ export const statusFeature = {
       if (!guild) {
         const knownRoles = new Map();
         if (config.onboardedRoleId) knownRoles.set(config.onboardedRoleId, 'Compliant');
-        (config.ignRolesToAdd || []).forEach((id, i) => knownRoles.set(id, i === 0 ? 'Unverified' : 'Elyos Fregion'));
+        (config.autoJoinRoleIds || []).forEach((id, i) => {
+          if (id && !knownRoles.has(id)) knownRoles.set(id, `Auto-Join Role ${i + 1}`);
+        });
+        (config.ignRolesToAdd || []).forEach((id, i) => {
+          if (id) knownRoles.set(id, i === 0 ? 'Unverified' : 'Elyos Fregion');
+        });
+        (config.ignRolesToRemove || []).forEach((id) => {
+          if (id && !knownRoles.has(id)) knownRoles.set(id, 'Compliant');
+        });
+        (config.userVerifyReviewerRoleIds || []).forEach((id, i) => {
+          if (id && !knownRoles.has(id)) knownRoles.set(id, `Reviewer Role ${i + 1}`);
+        });
+        (config.userVerifyRolesToAdd || []).forEach((id, i) => {
+          if (id && !knownRoles.has(id)) knownRoles.set(id, i === 0 ? 'Verified' : `Verified Role ${i + 1}`);
+        });
+        (config.userVerifyRolesToRemove || []).forEach((id) => {
+          if (id && !knownRoles.has(id)) knownRoles.set(id, 'Unverified');
+        });
         (config.nationalityRoles || []).forEach(n => { if (n.roleId) knownRoles.set(n.roleId, n.name); });
         if (knownRoles.size === 0) {
           knownRoles.set('1559242680561569842', 'Compliant');
@@ -112,7 +136,7 @@ export const statusFeature = {
           id,
           name,
           color: '#00d2ff',
-          position: 10 - idx,
+          position: 20 - idx,
           managed: false
         }));
 
@@ -130,6 +154,7 @@ export const statusFeature = {
 
       res.json({
         online: typeof client.isReady === 'function' ? client.isReady() : false,
+        guildReady: Boolean(guild),
         botName: client.user ? client.user.tag : 'Maiev',
         botId: client.user ? client.user.id : (process.env.CLIENT_ID || 'Maiev'),
         avatar: client.user ? client.user.displayAvatarURL() : 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
@@ -240,7 +265,9 @@ export const statusFeature = {
         userVerifyContent: userVerifyContent !== undefined ? userVerifyContent : config.userVerifyContent,
         userVerifyFooter: userVerifyFooter !== undefined ? userVerifyFooter : config.userVerifyFooter,
         userVerifyVideoUrl: userVerifyVideoUrl !== undefined ? userVerifyVideoUrl : config.userVerifyVideoUrl,
-        userVerifyUploadedVideo: userVerifyUploadedVideo !== undefined ? userVerifyUploadedVideo : config.userVerifyUploadedVideo,
+        userVerifyUploadedVideo: (typeof userVerifyUploadedVideo === 'string' && userVerifyUploadedVideo.trim() !== '')
+          ? userVerifyUploadedVideo.trim()
+          : (config.userVerifyUploadedVideo || ''),
         userVerifyThreadTitle: userVerifyThreadTitle !== undefined ? userVerifyThreadTitle : config.userVerifyThreadTitle,
         userVerifyThreadContent: userVerifyThreadContent !== undefined ? userVerifyThreadContent : config.userVerifyThreadContent
       });

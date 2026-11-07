@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JsonStore } from './json-store.js';
@@ -8,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 export const ROOT_DIR = path.resolve(__dirname, '..', '..', '..');
 export const CONFIG_FILE = path.join(ROOT_DIR, 'config.json');
+export const RUNTIME_CONFIG_FILE = path.join(ROOT_DIR, 'config.runtime.json');
 
 export const DEFAULT_CONFIG = {
   autoJoinRoleIds: [],
@@ -90,7 +92,62 @@ export const DEFAULT_CONFIG = {
   )
 };
 
-const store = new JsonStore(CONFIG_FILE, DEFAULT_CONFIG);
+function buildSeedConfig() {
+  let baseFromGitConfig = {};
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      if (raw.trim()) {
+        baseFromGitConfig = JSON.parse(raw);
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ [ConfigStore] Could not parse baseline config.json:', err.message);
+  }
+
+  const seeded = {
+    ...structuredClone(DEFAULT_CONFIG),
+    ...baseFromGitConfig
+  };
+
+  // Self-heal on first runtime migration if a reference video already exists in public/uploads/
+  if (!fs.existsSync(RUNTIME_CONFIG_FILE) && !seeded.userVerifyUploadedVideo) {
+    try {
+      const uploadsDir = path.join(ROOT_DIR, 'public', 'uploads');
+      if (fs.existsSync(uploadsDir)) {
+        const videoFiles = fs.readdirSync(uploadsDir)
+          .filter(f => /\.(mp4|mov|webm|m4v)$/i.test(f))
+          .map(f => ({
+            name: f,
+            mtimeMs: fs.statSync(path.join(uploadsDir, f)).mtimeMs
+          }))
+          .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+        if (videoFiles.length > 0) {
+          seeded.userVerifyUploadedVideo = `/uploads/${videoFiles[0].name}`;
+        }
+      }
+    } catch (_) {}
+  }
+
+  return seeded;
+}
+
+const seedConfig = buildSeedConfig();
+const store = new JsonStore(RUNTIME_CONFIG_FILE, seedConfig);
+
+// Persist initial runtime snapshot if existing Video Verify settings or uploaded video were found on disk
+const hasExistingUserVerifySettings = Boolean(
+  seedConfig.userVerifyUploadedVideo ||
+  seedConfig.userVerifyChannelId ||
+  seedConfig.userVerifyStaffChannelId ||
+  (Array.isArray(seedConfig.userVerifyReviewerRoleIds) && seedConfig.userVerifyReviewerRoleIds.length > 0) ||
+  (Array.isArray(seedConfig.userVerifyRolesToAdd) && seedConfig.userVerifyRolesToAdd.length > 0) ||
+  (Array.isArray(seedConfig.userVerifyRolesToRemove) && seedConfig.userVerifyRolesToRemove.length > 0)
+);
+if (!fs.existsSync(RUNTIME_CONFIG_FILE) && hasExistingUserVerifySettings) {
+  store.persist();
+}
 
 export const configStore = {
   get() {

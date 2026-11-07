@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.3';
-import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=7.3';
+import { state } from '../state.js?v=7.4';
+import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=7.4';
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -174,7 +174,7 @@ export function getActiveAlert() {
 
 export async function fetchAlertsState() {
   try {
-    const res = await fetch('/api/alerts');
+    const res = await fetch('/api/alerts', { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to load alerts config');
     const data = await res.json();
     alertsList = Array.isArray(data.alerts) ? data.alerts : [];

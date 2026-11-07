@@ -1,6 +1,7 @@
-import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=7.3';
-import { getActiveServerName } from '../state.js?v=7.3';
-import { formatDiscordMarkdown, showToast } from '../utils.js?v=7.3';
+import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=7.4';
+import { getActiveServerName } from '../state.js?v=7.4';
+import { formatDiscordMarkdown, showToast } from '../utils.js?v=7.4';
+import { scheduleAutoSave } from '../api.js?v=7.4';
 
 export function renderWelcomeAnnouncementEditor(cfg) {
   const enable = cfg.enableWelcomeAnnouncement !== false;
@@ -10,7 +11,7 @@ export function renderWelcomeAnnouncementEditor(cfg) {
   if (checkEl) checkEl.checked = enable;
 
   const msgInput = document.getElementById('welcome-announcement-input');
-  if (msgInput) msgInput.value = message;
+  if (msgInput && document.activeElement !== msgInput) msgInput.value = message;
 
   updateWelcomeAnnouncementPreview();
 }
@@ -41,11 +42,19 @@ export function updateWelcomeAnnouncementPreview() {
 
 export function setupWelcomeTabListeners() {
   const welcomeAnnounceInput = document.getElementById('welcome-announcement-input');
-  welcomeAnnounceInput?.addEventListener('input', updateWelcomeAnnouncementPreview);
+  welcomeAnnounceInput?.addEventListener('input', () => {
+    updateWelcomeAnnouncementPreview();
+    scheduleAutoSave(450);
+  });
+
+  document.getElementById('check-enable-welcome-announcement')?.addEventListener('change', () => {
+    scheduleAutoSave(200);
+  });
 
   document.getElementById('btn-reset-welcome-announcement-template')?.addEventListener('click', () => {
     document.getElementById('welcome-announcement-input').value = DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE;
     updateWelcomeAnnouncementPreview();
+    scheduleAutoSave(200);
     showToast('Reset public welcome announcement to standard template!', 'success');
   });
 

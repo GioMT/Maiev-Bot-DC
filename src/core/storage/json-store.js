@@ -17,6 +17,7 @@ export class JsonStore {
     this.data = structuredClone(defaultData);
     this._timeout = null;
     this._lastMtime = 0;
+    this._loadedOnce = false;
     this.load();
   }
 
@@ -24,14 +25,20 @@ export class JsonStore {
     try {
       if (fs.existsSync(this.filePath)) {
         const stat = fs.statSync(this.filePath);
-        this._lastMtime = stat.mtimeMs;
         const raw = fs.readFileSync(this.filePath, 'utf-8');
+        if (!raw.trim() && this._loadedOnce) {
+          return this.data;
+        }
         const parsed = JSON.parse(raw);
+        this._lastMtime = stat.mtimeMs;
         this.data = { ...structuredClone(this.defaultData), ...parsed };
+        this._loadedOnce = true;
       }
     } catch (err) {
-      console.warn(`⚠️ [JsonStore] Could not read ${this.filePath}, using defaults:`, err.message);
-      this.data = structuredClone(this.defaultData);
+      console.warn(`⚠️ [JsonStore] Could not read ${this.filePath}:`, err.message);
+      if (!this._loadedOnce) {
+        this.data = structuredClone(this.defaultData);
+      }
     }
     return this.data;
   }
@@ -73,7 +80,11 @@ export class JsonStore {
 
   _writeSync() {
     try {
-      fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf-8');
+      const serialized = JSON.stringify(this.data, null, 2);
+      const tmpPath = `${this.filePath}.${process.pid}.tmp`;
+      fs.writeFileSync(tmpPath, serialized, 'utf-8');
+      fs.renameSync(tmpPath, this.filePath);
+      this._loadedOnce = true;
       try {
         this._lastMtime = fs.statSync(this.filePath).mtimeMs;
       } catch (_) {}

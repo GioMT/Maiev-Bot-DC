@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=7.3';
-import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.3';
-import { persistServerName } from '../api.js?v=7.3';
-import { updateRulesPreview } from './rules-tab.js?v=7.3';
-import { updateVerifyPreview } from './verify-tab.js?v=7.3';
-import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.3';
-import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.3';
-import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.3';
-import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.3';
-import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.3';
+import { state } from '../state.js?v=7.4';
+import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.4';
+import { persistServerName, scheduleAutoSave } from '../api.js?v=7.4';
+import { updateRulesPreview } from './rules-tab.js?v=7.4';
+import { updateVerifyPreview } from './verify-tab.js?v=7.4';
+import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.4';
+import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.4';
+import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.4';
+import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.4';
+import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.4';
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',
@@ -135,6 +135,8 @@ export function renderRoleDropdowns(data) {
     onboardedSelect.appendChild(opt);
   });
 
+  onboardedSelect.onchange = () => scheduleAutoSave(250);
+
   // Render Instant Auto-Role on Join Checkboxes
   const autoJoinContainer = document.getElementById('roles-auto-join-container');
   const autoJoinCountBadge = document.getElementById('auto-join-roles-count');
@@ -157,6 +159,7 @@ export function renderRoleDropdowns(data) {
       label.querySelector('input')?.addEventListener('change', () => {
         const count = document.querySelectorAll('input[name="role_auto_join"]:checked').length;
         if (autoJoinCountBadge) autoJoinCountBadge.textContent = `${count} Selected`;
+        scheduleAutoSave(250);
       });
       autoJoinContainer.appendChild(label);
     });
@@ -183,6 +186,7 @@ export function renderRoleDropdowns(data) {
       <input type="checkbox" name="role_add" value="${role.id}" ${isAddChecked ? 'checked' : ''}>
       <span class="role-name">@${role.name}</span>
     `;
+    addLabel.querySelector('input')?.addEventListener('change', () => scheduleAutoSave(250));
     addContainer.appendChild(addLabel);
 
     const removeLabel = document.createElement('label');
@@ -194,6 +198,7 @@ export function renderRoleDropdowns(data) {
       <input type="checkbox" name="role_remove" value="${role.id}" ${isRemoveChecked ? 'checked' : ''}>
       <span class="role-name">@${role.name}</span>
     `;
+    removeLabel.querySelector('input')?.addEventListener('change', () => scheduleAutoSave(250));
     removeContainer.appendChild(removeLabel);
   });
 
@@ -286,12 +291,27 @@ export function renderChannelDropdowns(data) {
   updateBossTimerPreview();
   updateAlertsPreview();
 
-  rulesSelect?.addEventListener('change', updateSimChannelHeaders);
-  verifySelect?.addEventListener('change', updateSimChannelHeaders);
-  userVerifySelect?.addEventListener('change', updateSimChannelHeaders);
-  userVerifyStaffSelect?.addEventListener('change', updateSimChannelHeaders);
-  welcomeSelect?.addEventListener('change', updateSimChannelHeaders);
-  natSelect?.addEventListener('change', updateSimChannelHeaders);
+  if (rulesSelect) {
+    rulesSelect.onchange = () => {
+      updateSimChannelHeaders();
+      scheduleAutoSave(250);
+    };
+  }
+  if (verifySelect) {
+    verifySelect.onchange = () => {
+      updateSimChannelHeaders();
+      scheduleAutoSave(250);
+    };
+  }
+  if (userVerifySelect) userVerifySelect.onchange = updateSimChannelHeaders;
+  if (userVerifyStaffSelect) userVerifyStaffSelect.onchange = updateSimChannelHeaders;
+  if (welcomeSelect) {
+    welcomeSelect.onchange = () => {
+      updateSimChannelHeaders();
+      scheduleAutoSave(250);
+    };
+  }
+  if (natSelect) natSelect.onchange = updateSimChannelHeaders;
 }
 
 export function setupServerNameEditing() {
