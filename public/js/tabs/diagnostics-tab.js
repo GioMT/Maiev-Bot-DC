@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=6.0';
-import { refreshIcons, showToast } from '../utils.js?v=6.0';
+import { state } from '../state.js?v=7.1';
+import { refreshIcons, showToast } from '../utils.js?v=7.1';
 
 export function renderDiagnostics(data) {
   const perms = data.permissions || {};
@@ -40,6 +40,13 @@ export function renderDiagnostics(data) {
     !!perms.hasManageNicknames,
     'Healthy: Bot has permission to sync server nicknames with in-game IGN.',
     'Action Required: Enable "Manage Nicknames" on Maiev in Discord Server Settings.'
+  );
+
+  setDiag(
+    'diag-manage-threads',
+    perms.hasManageThreads !== false,
+    'Healthy: Bot can create, message in, lock, and archive Private Verification Threads.',
+    'Action Required: Enable "Create Private Threads", "Send Messages in Threads", and "Manage Threads" on Maiev.'
   );
 
   const hierEl = document.getElementById('diag-hierarchy');

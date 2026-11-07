@@ -1,12 +1,13 @@
-import { state, getActiveServerName } from './state.js?v=6.0';
+import { state, getActiveServerName } from './state.js?v=7.1';
 import {
   DEFAULT_RULES_TEMPLATE,
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE,
   DEFAULT_NATIONALITY_TEMPLATE
-} from './presets.js?v=6.0';
-import { showToast } from './utils.js?v=6.0';
-import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=6.0';
+} from './presets.js?v=7.1';
+import { showToast } from './utils.js?v=7.1';
+import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.1';
+import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.1';
 
 export async function postEmbed(endpoint, channelId, successMessage) {
   try {
@@ -116,7 +117,8 @@ export async function saveAllConfiguration() {
         nationalityFooter,
         reactionRoleIntent,
         nationalityRoles: allRoles,
-        reactionPresets: state.reactionPresets
+        reactionPresets: state.reactionPresets,
+        ...collectUserVerifyFormValues()
       })
     });
 

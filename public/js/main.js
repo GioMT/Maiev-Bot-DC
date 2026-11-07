@@ -1,44 +1,48 @@
 /**
  * Maiev Bot Control Center — Modular ES Entry Point
  */
-import { state } from './state.js?v=6.0';
-import { refreshIcons, showToast } from './utils.js?v=6.0';
-import { saveAllConfiguration } from './api.js?v=6.0';
+import { state } from './state.js?v=7.1';
+import { refreshIcons, showToast } from './utils.js?v=7.1';
+import { saveAllConfiguration } from './api.js?v=7.1';
 import {
   setupTabs,
   renderHeaderTelemetry,
   renderRoleDropdowns,
   renderChannelDropdowns,
   setupServerNameEditing
-} from './tabs/header-telemetry.js?v=6.0';
-import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=6.0';
+} from './tabs/header-telemetry.js?v=7.1';
+import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.1';
 import {
   renderVerifyEditor,
   renderWelcomeEditor,
   setupVerifyTabListeners
-} from './tabs/verify-tab.js?v=6.0';
+} from './tabs/verify-tab.js?v=7.1';
+import {
+  renderUserVerifyEditor,
+  setupUserVerifyTabListeners
+} from './tabs/user-verify-tab.js?v=7.1';
 import {
   renderWelcomeAnnouncementEditor,
   setupWelcomeTabListeners
-} from './tabs/welcome-tab.js?v=6.0';
+} from './tabs/welcome-tab.js?v=7.1';
 import {
   renderNationalityRolesManager,
   setupReactionRolesTabListeners,
   applyRemoteNationalitySync
-} from './tabs/reaction-roles-tab.js?v=6.0';
+} from './tabs/reaction-roles-tab.js?v=7.1';
 import {
   renderDiagnostics,
   fetchMembers,
   setupDiagnosticsTabListeners
-} from './tabs/diagnostics-tab.js?v=6.0';
+} from './tabs/diagnostics-tab.js?v=7.1';
 import {
   fetchBossTimerState,
   setupBossTimerTabListeners
-} from './tabs/boss-timer-tab.js?v=6.0';
+} from './tabs/boss-timer-tab.js?v=7.1';
 import {
   fetchAlertsState,
   setupAlertsTabListeners
-} from './tabs/alerts-tab.js?v=6.0';
+} from './tabs/alerts-tab.js?v=7.1';
 
 export async function fetchServerState() {
   try {
@@ -58,6 +62,7 @@ export async function fetchServerState() {
     renderChannelDropdowns(data);
     renderRulesEditor(data.config || {});
     renderVerifyEditor(data.config || {});
+    renderUserVerifyEditor(data.config || {});
     renderWelcomeEditor(data.config || {});
     renderWelcomeAnnouncementEditor(data.config || {});
     renderNationalityRolesManager(data);
@@ -91,6 +96,7 @@ function setupGlobalListeners() {
 
   setupRulesTabListeners();
   setupVerifyTabListeners();
+  setupUserVerifyTabListeners();
   setupWelcomeTabListeners();
   setupReactionRolesTabListeners();
   setupBossTimerTabListeners();
@@ -135,6 +141,7 @@ function bootstrap() {
   setupTabs();
   renderRulesEditor(initialCfg);
   renderVerifyEditor(initialCfg);
+  renderUserVerifyEditor(initialCfg);
   renderWelcomeEditor(initialCfg);
   renderWelcomeAnnouncementEditor(initialCfg);
   fetchServerState();

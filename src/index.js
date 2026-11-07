@@ -11,6 +11,7 @@ import { configStore } from './core/storage/config-store.js';
 // Feature Plugins
 import { rulesFeature } from './features/rules/index.js';
 import { verificationFeature } from './features/verification/index.js';
+import { threadVerificationFeature } from './features/thread-verification/index.js';
 import { welcomeFeature } from './features/welcome/index.js';
 import { reactionRolesFeature } from './features/reaction-roles/index.js';
 import { bossTimerFeature } from './features/boss-timer/index.js';
@@ -52,6 +53,7 @@ const context = {
 loadFeatures([
   rulesFeature,
   verificationFeature,
+  threadVerificationFeature,
   welcomeFeature,
   reactionRolesFeature,
   bossTimerFeature,

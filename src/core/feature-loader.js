@@ -38,6 +38,13 @@ export function loadFeatures(features, context) {
       }
     }
 
+    // 5b. Register Prefix Modal Submit Handlers (e.g. 'modal_vthread_')
+    if (feature.modalPrefixes) {
+      for (const [prefix, handler] of Object.entries(feature.modalPrefixes)) {
+        router.registerModalPrefix(prefix, handler);
+      }
+    }
+
     // 6. Register Discord Gateway / Internal Event Listeners
     if (typeof feature.registerEvents === 'function') {
       feature.registerEvents(context);

@@ -1,10 +1,10 @@
 import {
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE
-} from '../presets.js?v=6.0';
-import { state, getActiveServerName } from '../state.js?v=6.0';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=6.0';
-import { postEmbed } from '../api.js?v=6.0';
+} from '../presets.js?v=7.1';
+import { state, getActiveServerName } from '../state.js?v=7.1';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.1';
+import { postEmbed } from '../api.js?v=7.1';
 
 export function renderVerifyEditor(cfg) {
   const title = cfg.verifyTitle || DEFAULT_VERIFY_TEMPLATE.title;

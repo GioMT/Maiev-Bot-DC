@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=6.0';
-import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=6.0';
+import { state } from '../state.js?v=7.1';
+import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=7.1';
 
 function escapeHtml(str) {
   return String(str ?? '')

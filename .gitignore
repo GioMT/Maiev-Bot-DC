@@ -5,4 +5,7 @@ npm-debug.log*
 *.zip
 reactions-tracker.json
 bossTimerConfig.json
+verify-threads.json
+public/uploads/
+
 

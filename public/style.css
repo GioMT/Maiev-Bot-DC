@@ -1015,7 +1015,7 @@ body {
   padding-top: 6px;
 }
 
-.discord-action-row { display: flex; gap: 8px; }
+.discord-action-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .discord-btn {
   font-family: var(--font-main);
   font-weight: 600;
@@ -1024,11 +1024,79 @@ body {
   font-size: 0.84rem;
   cursor: pointer;
   border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+.discord-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .discord-btn-primary { background-color: #5865F2; color: #fff; }
-.discord-btn-primary:hover { background-color: #4752c4; }
+.discord-btn-primary:hover:not(:disabled) { background-color: #4752c4; }
 .discord-btn-success { background-color: #248046; color: #fff; }
-.discord-btn-success:hover { background-color: #1a6334; }
+.discord-btn-success:hover:not(:disabled) { background-color: #1a6334; }
+.discord-btn-secondary { background-color: #4e5058; color: #fff; }
+.discord-btn-secondary:hover:not(:disabled) { background-color: #6d6f78; }
+.discord-btn-danger { background-color: #da373c; color: #fff; }
+.discord-btn-danger:hover:not(:disabled) { background-color: #a12828; }
+
+.video-upload-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(0, 210, 255, 0.35);
+  border-radius: 8px;
+  padding: 14px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.video-upload-box:hover {
+  border-color: rgba(0, 210, 255, 0.65);
+  background: rgba(0, 210, 255, 0.04);
+}
+.sim-preview-switcher {
+  display: flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+}
+.sim-preview-switch-btn {
+  flex: 1;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+.sim-preview-switch-btn.active {
+  background: rgba(88, 101, 242, 0.28);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(88, 101, 242, 0.55);
+}
+.discord-video-attachment {
+  margin-bottom: 8px;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.discord-video-attachment video {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  background: #000;
+}
 
 .sim-feedback {
   margin-top: 12px;

@@ -7,6 +7,7 @@ export class InteractionRouter {
     this.buttons = new Map();
     this.buttonPrefixes = [];
     this.modals = new Map();
+    this.modalPrefixes = [];
   }
 
   registerCommand(name, handler) {
@@ -23,6 +24,10 @@ export class InteractionRouter {
 
   registerModal(customId, handler) {
     this.modals.set(customId, handler);
+  }
+
+  registerModalPrefix(prefix, handler) {
+    this.modalPrefixes.push({ prefix, handler });
   }
 
   mount(client, context) {
@@ -52,6 +57,14 @@ export class InteractionRouter {
           const modalHandler = this.modals.get(interaction.customId);
           if (modalHandler) {
             await modalHandler(interaction, context);
+            return;
+          }
+
+          for (const { prefix, handler } of this.modalPrefixes) {
+            if (interaction.customId.startsWith(prefix)) {
+              await handler(interaction, context);
+              return;
+            }
           }
           return;
         }

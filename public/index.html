@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=6.0">
+  <link rel="stylesheet" href="style.css?v=7.1">
   <script src="lucide.min.js"></script>
 </head>
 <body>
@@ -101,6 +101,9 @@
       <button type="button" class="main-tab-btn" data-tab="tab-verify" role="tab" aria-selected="false">
         <i data-lucide="user-check"></i> IGN Setup
       </button>
+      <button type="button" class="main-tab-btn" data-tab="tab-user-verify" role="tab" aria-selected="false">
+        <i data-lucide="video"></i> Video Verify
+      </button>
       <button type="button" class="main-tab-btn" data-tab="tab-welcome" role="tab" aria-selected="false">
         <i data-lucide="megaphone"></i> Public Welcome
       </button>
@@ -171,6 +174,24 @@
             <p class="dyno-module-card-desc">Interactive modal verification that renames members to their AION 2 character IGN and assigns faction roles.</p>
             <div class="dyno-module-card-footer">
               <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-verify">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="video"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Video Verification</h3>
+                <span class="dyno-module-tag">Private Threads</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Private thread screen-recording verification with reference video, appointed reviewer roles, and Approve / Re-upload / Reject controls.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-user-verify">Settings</button>
             </div>
           </div>
 
@@ -602,6 +623,315 @@
                       </div>
 
                       <div id="sim-verify-feedback" class="sim-feedback hidden"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- TAB 2B: Private Thread Video Verification (#user-verify) -->
+    <section id="tab-user-verify" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="video"></i></span>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <h2 class="card-title" style="margin: 0;">Private Thread Video Verification</h2>
+                    <span class="badge" id="uverify-deploy-badge">Not Posted Yet</span>
+                  </div>
+                  <p class="card-subtitle">Post a reference video &amp; instruction panel in <strong>#user-verify</strong> so members open private threads reviewed by you and appointed roles.</p>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm btn-save-section" title="Save Video Verification Configuration">
+                <i data-lucide="save"></i> Save
+              </button>
+            </div>
+
+            <div class="card-body">
+              <!-- Target Channel & Deploy Actions -->
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-user-verify-channel" class="form-label">
+                    Target Verification Channel:
+                  </label>
+                  <select id="select-user-verify-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                  <span class="form-hint">E.g. <strong>#user-verify</strong> (standard text channel where private threads are spawned)</span>
+                </div>
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px; display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary" id="btn-post-user-verify-channel" title="Post fresh verification embed + reference video">
+                    <i data-lucide="send"></i> Post Card
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-update-user-verify-channel" title="Update active verification embed in-place">
+                    <i data-lucide="refresh-cw"></i> Update Active Card
+                  </button>
+                </div>
+              </div>
+
+              <!-- Reference Video Upload / URL -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge"><i data-lucide="film"></i> Reference Screen Recording Video</span>
+                </div>
+
+                <div class="video-upload-box mt-3">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                    <div>
+                      <strong style="color: #fff; font-size: 0.88rem; display: block; margin-bottom: 3px;">Attach Playable Video File (Recommended)</strong>
+                      <div id="uverify-uploaded-video-status" style="font-size: 0.8rem;">
+                        <span class="text-muted">No local video file attached yet (upload .mp4, .mov, or .webm)</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <input type="file" id="uverify-video-file-input" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.m4v" class="hidden">
+                      <button type="button" class="btn btn-sm btn-secondary" id="btn-trigger-uverify-video-upload">
+                        <i data-lucide="upload"></i> Upload Video
+                      </button>
+                      <button type="button" class="btn btn-sm btn-secondary hidden" id="btn-remove-uverify-video" style="color: var(--accent-red);">
+                        <i data-lucide="trash-2"></i> Remove
+                      </button>
+                    </div>
+                  </div>
+                  <span class="form-hint" style="margin-top: 8px; display: block;">
+                    Uploading a video file attaches a <strong>native inline video player</strong> directly onto Maiev’s message in Discord (up to Discord’s server attachment limit).
+                  </span>
+                </div>
+
+                <div class="form-group mt-3 mb-0">
+                  <label for="uverify-video-url-input" class="form-label">
+                    Or Reference Video URL (Optional):
+                  </label>
+                  <input type="url" id="uverify-video-url-input" class="form-input" placeholder="https://... (YouTube, Streamable, or direct .mp4 link)">
+                  <span class="form-hint">If provided, Maiev also adds a clickable <strong>▶️ Watch Reference Video</strong> button right next to the verification button.</span>
+                </div>
+              </div>
+
+              <!-- Reviewer Roles -->
+              <div class="form-group mt-4">
+                <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>Appointed Reviewer Role(s):</span>
+                  <span class="badge" id="uverify-reviewer-count">0 Selected</span>
+                </label>
+                <div id="uverify-reviewer-roles-container" class="roles-checkbox-grid">
+                  <p class="text-muted">Loading roles...</p>
+                </div>
+                <span class="form-hint">
+                  <strong>Server Administrators</strong> always have access automatically. Appointed Reviewer roles are automatically invited into each private verification thread and permitted to click <strong>Approve</strong>, <strong>Request Re-upload</strong>, or <strong>Reject &amp; Close</strong>.
+                </span>
+              </div>
+
+              <!-- Roles to Grant on Approval -->
+              <div class="form-group mt-3">
+                <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>Role(s) to Grant when Approved:</span>
+                  <span class="badge" id="uverify-add-count">0 Selected</span>
+                </label>
+                <div id="uverify-roles-add-container" class="roles-checkbox-grid">
+                  <p class="text-muted">Loading roles...</p>
+                </div>
+                <span class="form-hint">Select your <strong>Trusted / Verified</strong> role(s) granted once a Reviewer approves the user’s recording.</span>
+              </div>
+
+              <!-- Roles to Revoke on Approval -->
+              <div class="form-group mt-3">
+                <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>Role(s) to Revoke when Approved:</span>
+                  <span class="badge" id="uverify-remove-count">0 Selected</span>
+                </label>
+                <div id="uverify-roles-remove-container" class="roles-checkbox-grid">
+                  <p class="text-muted">Loading roles...</p>
+                </div>
+                <span class="form-hint">Optional: Select <strong>[Unverified]</strong> (or similar temporary role) to automatically remove it upon approval.</span>
+              </div>
+
+              <!-- Channel Instruction Embed Editor -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge"><i data-lucide="file-text"></i> #user-verify Instruction Embed</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-uverify-template">
+                    <i data-lucide="rotate-ccw"></i> Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="uverify-title-input" class="form-label">Embed Title:</label>
+                  <input type="text" id="uverify-title-input" class="form-input" placeholder="📹 Video Verification — Become Trusted">
+                </div>
+
+                <div class="form-group">
+                  <label for="uverify-content-input" class="form-label">Verification Instructions Content:</label>
+                  <textarea id="uverify-content-input" class="form-textarea" rows="7" placeholder="Explain how users should record their screen and click the button below..."></textarea>
+                  <span class="form-hint">Supports Discord Markdown, custom server emojis, and <strong>{server}</strong> tag.</span>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1 mb-0">
+                    <label for="uverify-footer-input" class="form-label">Embed Footer:</label>
+                    <input type="text" id="uverify-footer-input" class="form-input" placeholder="{server} • Private Thread Verification">
+                  </div>
+                  <div class="form-group flex-1 mb-0">
+                    <label for="uverify-btn-label-input" class="form-label">Start Button Label:</label>
+                    <input type="text" id="uverify-btn-label-input" class="form-input" maxlength="80" placeholder="📹 Start Video Verification">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Private Thread Welcome & Reviewer Card Editor -->
+              <div class="personalized-rules-box mt-4">
+                <div class="rules-editor-header">
+                  <span class="editor-badge"><i data-lucide="lock"></i> Private Thread Welcome Card</span>
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-reset-uverify-thread-template">
+                    <i data-lucide="rotate-ccw"></i> Reset Template
+                  </button>
+                </div>
+
+                <div class="form-group mt-3">
+                  <label for="uverify-thread-title-input" class="form-label">Private Thread Card Title:</label>
+                  <input type="text" id="uverify-thread-title-input" class="form-input" placeholder="🛡️ Case #{case} — Private Verification ({user})">
+                </div>
+
+                <div class="form-group mb-0">
+                  <label for="uverify-thread-content-input" class="form-label">Private Thread Instructions:</label>
+                  <textarea id="uverify-thread-content-input" class="form-textarea" rows="5" placeholder="Instructions shown inside the user's private verification thread..."></textarea>
+                  <span class="form-hint">Available tags: <strong>{case}</strong>, <strong>{user}</strong>, <strong>{reviewers}</strong>, <strong>{channel}</strong>, <strong>{server}</strong>.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: 2-Stage Interactive Simulator -->
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">Live Channel &amp; Private Thread Simulator</h2>
+                  <p class="card-subtitle">Test both the <strong>#user-verify</strong> instruction card and the <strong>Reviewer Thread Controls</strong>.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="sim-preview-switcher mb-3" style="margin-bottom: 12px;">
+                <button type="button" class="sim-preview-switch-btn active" id="btn-sim-uverify-view-channel">
+                  <i data-lucide="hash" style="width: 14px; height: 14px;"></i> Channel Embed View
+                </button>
+                <button type="button" class="sim-preview-switch-btn" id="btn-sim-uverify-view-thread">
+                  <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Private Thread View
+                </button>
+              </div>
+
+              <!-- View 1: #user-verify Channel -->
+              <div id="sim-uverify-channel-pane" class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-uverify-channel-name">user-verify</span>
+                  <span class="discord-topic">Video Verification</span>
+                </div>
+
+                <div class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-8" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Today at 10:30 AM</span>
+                      </div>
+
+                      <div id="sim-uverify-video-wrap" class="discord-video-attachment hidden">
+                        <video id="sim-uverify-video-player" controls preload="metadata"></video>
+                      </div>
+
+                      <div class="discord-embed blurple-embed">
+                        <div class="embed-title" id="sim-uverify-title">📹 Video Verification — Become Trusted</div>
+                        <div class="embed-description" id="sim-uverify-desc">Loading instructions...</div>
+                        <div class="embed-footer" id="sim-uverify-footer">Asia Fregion • Private Thread Verification</div>
+                      </div>
+
+                      <div class="discord-action-row">
+                        <button type="button" class="discord-btn discord-btn-success" id="sim-btn-uverify-start">
+                          <span id="sim-uverify-start-label">📹 Start Video Verification</span>
+                        </button>
+                        <a href="#" target="_blank" rel="noopener noreferrer" class="discord-btn discord-btn-secondary hidden" id="sim-btn-uverify-watch-url">
+                          ▶️ Watch Reference Video
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- View 2: Private Thread (verify-0001-DaevaLegend) -->
+              <div id="sim-uverify-thread-pane" class="discord-preview-container hidden">
+                <div class="discord-chat-header" style="justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="lock" style="width: 14px; height: 14px; color: #949ba4;"></i>
+                    <span class="discord-channel-name">verify-0001-DaevaLegend</span>
+                    <span class="discord-topic">Private Thread • Case #0001</span>
+                  </div>
+                  <button type="button" class="btn btn-xs btn-secondary" id="sim-btn-uverify-reset-sim" title="Reset simulated buttons">
+                    <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i> Reset
+                  </button>
+                </div>
+
+                <div class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-9" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Just now</span>
+                      </div>
+
+                      <div id="sim-uverify-thread-mentions" style="font-size: 0.82rem; color: #c9cdfb; background: rgba(88, 101, 242, 0.2); display: inline-block; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px;">
+                        @DaevaLegend
+                      </div>
+
+                      <div class="discord-embed" id="sim-uverify-thread-embed" style="border-left-color: #00d2ff;">
+                        <div class="embed-title" id="sim-uverify-thread-title">🛡️ Case #0001 — Private Verification (DaevaLegend)</div>
+                        <div class="embed-description" id="sim-uverify-thread-desc">Loading thread instructions...</div>
+                        <div style="display: grid; grid-template-columns: auto 1fr 1.2fr; gap: 12px; margin-top: 10px; font-size: 0.8rem;">
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+                            <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
+                          </div>
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+                            <div style="color: #dbdee1;">@DaevaLegend</div>
+                          </div>
+                          <div>
+                            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Verification Status</div>
+                            <div id="sim-uverify-thread-status" style="color: #dbdee1;">⏳ Pending — Waiting for recording &amp; reviewer check</div>
+                          </div>
+                        </div>
+                        <div class="embed-footer">Case #0001 • Only Administrators &amp; appointed Reviewers can approve or reject</div>
+                      </div>
+
+                      <div class="discord-action-row">
+                        <button type="button" class="discord-btn discord-btn-success" id="sim-btn-uverify-approve">
+                          ✅ Approve
+                        </button>
+                        <button type="button" class="discord-btn discord-btn-secondary" id="sim-btn-uverify-reupload">
+                          🔄 Request Re-upload
+                        </button>
+                        <button type="button" class="discord-btn discord-btn-danger" id="sim-btn-uverify-reject">
+                          ❌ Reject &amp; Close
+                        </button>
+                      </div>
+
+                      <div id="sim-uverify-thread-log" class="hidden"></div>
                     </div>
                   </div>
                 </div>
@@ -1585,6 +1915,13 @@
                 <p class="diag-subtext">Required for bot to set AION 2 IGN character nicknames</p>
               </div>
             </div>
+            <div class="diagnostic-item" id="diag-manage-threads">
+              <span class="diag-status"><i data-lucide="clock"></i></span>
+              <div class="diag-text">
+                <strong>Private Threads Permissions</strong>
+                <p class="diag-subtext">Create Private Threads, Send Messages in Threads &amp; Manage Threads</p>
+              </div>
+            </div>
             <div class="diagnostic-item" id="diag-hierarchy">
               <span class="diag-status"><i data-lucide="clock"></i></span>
               <div class="diag-text">
@@ -1974,6 +2311,29 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=6.0"></script>
+  <!-- Simulated Reviewer Reason Modal (Video Verification Option C) -->
+  <div class="modal-backdrop hidden" id="sim-uverify-reason-modal">
+    <div class="discord-modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="sim-uverify-reason-modal-title">Request New Recording</h3>
+        <button class="modal-close" id="sim-uverify-reason-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-form-group">
+          <label class="modal-label" id="sim-uverify-reason-modal-label" for="sim-uverify-reason-input">
+            WHAT SHOULD THE USER FIX OR RE-RECORD? <span class="required">*</span>
+          </label>
+          <textarea id="sim-uverify-reason-input" class="modal-input" rows="4" style="resize: vertical; font-family: inherit;" placeholder="Type reviewer feedback or rejection reason..."></textarea>
+          <span class="modal-hint">Sent directly to the applicant inside their verification thread.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="sim-uverify-reason-cancel">Cancel</button>
+        <button class="discord-btn discord-btn-primary" id="sim-uverify-reason-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js?v=7.1"></script>
 </body>
 </html>

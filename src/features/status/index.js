@@ -119,6 +119,7 @@ export const statusFeature = {
         channels = [
           { id: config.rulesChannelId || '1559205186088472596', name: 'rules', type: 0 },
           { id: config.verifyChannelId || '1559238059801706648', name: 'identity-verification', type: 0 },
+          { id: config.userVerifyChannelId || '1559238059801706649', name: 'user-verify', type: 0 },
           { id: config.welcomeAnnouncementChannelId || '1559275351396323329', name: 'welcome', type: 0 },
           { id: config.nationalityChannelId || '1559205186088472596', name: 'regional-roles', type: 0 },
           { id: '1563876333623312394', name: 'field-boss-timers', type: 0 },
@@ -146,6 +147,11 @@ export const statusFeature = {
           hasManageRoles: botMember ? botMember.permissions.has(PermissionFlagsBits.ManageRoles) : true,
           hasManageNicknames: botMember ? botMember.permissions.has(PermissionFlagsBits.ManageNicknames) : true,
           hasManageMessages: botMember ? botMember.permissions.has(PermissionFlagsBits.ManageMessages) : true,
+          hasManageThreads: botMember ? (
+            botMember.permissions.has(PermissionFlagsBits.CreatePrivateThreads) &&
+            botMember.permissions.has(PermissionFlagsBits.ManageThreads) &&
+            botMember.permissions.has(PermissionFlagsBits.SendMessagesInThreads)
+          ) : true,
           rolePosition: botMember ? botMember.roles.highest.position : 99
         }
       });
@@ -180,7 +186,19 @@ export const statusFeature = {
         nationalityFooter,
         nationalityRoles,
         reactionRoleIntent,
-        reactionPresets
+        reactionPresets,
+        userVerifyChannelId,
+        userVerifyReviewerRoleIds,
+        userVerifyRolesToAdd,
+        userVerifyRolesToRemove,
+        userVerifyButtonLabel,
+        userVerifyTitle,
+        userVerifyContent,
+        userVerifyFooter,
+        userVerifyVideoUrl,
+        userVerifyUploadedVideo,
+        userVerifyThreadTitle,
+        userVerifyThreadContent
       } = req.body;
 
       const updated = configStore.save({
@@ -209,7 +227,19 @@ export const statusFeature = {
         nationalityFooter: nationalityFooter !== undefined ? nationalityFooter : config.nationalityFooter,
         nationalityRoles: Array.isArray(nationalityRoles) ? nationalityRoles : config.nationalityRoles,
         reactionRoleIntent: reactionRoleIntent !== undefined ? reactionRoleIntent : config.reactionRoleIntent,
-        reactionPresets: reactionPresets !== undefined ? reactionPresets : config.reactionPresets
+        reactionPresets: reactionPresets !== undefined ? reactionPresets : config.reactionPresets,
+        userVerifyChannelId: userVerifyChannelId !== undefined ? userVerifyChannelId : config.userVerifyChannelId,
+        userVerifyReviewerRoleIds: Array.isArray(userVerifyReviewerRoleIds) ? userVerifyReviewerRoleIds : (config.userVerifyReviewerRoleIds || []),
+        userVerifyRolesToAdd: Array.isArray(userVerifyRolesToAdd) ? userVerifyRolesToAdd : (config.userVerifyRolesToAdd || []),
+        userVerifyRolesToRemove: Array.isArray(userVerifyRolesToRemove) ? userVerifyRolesToRemove : (config.userVerifyRolesToRemove || []),
+        userVerifyButtonLabel: userVerifyButtonLabel !== undefined ? userVerifyButtonLabel : config.userVerifyButtonLabel,
+        userVerifyTitle: userVerifyTitle !== undefined ? userVerifyTitle : config.userVerifyTitle,
+        userVerifyContent: userVerifyContent !== undefined ? userVerifyContent : config.userVerifyContent,
+        userVerifyFooter: userVerifyFooter !== undefined ? userVerifyFooter : config.userVerifyFooter,
+        userVerifyVideoUrl: userVerifyVideoUrl !== undefined ? userVerifyVideoUrl : config.userVerifyVideoUrl,
+        userVerifyUploadedVideo: userVerifyUploadedVideo !== undefined ? userVerifyUploadedVideo : config.userVerifyUploadedVideo,
+        userVerifyThreadTitle: userVerifyThreadTitle !== undefined ? userVerifyThreadTitle : config.userVerifyThreadTitle,
+        userVerifyThreadContent: userVerifyThreadContent !== undefined ? userVerifyThreadContent : config.userVerifyThreadContent
       });
 
       console.log('⚙️ Configuration updated via Web UI.');
