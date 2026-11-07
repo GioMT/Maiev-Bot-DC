@@ -129,12 +129,12 @@ export function renderUserVerifyEditor(cfg = {}) {
   const deployBadge = document.getElementById('uverify-deploy-badge');
 
   const active = document.activeElement;
-  if (titleEl && active !== titleEl) titleEl.value = cfg.userVerifyTitle || DEFAULT_USER_VERIFY_TEMPLATE.title;
-  if (contentEl && active !== contentEl) contentEl.value = cfg.userVerifyContent || DEFAULT_USER_VERIFY_TEMPLATE.content;
+  if (titleEl && active !== titleEl) titleEl.value = (cfg.userVerifyTitle || DEFAULT_USER_VERIFY_TEMPLATE.title).replace(/^📹\s*/, '');
+  if (contentEl && active !== contentEl) contentEl.value = (cfg.userVerifyContent || DEFAULT_USER_VERIFY_TEMPLATE.content).replace(/📹\s*Start Video Verification/g, 'Start Video Verification');
   if (footerEl && active !== footerEl) footerEl.value = cfg.userVerifyFooter || DEFAULT_USER_VERIFY_TEMPLATE.footer;
-  if (btnLabelEl && active !== btnLabelEl) btnLabelEl.value = cfg.userVerifyButtonLabel || DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel;
+  if (btnLabelEl && active !== btnLabelEl) btnLabelEl.value = (cfg.userVerifyButtonLabel || DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel).replace(/^📹\s*/, '');
   if (videoUrlEl && active !== videoUrlEl) videoUrlEl.value = cfg.userVerifyVideoUrl || '';
-  if (threadTitleEl && active !== threadTitleEl) threadTitleEl.value = cfg.userVerifyThreadTitle || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
+  if (threadTitleEl && active !== threadTitleEl) threadTitleEl.value = (cfg.userVerifyThreadTitle || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle).replace(/^🛡️\s*/, '');
   if (threadContentEl && active !== threadContentEl) threadContentEl.value = cfg.userVerifyThreadContent || DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
 
   if (deployBadge) {
@@ -290,7 +290,7 @@ function syncClaimButtonUI() {
   ['sim-btn-uverify-claim', 'sim-btn-staff-claim'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
-    btn.textContent = simClaimed ? '🔓 Unclaim' : '🙋 Claim Case';
+    btn.textContent = simClaimed ? 'Unclaim' : 'Claim Case';
     btn.classList.toggle('discord-btn-primary', !simClaimed);
     btn.classList.toggle('discord-btn-secondary', simClaimed);
   });
@@ -304,7 +304,7 @@ function resetThreadSimulation() {
   const serverName = getActiveServerName();
   const statusEl = document.getElementById('sim-uverify-thread-status');
   if (statusEl) {
-    statusEl.innerHTML = '⏳ Pending — Waiting for recording &amp; reviewer check';
+    statusEl.innerHTML = 'Pending — Waiting for recording &amp; reviewer check';
     statusEl.style.color = '#dbdee1';
   }
   const embedEl = document.getElementById('sim-uverify-thread-embed');
@@ -315,8 +315,8 @@ function resetThreadSimulation() {
   if (ephDescEl) {
     ephDescEl.innerHTML = `
       <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
-      <strong>Claimed By:</strong> 🟢 Unclaimed — Available<br>
-      <strong>Case Status:</strong> ⏳ Pending Review<br><br>
+      <strong>Claimed By:</strong> Unclaimed — Available<br>
+      <strong>Case Status:</strong> Pending Review<br><br>
       <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
     `;
   }
@@ -330,29 +330,29 @@ function resetThreadSimulation() {
   const staffEmbed = document.getElementById('sim-uverify-staff-embed');
   if (staffEmbed) staffEmbed.style.borderLeftColor = '#5865F2';
   const staffTitle = document.getElementById('sim-uverify-staff-title');
-  if (staffTitle) staffTitle.textContent = '🛡️ Case #0001 — Video Verification Queue';
+  if (staffTitle) staffTitle.textContent = 'Case #0001 — Video Verification Queue';
   const staffFields = document.getElementById('sim-uverify-staff-fields');
   if (staffFields) {
     staffFields.innerHTML = `
       <div>
-        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Case ID</div>
         <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
       </div>
       <div>
-        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Applicant</div>
         <div style="color: #dbdee1;">@DaevaLegend</div>
       </div>
       <div>
-        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🧵 Private Thread</div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Private Thread</div>
         <div style="color: #949cf7;">#verify-0001-DaevaLegend</div>
       </div>
       <div>
-        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🙋 Claimed By</div>
-        <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">🟢 Unclaimed — Available</div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Claimed By</div>
+        <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">Unclaimed — Available</div>
       </div>
       <div style="grid-column: span 2;">
-        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Queue Status</div>
-        <div id="sim-uverify-staff-status" style="color: #dbdee1;">📹 Submission Posted — Ready for Review</div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Queue Status</div>
+        <div id="sim-uverify-staff-status" style="color: #dbdee1;">Submission Posted — Ready for Review</div>
       </div>
     `;
   }
@@ -365,7 +365,7 @@ function resetThreadSimulation() {
     document.getElementById(id)?.classList.remove('hidden');
   });
   const openThreadBtn = document.getElementById('sim-btn-staff-open-thread');
-  if (openThreadBtn) openThreadBtn.textContent = '↗️ Open Thread';
+  if (openThreadBtn) openThreadBtn.textContent = 'Open Thread';
 }
 
 function readUserVerifyRoleCheckboxes(inputName, fallbackArray) {
@@ -645,22 +645,22 @@ export function setupUserVerifyTabListeners() {
     const statusEl = document.getElementById('sim-uverify-thread-status');
     if (statusEl) {
       statusEl.innerHTML = simClaimed
-        ? '🔒 Under Review by <strong>@AdminReviewer</strong>'
-        : '⏳ Pending — Waiting for recording &amp; reviewer check';
+        ? 'Under Review by <strong>@AdminReviewer</strong>'
+        : 'Pending — Waiting for recording &amp; reviewer check';
       statusEl.style.color = simClaimed ? '#c9cdfb' : '#dbdee1';
     }
     const staffClaimEl = document.getElementById('sim-uverify-staff-claimed');
     if (staffClaimEl) {
       staffClaimEl.innerHTML = simClaimed
-        ? '🔒 Claimed by <strong>@AdminReviewer</strong>'
-        : '🟢 Unclaimed — Available';
+        ? 'Claimed by <strong>@AdminReviewer</strong>'
+        : 'Unclaimed — Available';
     }
     const ephDescEl = document.getElementById('sim-uverify-ephemeral-desc');
     if (ephDescEl) {
       ephDescEl.innerHTML = `
         <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
-        <strong>Claimed By:</strong> ${simClaimed ? '🔒 <strong>@AdminReviewer</strong>' : '🟢 Unclaimed — Available'}<br>
-        <strong>Case Status:</strong> ${simClaimed ? '🔒 Locked to you' : '⏳ Pending Review'}<br><br>
+        <strong>Claimed By:</strong> ${simClaimed ? '<strong>@AdminReviewer</strong>' : 'Unclaimed — Available'}<br>
+        <strong>Case Status:</strong> ${simClaimed ? 'Locked to you' : 'Pending Review'}<br><br>
         <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
       `;
     }
@@ -683,7 +683,7 @@ export function setupUserVerifyTabListeners() {
     setSimulatedReviewerButtonsDisabled(true);
     const statusEl = document.getElementById('sim-uverify-thread-status');
     if (statusEl) {
-      statusEl.innerHTML = '✅ Approved by <strong>@AdminReviewer</strong>';
+      statusEl.innerHTML = 'Approved by <strong>@AdminReviewer</strong>';
       statusEl.style.color = '#2ecc71';
     }
     const embedEl = document.getElementById('sim-uverify-thread-embed');
@@ -694,8 +694,8 @@ export function setupUserVerifyTabListeners() {
     if (ephDescEl) {
       ephDescEl.innerHTML = `
         <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
-        <strong>Claimed By:</strong> 🔒 <strong>@AdminReviewer</strong><br>
-        <strong>Case Status:</strong> ✅ Approved &amp; Verified! Private thread archived.<br><br>
+        <strong>Claimed By:</strong> <strong>@AdminReviewer</strong><br>
+        <strong>Case Status:</strong> Approved &amp; Verified — Private thread archived.<br><br>
         <em>This verification case has already been finalized.</em>
       `;
     }
@@ -705,12 +705,12 @@ export function setupUserVerifyTabListeners() {
       logEl.classList.remove('hidden');
       logEl.innerHTML = `
         <div style="background: rgba(46, 204, 113, 0.12); border-left: 3px solid #2ecc71; padding: 12px; border-radius: 6px; margin-top: 10px;">
-          <div style="font-weight: 700; color: #2ecc71; margin-bottom: 4px;">✅ Verification Complete!</div>
+          <div style="font-weight: 700; color: #2ecc71; margin-bottom: 4px;">Verification Complete — Case #0001</div>
           <div style="color: #dbdee1; font-size: 0.83rem; line-height: 1.45;">
             Congratulations <strong>@DaevaLegend</strong>! Your screen recording verification was approved.<br>
             <strong>Granted:</strong> <code>${addRoles}</code>
             ${remRoles ? `<br><strong>Removed:</strong> <code>${remRoles}</code>` : ''}
-            <br><span style="color: #949ba4; font-size: 0.78rem;">🔒 Private thread locked &amp; archived automatically.</span>
+            <br><span style="color: #949ba4; font-size: 0.78rem;">Private thread locked &amp; archived automatically.</span>
           </div>
         </div>
       `;
@@ -720,30 +720,30 @@ export function setupUserVerifyTabListeners() {
     const staffEmbed = document.getElementById('sim-uverify-staff-embed');
     if (staffEmbed) staffEmbed.style.borderLeftColor = '#2ecc71';
     const staffTitle = document.getElementById('sim-uverify-staff-title');
-    if (staffTitle) staffTitle.textContent = '✅ Case #0001 — Verification Approved';
+    if (staffTitle) staffTitle.textContent = 'Case #0001 — Verification Approved';
     const staffFields = document.getElementById('sim-uverify-staff-fields');
     if (staffFields) {
       const rolesSummary = `Granted: <code>${addRoles}</code>${remRoles ? ` • Removed: <code>${remRoles}</code>` : ''}`;
       staffFields.innerHTML = `
         <div>
-          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Case ID</div>
           <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
         </div>
         <div>
-          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Applicant</div>
           <div style="color: #dbdee1;">@DaevaLegend</div>
         </div>
         <div>
-          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🛡️ Approved By</div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Approved By</div>
           <div style="color: #2ecc71; font-weight: 600;">@AdminReviewer</div>
         </div>
         <div style="grid-column: span 2;">
-          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🎭 Roles Updated</div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Roles Updated</div>
           <div style="color: #dbdee1;">${rolesSummary}</div>
         </div>
         <div>
-          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Final Status</div>
-          <div style="color: #2ecc71;">✅ Approved &amp; Thread Archived</div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Final Status</div>
+          <div style="color: #2ecc71;">Approved &amp; Thread Archived</div>
         </div>
       `;
     }
@@ -756,7 +756,7 @@ export function setupUserVerifyTabListeners() {
       document.getElementById(id)?.classList.add('hidden');
     });
     const openThreadBtn = document.getElementById('sim-btn-staff-open-thread');
-    if (openThreadBtn) openThreadBtn.textContent = '↗️ View Archived Thread';
+    if (openThreadBtn) openThreadBtn.textContent = 'View Archived Thread';
   };
   document.getElementById('sim-btn-uverify-approve')?.addEventListener('click', handleSimApprove);
   document.getElementById('sim-btn-staff-approve')?.addEventListener('click', handleSimApprove);
@@ -801,7 +801,7 @@ export function setupUserVerifyTabListeners() {
       syncClaimButtonUI();
       setSimulatedReviewerButtonsDisabled(false);
       if (statusEl) {
-        statusEl.innerHTML = '🔄 Re-upload Requested by <strong>@AdminReviewer</strong>';
+        statusEl.innerHTML = 'Re-upload Requested by <strong>@AdminReviewer</strong>';
         statusEl.style.color = '#f39c12';
       }
       if (embedEl) embedEl.style.borderLeftColor = '#f39c12';
@@ -811,8 +811,8 @@ export function setupUserVerifyTabListeners() {
       if (ephDescEl) {
         ephDescEl.innerHTML = `
           <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
-          <strong>Claimed By:</strong> 🔒 <strong>@AdminReviewer</strong><br>
-          <strong>Case Status:</strong> 🔄 Re-upload Requested — Thread remains open<br><br>
+          <strong>Claimed By:</strong> <strong>@AdminReviewer</strong><br>
+          <strong>Case Status:</strong> Re-upload Requested — Thread remains open<br><br>
           <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
         `;
       }
@@ -820,11 +820,11 @@ export function setupUserVerifyTabListeners() {
         logEl.classList.remove('hidden');
         logEl.innerHTML = `
           <div style="background: rgba(243, 156, 18, 0.12); border-left: 3px solid #f39c12; padding: 12px; border-radius: 6px; margin-top: 10px;">
-            <div style="font-weight: 700; color: #f39c12; margin-bottom: 4px;">🔄 Action Required — Please Submit Updated Recording</div>
+            <div style="font-weight: 700; color: #f39c12; margin-bottom: 4px;">Action Required (Case #0001) — Submit Updated Recording</div>
             <div style="color: #dbdee1; font-size: 0.83rem; line-height: 1.45;">
               Hello <strong>@DaevaLegend</strong>, a reviewer requested an update:<br>
               <blockquote style="margin: 6px 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #fff;">${formatDiscordMarkdown(reason)}</blockquote>
-              <span style="color: #949ba4; font-size: 0.78rem;">🔓 Private thread stays OPEN — Staff Queue &amp; <code>/review</code> stay synced!</span>
+              <span style="color: #949ba4; font-size: 0.78rem;">Private thread stays OPEN — Staff Queue &amp; <code>/review</code> stay synced.</span>
             </div>
           </div>
         `;
@@ -837,27 +837,27 @@ export function setupUserVerifyTabListeners() {
       if (staffFields) {
         staffFields.innerHTML = `
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Case ID</div>
             <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
           </div>
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Applicant</div>
             <div style="color: #dbdee1;">@DaevaLegend</div>
           </div>
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🧵 Private Thread</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Private Thread</div>
             <div style="color: #949cf7;">#verify-0001-DaevaLegend</div>
           </div>
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🙋 Claimed By</div>
-            <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">🔒 Claimed by <strong>@AdminReviewer</strong></div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Claimed By</div>
+            <div id="sim-uverify-staff-claimed" style="color: #dbdee1;">Claimed by <strong>@AdminReviewer</strong></div>
           </div>
           <div style="grid-column: span 2;">
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Queue Status</div>
-            <div id="sim-uverify-staff-status" style="color: #f39c12;">🔄 Re-upload Requested by <strong>@AdminReviewer</strong></div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Queue Status</div>
+            <div id="sim-uverify-staff-status" style="color: #f39c12;">Re-upload Requested by <strong>@AdminReviewer</strong></div>
           </div>
           <div style="grid-column: span 3;">
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📝 Latest Reviewer Note</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Latest Reviewer Note</div>
             <blockquote style="margin: 2px 0 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #dbdee1;">${formatDiscordMarkdown(reason)}</blockquote>
           </div>
         `;
@@ -865,7 +865,7 @@ export function setupUserVerifyTabListeners() {
     } else {
       setSimulatedReviewerButtonsDisabled(true);
       if (statusEl) {
-        statusEl.innerHTML = '❌ Rejected &amp; Closed by <strong>@AdminReviewer</strong>';
+        statusEl.innerHTML = 'Rejected &amp; Closed by <strong>@AdminReviewer</strong>';
         statusEl.style.color = '#e74c3c';
       }
       if (embedEl) embedEl.style.borderLeftColor = '#e74c3c';
@@ -875,8 +875,8 @@ export function setupUserVerifyTabListeners() {
       if (ephDescEl) {
         ephDescEl.innerHTML = `
           <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
-          <strong>Claimed By:</strong> 🔒 <strong>@AdminReviewer</strong><br>
-          <strong>Case Status:</strong> ❌ Rejected &amp; Private Thread Archived<br><br>
+          <strong>Claimed By:</strong> <strong>@AdminReviewer</strong><br>
+          <strong>Case Status:</strong> Rejected &amp; Private Thread Archived<br><br>
           <em>This verification case has already been finalized.</em>
         `;
       }
@@ -884,11 +884,11 @@ export function setupUserVerifyTabListeners() {
         logEl.classList.remove('hidden');
         logEl.innerHTML = `
           <div style="background: rgba(231, 76, 60, 0.12); border-left: 3px solid #e74c3c; padding: 12px; border-radius: 6px; margin-top: 10px;">
-            <div style="font-weight: 700; color: #e74c3c; margin-bottom: 4px;">❌ Verification Declined</div>
+            <div style="font-weight: 700; color: #e74c3c; margin-bottom: 4px;">Verification Declined — Case #0001</div>
             <div style="color: #dbdee1; font-size: 0.83rem; line-height: 1.45;">
               Submission declined by <strong>@AdminReviewer</strong>:<br>
               <blockquote style="margin: 6px 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #fff;">${formatDiscordMarkdown(reason)}</blockquote>
-              <span style="color: #949ba4; font-size: 0.78rem;">🔒 User DM notified &amp; private thread locked + archived.</span>
+              <span style="color: #949ba4; font-size: 0.78rem;">User DM notified &amp; private thread locked + archived.</span>
             </div>
           </div>
         `;
@@ -898,29 +898,29 @@ export function setupUserVerifyTabListeners() {
       const staffEmbed = document.getElementById('sim-uverify-staff-embed');
       if (staffEmbed) staffEmbed.style.borderLeftColor = '#e74c3c';
       const staffTitle = document.getElementById('sim-uverify-staff-title');
-      if (staffTitle) staffTitle.textContent = '❌ Case #0001 — Verification Declined';
+      if (staffTitle) staffTitle.textContent = 'Case #0001 — Verification Declined';
       const staffFields = document.getElementById('sim-uverify-staff-fields');
       if (staffFields) {
         staffFields.innerHTML = `
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🔢 Case ID</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Case ID</div>
             <div style="color: var(--accent-cyan); font-family: monospace;">#0001</div>
           </div>
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">👤 Applicant</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Applicant</div>
             <div style="color: #dbdee1;">@DaevaLegend</div>
           </div>
           <div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">🛡️ Declined By</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Declined By</div>
             <div style="color: #e74c3c; font-weight: 600;">@AdminReviewer</div>
           </div>
           <div style="grid-column: span 3;">
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📝 Rejection Reason</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Rejection Reason</div>
             <blockquote style="margin: 2px 0 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #dbdee1;">${formatDiscordMarkdown(reason)}</blockquote>
           </div>
           <div style="grid-column: span 2;">
-            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">📋 Final Status</div>
-            <div style="color: #e74c3c;">❌ Rejected &amp; Thread Archived</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 2px;">Final Status</div>
+            <div style="color: #e74c3c;">Rejected &amp; Thread Archived</div>
           </div>
         `;
       }
@@ -933,7 +933,7 @@ export function setupUserVerifyTabListeners() {
         document.getElementById(id)?.classList.add('hidden');
       });
       const openThreadBtn = document.getElementById('sim-btn-staff-open-thread');
-      if (openThreadBtn) openThreadBtn.textContent = '↗️ View Archived Thread';
+      if (openThreadBtn) openThreadBtn.textContent = 'View Archived Thread';
     }
   });
 }

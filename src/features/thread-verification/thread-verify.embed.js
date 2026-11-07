@@ -37,10 +37,10 @@ export function createUserVerifyPanelPayload(guild, overrides = {}) {
   const config = configStore.get();
   const serverName = config.serverName || guild?.name || 'Server';
 
-  const rawTitle = overrides.title ?? config.userVerifyTitle ?? DEFAULT_CONFIG.userVerifyTitle;
-  const rawContent = overrides.content ?? config.userVerifyContent ?? DEFAULT_CONFIG.userVerifyContent;
+  const rawTitle = (overrides.title ?? config.userVerifyTitle ?? DEFAULT_CONFIG.userVerifyTitle).replace(/^📹\s*/, '');
+  const rawContent = (overrides.content ?? config.userVerifyContent ?? DEFAULT_CONFIG.userVerifyContent).replace(/📹\s*Start Video Verification/g, 'Start Video Verification');
   const rawFooter = overrides.footer ?? config.userVerifyFooter ?? DEFAULT_CONFIG.userVerifyFooter;
-  const rawBtnLabel = overrides.buttonLabel ?? config.userVerifyButtonLabel ?? DEFAULT_CONFIG.userVerifyButtonLabel;
+  const rawBtnLabel = (overrides.buttonLabel ?? config.userVerifyButtonLabel ?? DEFAULT_CONFIG.userVerifyButtonLabel).replace(/^📹\s*/, '');
   const uploadedVideo = overrides.uploadedVideo ?? config.userVerifyUploadedVideo ?? '';
   const videoUrl = (overrides.videoUrl ?? config.userVerifyVideoUrl ?? '').trim();
 
@@ -58,14 +58,14 @@ export function createUserVerifyPanelPayload(guild, overrides = {}) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('btn_start_video_verify')
-      .setLabel((rawBtnLabel || '📹 Start Video Verification').slice(0, 80))
+      .setLabel((rawBtnLabel || 'Start Video Verification').slice(0, 80))
       .setStyle(ButtonStyle.Success)
   );
 
   if (videoUrl && /^https?:\/\//i.test(videoUrl)) {
     row.addComponents(
       new ButtonBuilder()
-        .setLabel('▶️ Watch Reference Video')
+        .setLabel('Watch Reference Video')
         .setStyle(ButtonStyle.Link)
         .setURL(videoUrl)
     );
@@ -102,13 +102,13 @@ export function createThreadControlPayload({
   displayName,
   parentChannelName = 'user-verify',
   reviewerMentionsText = 'Administrators',
-  statusText = '⏳ Pending — Waiting for recording & reviewer check',
+  statusText = 'Pending — Waiting for recording & reviewer check',
   embedColor = 0x00d2ff
 }) {
   const config = configStore.get();
   const serverName = config.serverName || guild?.name || 'Server';
 
-  const rawTitle = config.userVerifyThreadTitle || DEFAULT_CONFIG.userVerifyThreadTitle;
+  const rawTitle = (config.userVerifyThreadTitle || DEFAULT_CONFIG.userVerifyThreadTitle).replace(/^🛡️\s*/, '');
   const rawBody = config.userVerifyThreadContent || DEFAULT_CONFIG.userVerifyThreadContent;
 
   const userLabel = displayName || userTag || 'Member';
@@ -136,9 +136,9 @@ export function createThreadControlPayload({
     .setTitle(title)
     .setDescription(description)
     .addFields(
-      { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
-      { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
-      { name: '📋 Verification Status', value: statusText, inline: true }
+      { name: 'Case ID', value: `\`#${caseCode}\``, inline: true },
+      { name: 'Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+      { name: 'Verification Status', value: statusText, inline: true }
     )
     .setFooter({
       text: `${serverName} • Case #${caseCode} Private Verification`
@@ -188,24 +188,24 @@ export function createStaffReviewCardPayload({
 
     const embed = new EmbedBuilder()
       .setColor(0x2ecc71)
-      .setTitle(`✅ Case #${caseCode} — Verification Approved`)
+      .setTitle(`Case #${caseCode} — Verification Approved`)
       .addFields(
-        { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
-        { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
-        { name: '🛡️ Approved By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
+        { name: 'Case ID', value: `\`#${caseCode}\``, inline: true },
+        { name: 'Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+        { name: 'Approved By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
         {
-          name: '🎭 Roles Updated',
+          name: 'Roles Updated',
           value: roleParts.length > 0 ? roleParts.join(' • ') : 'Verified access unlocked',
           inline: true
         },
-        { name: '📋 Final Status', value: '✅ Approved & Thread Archived', inline: true }
+        { name: 'Final Status', value: 'Approved & Thread Archived', inline: true }
       )
       .setFooter({ text: `${serverName} • Case #${caseCode} Approved` })
       .setTimestamp();
 
     const archiveRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel('↗️ View Archived Thread')
+        .setLabel('View Archived Thread')
         .setStyle(ButtonStyle.Link)
         .setURL(threadJumpUrl)
     );
@@ -220,24 +220,24 @@ export function createStaffReviewCardPayload({
   if (status === 'rejected') {
     const embed = new EmbedBuilder()
       .setColor(0xe74c3c)
-      .setTitle(`❌ Case #${caseCode} — Verification Declined`)
+      .setTitle(`Case #${caseCode} — Verification Declined`)
       .addFields(
-        { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
-        { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
-        { name: '🛡️ Declined By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
+        { name: 'Case ID', value: `\`#${caseCode}\``, inline: true },
+        { name: 'Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+        { name: 'Declined By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
         {
-          name: '📝 Rejection Reason',
+          name: 'Rejection Reason',
           value: `> ${String(lastReason || 'No reason provided.').slice(0, 900).replace(/\n/g, '\n> ')}`,
           inline: false
         },
-        { name: '📋 Final Status', value: '❌ Rejected & Thread Archived', inline: true }
+        { name: 'Final Status', value: 'Rejected & Thread Archived', inline: true }
       )
       .setFooter({ text: `${serverName} • Case #${caseCode} Closed` })
       .setTimestamp();
 
     const archiveRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel('↗️ View Archived Thread')
+        .setLabel('View Archived Thread')
         .setStyle(ButtonStyle.Link)
         .setURL(threadJumpUrl)
     );
@@ -252,19 +252,19 @@ export function createStaffReviewCardPayload({
   if (status === 'closed_left') {
     const embed = new EmbedBuilder()
       .setColor(0x95a5a6)
-      .setTitle(`⚪ Case #${caseCode} — Closed (Applicant Left)`)
+      .setTitle(`Case #${caseCode} — Closed (Applicant Left)`)
       .addFields(
-        { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
-        { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
-        { name: '🛡️ Closed By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
-        { name: '📋 Final Status', value: '⚠️ Applicant left the server — Thread archived', inline: false }
+        { name: 'Case ID', value: `\`#${caseCode}\``, inline: true },
+        { name: 'Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+        { name: 'Closed By', value: reviewedBy ? `<@${reviewedBy}>` : 'Staff Reviewer', inline: true },
+        { name: 'Final Status', value: 'Applicant left the server — Thread archived', inline: false }
       )
       .setFooter({ text: `${serverName} • Case #${caseCode} Closed` })
       .setTimestamp();
 
     const archiveRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel('↗️ View Archived Thread')
+        .setLabel('View Archived Thread')
         .setStyle(ButtonStyle.Link)
         .setURL(threadJumpUrl)
     );
@@ -277,37 +277,37 @@ export function createStaffReviewCardPayload({
 
   // 4. ACTIVE QUEUE CARD (pending | submitted | reupload_requested)
   let cardColor = 0x00d2ff;
-  let queueStatusValue = '⏳ Opened — Waiting for video upload';
+  let queueStatusValue = 'Opened — Waiting for video upload';
 
   if (status === 'reupload_requested') {
     cardColor = 0xf39c12;
     queueStatusValue = reviewedBy
-      ? `🔄 Re-upload Requested by <@${reviewedBy}>`
-      : '🔄 Re-upload Requested — Waiting for updated video';
+      ? `Re-upload Requested by <@${reviewedBy}>`
+      : 'Re-upload Requested — Waiting for updated video';
   } else if (status === 'submitted') {
     cardColor = 0x5865F2;
     queueStatusValue = lastSubmissionUrl
-      ? `📹 Submission Posted — [Jump to Recording](${lastSubmissionUrl})`
-      : '📹 Submission Posted — Ready for Review';
+      ? `Submission Posted — [Jump to Recording](${lastSubmissionUrl})`
+      : 'Submission Posted — Ready for Review';
   } else if (claimedBy) {
     cardColor = 0x5865F2;
   }
 
   const fields = [
-    { name: '🔢 Case ID', value: `\`#${caseCode}\``, inline: true },
-    { name: '👤 Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
-    { name: '🧵 Private Thread', value: `<#${threadId}>`, inline: true },
+    { name: 'Case ID', value: `\`#${caseCode}\``, inline: true },
+    { name: 'Applicant', value: `<@${userId}> (\`${userLabel}\`)`, inline: true },
+    { name: 'Private Thread', value: `<#${threadId}>`, inline: true },
     {
-      name: '🙋 Claimed By',
-      value: claimedBy ? `🔒 Claimed by <@${claimedBy}>` : '🟢 Unclaimed — Available',
+      name: 'Claimed By',
+      value: claimedBy ? `Claimed by <@${claimedBy}>` : 'Unclaimed — Available',
       inline: true
     },
-    { name: '📋 Queue Status', value: queueStatusValue, inline: true }
+    { name: 'Queue Status', value: queueStatusValue, inline: true }
   ];
 
   if (lastReason && status === 'reupload_requested') {
     fields.push({
-      name: '📝 Latest Reviewer Note',
+      name: 'Latest Reviewer Note',
       value: `> ${String(lastReason).slice(0, 900).replace(/\n/g, '\n> ')}`,
       inline: false
     });
@@ -315,7 +315,7 @@ export function createStaffReviewCardPayload({
 
   const embed = new EmbedBuilder()
     .setColor(cardColor)
-    .setTitle(`🛡️ Case #${caseCode} — Video Verification Queue`)
+    .setTitle(`Case #${caseCode} — Video Verification Queue`)
     .addFields(fields)
     .setFooter({
       text: `${serverName} • Claim a case before reviewing to prevent duplicate actions`
@@ -325,22 +325,22 @@ export function createStaffReviewCardPayload({
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`btn_vthread_claim_${threadId}_${userId}`)
-      .setLabel(claimedBy ? '🔓 Unclaim' : '🙋 Claim Case')
+      .setLabel(claimedBy ? 'Unclaim' : 'Claim Case')
       .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId(`btn_vthread_approve_${threadId}_${userId}`)
-      .setLabel('✅ Approve')
+      .setLabel('Approve')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(`btn_vthread_reupload_${threadId}_${userId}`)
-      .setLabel('🔄 Request Re-upload')
+      .setLabel('Request Re-upload')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`btn_vthread_reject_${threadId}_${userId}`)
-      .setLabel('❌ Reject & Close')
+      .setLabel('Reject & Close')
       .setStyle(ButtonStyle.Danger),
     new ButtonBuilder()
-      .setLabel('↗️ Open Thread')
+      .setLabel('Open Thread')
       .setStyle(ButtonStyle.Link)
       .setURL(lastSubmissionUrl || threadJumpUrl)
   );
@@ -362,7 +362,7 @@ export function createEphemeralReviewerPanelPayload({
   userTag,
   displayName,
   claimedBy = null,
-  statusText = '⏳ Pending Review',
+  statusText = 'Pending Review',
   targetMessageUrl = '',
   embedColor = 0x5865F2,
   disableButtons = false
@@ -370,7 +370,7 @@ export function createEphemeralReviewerPanelPayload({
   const userLabel = displayName || userTag || userId;
   const lines = [
     `**Applicant:** <@${userId}> (\`${userLabel}\`)`,
-    `**Claimed By:** ${claimedBy ? `🔒 <@${claimedBy}>` : '🟢 Unclaimed — Available'}`,
+    `**Claimed By:** ${claimedBy ? `<@${claimedBy}>` : 'Unclaimed — Available'}`,
     `**Case Status:** ${statusText}`
   ];
 
@@ -386,10 +386,10 @@ export function createEphemeralReviewerPanelPayload({
 
   const embed = new EmbedBuilder()
     .setColor(embedColor)
-    .setTitle(`🛡️ Reviewer Controls — Case #${caseCode}`)
+    .setTitle(`Reviewer Controls — Case #${caseCode}`)
     .setDescription(lines.join('\n'))
     .setFooter({
-      text: `🔒 Hidden Reviewer Panel • Only visible to you`
+      text: `Hidden Reviewer Panel • Only visible to you`
     })
     .setTimestamp();
 
@@ -398,22 +398,22 @@ export function createEphemeralReviewerPanelPayload({
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`btn_vthread_claim_${idSegment}`)
-      .setLabel(claimedBy ? '🔓 Unclaim' : '🙋 Claim Case')
+      .setLabel(claimedBy ? 'Unclaim' : 'Claim Case')
       .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
       .setDisabled(disableButtons),
     new ButtonBuilder()
       .setCustomId(`btn_vthread_approve_${idSegment}`)
-      .setLabel('✅ Approve')
+      .setLabel('Approve')
       .setStyle(ButtonStyle.Success)
       .setDisabled(disableButtons),
     new ButtonBuilder()
       .setCustomId(`btn_vthread_reupload_${idSegment}`)
-      .setLabel('🔄 Request Re-upload')
+      .setLabel('Request Re-upload')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(disableButtons),
     new ButtonBuilder()
       .setCustomId(`btn_vthread_reject_${idSegment}`)
-      .setLabel('❌ Reject & Close')
+      .setLabel('Reject & Close')
       .setStyle(ButtonStyle.Danger)
       .setDisabled(disableButtons)
   );

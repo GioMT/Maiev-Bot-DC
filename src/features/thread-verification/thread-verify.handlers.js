@@ -314,8 +314,8 @@ export async function handleVerifyThreadMessage(message) {
           parentChannelName: message.channel.parent?.name || 'user-verify',
           reviewerMentionsText: formatReviewerMentions(guild, config),
           statusText: rec.claimedBy
-            ? `📹 Submission Received • Claimed by <@${rec.claimedBy}>`
-            : '📹 Submission Received — Waiting for Reviewer',
+            ? `Submission Received • Claimed by <@${rec.claimedBy}>`
+            : 'Submission Received — Waiting for Reviewer',
           embedColor: 0x5865F2
         });
         await controlMsg.edit({
@@ -432,19 +432,19 @@ export async function handleReviewCommand(interaction) {
     rec.status === 'closed_left' ||
     Boolean(channel.locked);
 
-  let statusText = '⏳ Pending Review';
+  let statusText = 'Pending Review';
   let embedColor = 0x5865F2;
   if (rec.status === 'approved') {
-    statusText = '✅ Approved & Verified';
+    statusText = 'Approved & Verified';
     embedColor = 0x2ecc71;
   } else if (rec.status === 'rejected') {
-    statusText = '❌ Rejected & Closed';
+    statusText = 'Rejected & Closed';
     embedColor = 0xe74c3c;
   } else if (rec.status === 'reupload_requested') {
-    statusText = '🔄 Re-upload Requested — Waiting for updated video';
+    statusText = 'Re-upload Requested — Waiting for updated video';
     embedColor = 0xf39c12;
   } else if (rec.status === 'submitted') {
-    statusText = '📹 Submission Posted — Ready for Review';
+    statusText = 'Submission Posted — Ready for Review';
   }
 
   const targetMessageUrl = interaction.isMessageContextMenuCommand?.()
@@ -544,10 +544,10 @@ export async function handleReviewerActionButton(interaction) {
         const userTag = targetMember?.user?.tag || rec?.userTag || userId;
 
         const statusBadge = nextClaimer
-          ? `🔒 Under Review by <@${nextClaimer}>`
+          ? `Under Review by <@${nextClaimer}>`
           : (rec?.status === 'submitted'
-            ? '📹 Submission Received — Waiting for Reviewer'
-            : '⏳ Pending — Waiting for recording & reviewer check');
+            ? 'Submission Received — Waiting for Reviewer'
+            : 'Pending — Waiting for recording & reviewer check');
 
         const updatedControl = createThreadControlPayload({
           guild,
@@ -586,7 +586,7 @@ export async function handleReviewerActionButton(interaction) {
         userTag: targetMember?.user?.tag || rec?.userTag || userId,
         displayName: targetMember?.displayName || rec?.displayName || 'Applicant',
         claimedBy: nextClaimer,
-        statusText: nextClaimer ? `🔒 Claimed by <@${nextClaimer}>` : '🟢 Unclaimed — Available',
+        statusText: nextClaimer ? `Claimed by <@${nextClaimer}>` : 'Unclaimed — Available',
         targetMessageUrl: rec?.lastSubmissionUrl || '',
         embedColor: 0x5865F2,
         disableButtons: false
@@ -664,7 +664,7 @@ export async function handleReviewerActionButton(interaction) {
           displayName: 'Former Member',
           parentChannelName: threadChannel?.parent?.name || 'user-verify',
           reviewerMentionsText: formatReviewerMentions(guild, config),
-          statusText: `⚠️ Applicant left the server (Closed by <@${member.id}>)`,
+          statusText: `Applicant left the server (Closed by <@${member.id}>)`,
           embedColor: 0x95a5a6
         });
         await controlMsg.edit({
@@ -688,7 +688,7 @@ export async function handleReviewerActionButton(interaction) {
           userId,
           displayName: 'Former Member',
           claimedBy: member.id,
-          statusText: '⚠️ Applicant left the server — Thread closed',
+          statusText: 'Applicant left the server — Thread closed',
           embedColor: 0x95a5a6,
           disableButtons: true
         });
@@ -754,7 +754,7 @@ export async function handleReviewerActionButton(interaction) {
         displayName: targetMember.displayName,
         parentChannelName: threadChannel?.parent?.name || 'user-verify',
         reviewerMentionsText: formatReviewerMentions(guild, config),
-        statusText: `✅ Approved by <@${member.id}>`,
+        statusText: `Approved by <@${member.id}>`,
         embedColor: 0x2ecc71
       });
 
@@ -787,7 +787,7 @@ export async function handleReviewerActionButton(interaction) {
         userTag: targetMember.user.tag,
         displayName: targetMember.displayName,
         claimedBy: rec?.claimedBy || member.id,
-        statusText: '✅ Approved & Verified! Private thread archived.',
+        statusText: 'Approved & Verified — Private thread archived.',
         embedColor: 0x2ecc71,
         disableButtons: true
       });
@@ -806,13 +806,13 @@ export async function handleReviewerActionButton(interaction) {
       summaryLines.push(`**Role(s) Removed:** ${removedNames.map(n => `\`${n}\``).join(', ')}`);
     }
     if (hierarchyWarnings.length > 0) {
-      summaryLines.push(`\n⚠️ *Note to Staff: Could not assign ${hierarchyWarnings.join(', ')} because it sits at or above Maiev's role in Server Settings > Roles.*`);
+      summaryLines.push(`\n*Note to Staff: Could not assign ${hierarchyWarnings.join(', ')} because it sits at or above Maiev's role in Server Settings > Roles.*`);
     }
-    summaryLines.push('\n🔒 *This private verification thread is now complete and has been archived.*');
+    summaryLines.push('\n*This private verification thread is now complete and has been archived.*');
 
     const approvedEmbed = new EmbedBuilder()
       .setColor(0x2ecc71)
-      .setTitle(`✅ Verification Complete — Case #${caseCode}`)
+      .setTitle(`Verification Complete — Case #${caseCode}`)
       .setDescription(summaryLines.join('\n'))
       .setFooter({ text: `${serverName} • Case #${caseCode} Verified` })
       .setTimestamp();
@@ -830,7 +830,7 @@ export async function handleReviewerActionButton(interaction) {
       embeds: [
         new EmbedBuilder()
           .setColor(0x2ecc71)
-          .setTitle(`✅ You are now Verified in ${serverName}!`)
+          .setTitle(`You are now Verified in ${serverName}!`)
           .setDescription(
             `Your video verification (**Case #${caseCode}**) was approved by **${member.displayName}**.\n` +
             (grantedNames.length > 0 ? `**Granted Role(s):** ${grantedNames.join(', ')}` : 'Your trusted access is now unlocked!')
@@ -935,7 +935,7 @@ export async function handleReviewerReasonModal(interaction) {
         displayName,
         parentChannelName: threadChannel?.parent?.name || 'user-verify',
         reviewerMentionsText: formatReviewerMentions(guild, config),
-        statusText: `🔄 Re-upload Requested by <@${member.id}>`,
+        statusText: `Re-upload Requested by <@${member.id}>`,
         embedColor: 0xf39c12
       });
       await controlMsg.edit({
@@ -946,11 +946,11 @@ export async function handleReviewerReasonModal(interaction) {
 
     const reuploadEmbed = new EmbedBuilder()
       .setColor(0xf39c12)
-      .setTitle(`🔄 Action Required (Case #${caseCode}) — Submit Updated Recording`)
+      .setTitle(`Action Required (Case #${caseCode}) — Submit Updated Recording`)
       .setDescription(
         `Hello <@${userId}>, <@${member.id}> reviewed **Case #${caseCode}** and requested an adjustment before approving:\n\n` +
         `**Reviewer Note / Reason:**\n> ${reason.replace(/\n/g, '\n> ')}\n\n` +
-        `📹 **What to do next:** Please upload your new recording or required details directly below in this thread!`
+        `**What to do next:** Please upload your new recording or required details directly below in this thread!`
       )
       .setFooter({ text: `${serverName} • Case #${caseCode} remains open for your response` })
       .setTimestamp();
@@ -986,14 +986,14 @@ export async function handleReviewerReasonModal(interaction) {
         userTag,
         displayName,
         claimedBy: activeClaimer,
-        statusText: '🔄 Re-upload Requested — Thread remains open for new recording',
+        statusText: 'Re-upload Requested — Thread remains open for new recording',
         embedColor: 0xf39c12,
         disableButtons: false
       });
       await interaction.editReply(updatedPanel).catch(() => null);
     } else {
       await interaction.editReply({
-        content: `✅ Re-upload request posted to **Case #${caseCode}** (<#${threadId}>)! The private thread remains **open** for their updated recording.`
+        content: `Re-upload request posted to **Case #${caseCode}** (<#${threadId}>)! The private thread remains **open** for their updated recording.`
       }).catch(() => null);
     }
     return;
@@ -1010,7 +1010,7 @@ export async function handleReviewerReasonModal(interaction) {
         displayName,
         parentChannelName: threadChannel?.parent?.name || 'user-verify',
         reviewerMentionsText: formatReviewerMentions(guild, config),
-        statusText: `❌ Rejected & Closed by <@${member.id}>`,
+        statusText: `Rejected & Closed by <@${member.id}>`,
         embedColor: 0xe74c3c
       });
       await controlMsg.edit({
@@ -1021,11 +1021,11 @@ export async function handleReviewerReasonModal(interaction) {
 
     const rejectEmbed = new EmbedBuilder()
       .setColor(0xe74c3c)
-      .setTitle(`❌ Verification Declined — Case #${caseCode}`)
+      .setTitle(`Verification Declined — Case #${caseCode}`)
       .setDescription(
         `Hello <@${userId}>, your verification submission (**Case #${caseCode}**) was declined by <@${member.id}>.\n\n` +
         `**Reason:**\n> ${reason.replace(/\n/g, '\n> ')}\n\n` +
-        `🔒 *This private verification thread has been closed and archived. If you are ready to submit a valid recording later, you may open a new verification thread in <#${threadChannel?.parentId || config.userVerifyChannelId}>.*`
+        `*This private verification thread has been closed and archived. If you are ready to submit a valid recording later, you may open a new verification thread in <#${threadChannel?.parentId || config.userVerifyChannelId}>.*`
       )
       .setFooter({ text: `${serverName} • Case #${caseCode} Closed` })
       .setTimestamp();
@@ -1043,7 +1043,7 @@ export async function handleReviewerReasonModal(interaction) {
         embeds: [
           new EmbedBuilder()
             .setColor(0xe74c3c)
-            .setTitle(`❌ Verification Update (Case #${caseCode}) — ${serverName}`)
+            .setTitle(`Verification Update (Case #${caseCode}) — ${serverName}`)
             .setDescription(
               `Your video verification submission (**Case #${caseCode}**) in **${serverName}** was declined by a reviewer.\n\n` +
               `**Reason:**\n> ${reason.replace(/\n/g, '\n> ')}`
@@ -1075,14 +1075,14 @@ export async function handleReviewerReasonModal(interaction) {
         userTag,
         displayName,
         claimedBy: rec?.claimedBy || member.id,
-        statusText: '❌ Rejected & Private Thread Archived',
+        statusText: 'Rejected & Private Thread Archived',
         embedColor: 0xe74c3c,
         disableButtons: true
       });
       await interaction.editReply(rejectedPanel).catch(() => null);
     } else {
       await interaction.editReply({
-        content: `✅ **Case #${caseCode}** declined and private thread <#${threadId}> has been locked & archived.`
+        content: `**Case #${caseCode}** declined and private thread <#${threadId}> has been locked & archived.`
       }).catch(() => null);
     }
 

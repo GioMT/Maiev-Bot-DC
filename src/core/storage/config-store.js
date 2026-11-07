@@ -69,21 +69,21 @@ export const DEFAULT_CONFIG = {
   userVerifyReviewerRoleIds: [],
   userVerifyRolesToAdd: [],
   userVerifyRolesToRemove: [],
-  userVerifyButtonLabel: '📹 Start Video Verification',
-  userVerifyTitle: '📹 Video Verification — Become Trusted',
+  userVerifyButtonLabel: 'Start Video Verification',
+  userVerifyTitle: 'Video Verification — Become Trusted',
   userVerifyContent: (
     'Welcome to **{server}** Video Verification!\n\n' +
     'To receive your **Verified / Trusted** status, please submit a short screen recording matching the reference video attached to this post:\n\n' +
     '**How to Verify:**\n' +
     '1. Watch the reference video above/below to see what needs to be shown.\n' +
-    '2. Click the **"📹 Start Video Verification"** button below.\n' +
+    '2. Click the **"Start Video Verification"** button below.\n' +
     '3. Maiev will open a **Private Thread** visible only to you, Server Administrators, and appointed Reviewers.\n' +
     '4. Upload your screen recording inside your private thread and wait for a Reviewer to approve it!'
   ),
   userVerifyFooter: '{server} • Private Thread Verification',
   userVerifyVideoUrl: '',
   userVerifyUploadedVideo: '',
-  userVerifyThreadTitle: '🛡️ Case #{case} — Private Verification ({user})',
+  userVerifyThreadTitle: 'Case #{case} — Private Verification ({user})',
   userVerifyThreadContent: (
     'Hello {user}! This private thread is only visible to you, Server Administrators, and our Verification Reviewers ({reviewers}).\n\n' +
     '**Next Step:**\n' +

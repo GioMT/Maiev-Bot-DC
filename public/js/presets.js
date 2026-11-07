@@ -33,19 +33,19 @@ To proceed, please register your **AION 2 In-Game Name (IGN)**:
 };
 
 export const DEFAULT_USER_VERIFY_TEMPLATE = {
-  title: '📹 Video Verification — Become Trusted',
+  title: 'Video Verification — Become Trusted',
   content: `Welcome to **{server}** Video Verification!
 
 To receive your **Verified / Trusted** status, please submit a short screen recording matching the reference video attached to this post:
 
 **How to Verify:**
 1. Watch the reference video above/below to see what needs to be shown.
-2. Click the **"📹 Start Video Verification"** button below.
+2. Click the **"Start Video Verification"** button below.
 3. Maiev will open a **Private Thread** visible only to you, Server Administrators, and appointed Reviewers.
 4. Upload your screen recording inside your private thread and wait for a Reviewer to approve it!`,
   footer: '{server} • Private Thread Verification',
-  buttonLabel: '📹 Start Video Verification',
-  threadTitle: '🛡️ Case #{case} — Private Verification ({user})',
+  buttonLabel: 'Start Video Verification',
+  threadTitle: 'Case #{case} — Private Verification ({user})',
   threadContent: `Hello {user}! This private thread is only visible to you, Server Administrators, and our Verification Reviewers ({reviewers}).
 
 **Next Step:**
