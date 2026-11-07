@@ -1,6 +1,12 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import {
+  ApplicationCommandType,
+  ContextMenuCommandBuilder,
+  PermissionFlagsBits,
+  SlashCommandBuilder
+} from 'discord.js';
 import {
   handleStartVideoVerifyButton,
+  handleReviewCommand,
   handleReviewerActionButton,
   handleReviewerReasonModal,
   handlePostUserVerifyCommand,
@@ -17,11 +23,19 @@ export const threadVerificationFeature = {
     new SlashCommandBuilder()
       .setName('post-user-verify')
       .setDescription('Post the Private Thread Video Verification panel in this channel (Admin only)')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    new SlashCommandBuilder()
+      .setName('review')
+      .setDescription('Open hidden Reviewer controls (Approve / Re-upload / Reject) in a verification thread'),
+    new ContextMenuCommandBuilder()
+      .setName('Review Verification')
+      .setType(ApplicationCommandType.Message)
   ],
 
   commandHandlers: {
-    'post-user-verify': handlePostUserVerifyCommand
+    'post-user-verify': handlePostUserVerifyCommand,
+    'review': handleReviewCommand,
+    'Review Verification': handleReviewCommand
   },
 
   buttons: {

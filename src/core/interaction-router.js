@@ -69,8 +69,8 @@ export class InteractionRouter {
           return;
         }
 
-        // 3. Slash Commands
-        if (interaction.isChatInputCommand()) {
+        // 3. Slash Commands & Context Menu Commands (Apps -> Review Verification)
+        if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
           const cmdHandler = this.commands.get(interaction.commandName);
           if (cmdHandler) {
             await cmdHandler(interaction, context);

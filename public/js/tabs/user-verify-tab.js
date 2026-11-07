@@ -1,6 +1,6 @@
-import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.1';
-import { state, getActiveServerName } from '../state.js?v=7.1';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.1';
+import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.2';
+import { state, getActiveServerName } from '../state.js?v=7.2';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.2';
 
 let currentUploadedVideoPath = '';
 let simReasonMode = 'reupload'; // 'reupload' | 'reject'
@@ -199,6 +199,11 @@ export function updateUserVerifyPreview() {
         .replace(/{reviewers}/g, `**${reviewerNames}**`)
     );
   }
+
+  const threadFooterEl = document.getElementById('sim-uverify-thread-footer');
+  if (threadFooterEl) {
+    threadFooterEl.textContent = `${serverName} • Case #0001 Private Verification`;
+  }
 }
 
 function switchSimulatorView(mode) {
@@ -226,6 +231,16 @@ function resetThreadSimulation() {
   }
   const embedEl = document.getElementById('sim-uverify-thread-embed');
   if (embedEl) embedEl.style.borderLeftColor = '#00d2ff';
+  const ephEmbedEl = document.getElementById('sim-uverify-ephemeral-embed');
+  if (ephEmbedEl) ephEmbedEl.style.borderLeftColor = '#5865F2';
+  const ephDescEl = document.getElementById('sim-uverify-ephemeral-desc');
+  if (ephDescEl) {
+    ephDescEl.innerHTML = `
+      <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+      <strong>Case Status:</strong> ⏳ Pending Review<br><br>
+      <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
+    `;
+  }
   const logEl = document.getElementById('sim-uverify-thread-log');
   if (logEl) {
     logEl.classList.add('hidden');
@@ -437,6 +452,16 @@ export function setupUserVerifyTabListeners() {
     }
     const embedEl = document.getElementById('sim-uverify-thread-embed');
     if (embedEl) embedEl.style.borderLeftColor = '#2ecc71';
+    const ephEmbedEl = document.getElementById('sim-uverify-ephemeral-embed');
+    if (ephEmbedEl) ephEmbedEl.style.borderLeftColor = '#2ecc71';
+    const ephDescEl = document.getElementById('sim-uverify-ephemeral-desc');
+    if (ephDescEl) {
+      ephDescEl.innerHTML = `
+        <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+        <strong>Case Status:</strong> ✅ Approved &amp; Verified! Private thread archived.<br><br>
+        <em>This verification case has already been finalized.</em>
+      `;
+    }
 
     const logEl = document.getElementById('sim-uverify-thread-log');
     if (logEl) {
@@ -494,6 +519,16 @@ export function setupUserVerifyTabListeners() {
         statusEl.style.color = '#f39c12';
       }
       if (embedEl) embedEl.style.borderLeftColor = '#f39c12';
+      const ephEmbedEl = document.getElementById('sim-uverify-ephemeral-embed');
+      if (ephEmbedEl) ephEmbedEl.style.borderLeftColor = '#f39c12';
+      const ephDescEl = document.getElementById('sim-uverify-ephemeral-desc');
+      if (ephDescEl) {
+        ephDescEl.innerHTML = `
+          <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+          <strong>Case Status:</strong> 🔄 Re-upload Requested — Thread remains open<br><br>
+          <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
+        `;
+      }
       if (logEl) {
         logEl.classList.remove('hidden');
         logEl.innerHTML = `
@@ -502,7 +537,7 @@ export function setupUserVerifyTabListeners() {
             <div style="color: #dbdee1; font-size: 0.83rem; line-height: 1.45;">
               Hello <strong>@DaevaLegend</strong>, a reviewer requested an update:<br>
               <blockquote style="margin: 6px 0; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.25); color: #fff;">${formatDiscordMarkdown(reason)}</blockquote>
-              <span style="color: #949ba4; font-size: 0.78rem;">🔓 Private thread stays OPEN — buttons remain active for their next upload!</span>
+              <span style="color: #949ba4; font-size: 0.78rem;">🔓 Private thread stays OPEN — Reviewer controls remain available via <code>/review</code>!</span>
             </div>
           </div>
         `;
@@ -514,6 +549,16 @@ export function setupUserVerifyTabListeners() {
         statusEl.style.color = '#e74c3c';
       }
       if (embedEl) embedEl.style.borderLeftColor = '#e74c3c';
+      const ephEmbedEl = document.getElementById('sim-uverify-ephemeral-embed');
+      if (ephEmbedEl) ephEmbedEl.style.borderLeftColor = '#e74c3c';
+      const ephDescEl = document.getElementById('sim-uverify-ephemeral-desc');
+      if (ephDescEl) {
+        ephDescEl.innerHTML = `
+          <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+          <strong>Case Status:</strong> ❌ Rejected &amp; Private Thread Archived<br><br>
+          <em>This verification case has already been finalized.</em>
+        `;
+      }
       if (logEl) {
         logEl.classList.remove('hidden');
         logEl.innerHTML = `

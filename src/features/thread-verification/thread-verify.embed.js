@@ -91,7 +91,8 @@ export function createUserVerifyPanelPayload(guild, overrides = {}) {
 }
 
 /**
- * Creates the Reviewer Control Card posted inside each user's private verification thread.
+ * Creates the Welcome & Status Card posted inside each user's private verification thread.
+ * Contains ZERO reviewer buttons so the applicant never sees staff review controls.
  */
 export function createThreadControlPayload({
   guild,
@@ -102,8 +103,7 @@ export function createThreadControlPayload({
   parentChannelName = 'user-verify',
   reviewerMentionsText = 'Administrators',
   statusText = '⏳ Pending — Waiting for recording & reviewer check',
-  embedColor = 0x00d2ff,
-  disableButtons = false
+  embedColor = 0x00d2ff
 }) {
   const config = configStore.get();
   const serverName = config.serverName || guild?.name || 'Server';
@@ -141,7 +141,52 @@ export function createThreadControlPayload({
       { name: '📋 Verification Status', value: statusText, inline: true }
     )
     .setFooter({
-      text: `Case #${caseCode} • Only Administrators & appointed Reviewers can approve or reject`
+      text: `${serverName} • Case #${caseCode} Private Verification`
+    })
+    .setTimestamp();
+
+  return {
+    embeds: [embed],
+    components: []
+  };
+}
+
+/**
+ * Creates the hidden ("Only you can see this") Ephemeral Reviewer Panel
+ * summoned inside a verification thread via /review or Right-Click -> Apps -> Review Verification.
+ */
+export function createEphemeralReviewerPanelPayload({
+  caseCode = '0001',
+  userId,
+  userTag,
+  displayName,
+  statusText = '⏳ Pending Review',
+  targetMessageUrl = '',
+  embedColor = 0x5865F2,
+  disableButtons = false
+}) {
+  const userLabel = displayName || userTag || userId;
+  const lines = [
+    `**Applicant:** <@${userId}> (\`${userLabel}\`)`,
+    `**Case Status:** ${statusText}`
+  ];
+
+  if (targetMessageUrl) {
+    lines.push(`**Selected Submission:** [Jump to Message](${targetMessageUrl})`);
+  }
+
+  lines.push(
+    disableButtons
+      ? '\n*This verification case has already been finalized.*'
+      : '\n*Choose an action below — these controls are **invisible** to the applicant:*'
+  );
+
+  const embed = new EmbedBuilder()
+    .setColor(embedColor)
+    .setTitle(`🛡️ Reviewer Controls — Case #${caseCode}`)
+    .setDescription(lines.join('\n'))
+    .setFooter({
+      text: `🔒 Hidden Reviewer Panel • Only visible to you`
     })
     .setTimestamp();
 
@@ -172,10 +217,10 @@ export function createThreadControlPayload({
 /**
  * Builds the Reviewer reason prompt modal for either "Request Re-upload" or "Reject & Close".
  */
-export function createReviewerReasonModal({ mode, userId, controlMessageId }) {
+export function createReviewerReasonModal({ mode, userId }) {
   const isReupload = mode === 'reupload';
   const modal = new ModalBuilder()
-    .setCustomId(`modal_vthread_${mode}_${userId}_${controlMessageId}`)
+    .setCustomId(`modal_vthread_${mode}_${userId}`)
     .setTitle(isReupload ? 'Request New Recording' : 'Reject & Close Verification');
 
   const reasonInput = new TextInputBuilder()

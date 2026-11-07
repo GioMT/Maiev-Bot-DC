@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=7.1';
-import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.1';
-import { persistServerName } from '../api.js?v=7.1';
-import { updateRulesPreview } from './rules-tab.js?v=7.1';
-import { updateVerifyPreview } from './verify-tab.js?v=7.1';
-import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.1';
-import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.1';
-import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.1';
-import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.1';
-import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.1';
+import { state } from '../state.js?v=7.2';
+import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.2';
+import { persistServerName } from '../api.js?v=7.2';
+import { updateRulesPreview } from './rules-tab.js?v=7.2';
+import { updateVerifyPreview } from './verify-tab.js?v=7.2';
+import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.2';
+import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.2';
+import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.2';
+import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.2';
+import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.2';
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',

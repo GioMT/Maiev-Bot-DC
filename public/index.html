@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=7.1">
+  <link rel="stylesheet" href="style.css?v=7.2">
   <script src="lucide.min.js"></script>
 </head>
 <body>
@@ -724,7 +724,7 @@
                   <p class="text-muted">Loading roles...</p>
                 </div>
                 <span class="form-hint">
-                  <strong>Server Administrators</strong> always have access automatically. Appointed Reviewer roles are automatically invited into each private verification thread and permitted to click <strong>Approve</strong>, <strong>Request Re-upload</strong>, or <strong>Reject &amp; Close</strong>.
+                  <strong>Server Administrators</strong> always have access automatically. Appointed Reviewer roles are automatically invited into each private verification thread and summon the <strong>hidden ("Only you can see this")</strong> review buttons via <code>/review</code> or <strong>Right-Click Video &rarr; Apps &rarr; Review Verification</strong> (applicants never see the buttons).
                 </span>
               </div>
 
@@ -916,22 +916,40 @@
                             <div id="sim-uverify-thread-status" style="color: #dbdee1;">⏳ Pending — Waiting for recording &amp; reviewer check</div>
                           </div>
                         </div>
-                        <div class="embed-footer">Case #0001 • Only Administrators &amp; appointed Reviewers can approve or reject</div>
-                      </div>
-
-                      <div class="discord-action-row">
-                        <button type="button" class="discord-btn discord-btn-success" id="sim-btn-uverify-approve">
-                          ✅ Approve
-                        </button>
-                        <button type="button" class="discord-btn discord-btn-secondary" id="sim-btn-uverify-reupload">
-                          🔄 Request Re-upload
-                        </button>
-                        <button type="button" class="discord-btn discord-btn-danger" id="sim-btn-uverify-reject">
-                          ❌ Reject &amp; Close
-                        </button>
+                        <div class="embed-footer" id="sim-uverify-thread-footer">Asia Fregion • Case #0001 Private Verification</div>
                       </div>
 
                       <div id="sim-uverify-thread-log" class="hidden"></div>
+
+                      <!-- Simulated Ephemeral Reviewer Panel (/review or Apps -> Review Verification) -->
+                      <div style="margin-top: 14px; padding: 12px; border-radius: 8px; background: rgba(88, 101, 242, 0.08); border: 1px dashed rgba(88, 101, 242, 0.45);">
+                        <div style="font-size: 0.76rem; color: #949ba4; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                          <span>👁️ <strong style="color: #c9cdfb;">Only you can see this</strong> • Reviewer ran <code>/review</code> or <strong>Apps &rarr; Review Verification</strong></span>
+                          <span class="badge" style="font-size: 0.68rem; background: rgba(46, 204, 113, 0.15); color: #2ecc71;">Hidden from Applicant</span>
+                        </div>
+
+                        <div class="discord-embed" id="sim-uverify-ephemeral-embed" style="border-left-color: #5865F2; margin-top: 0;">
+                          <div class="embed-title" style="font-size: 0.9rem;">🛡️ Reviewer Controls — Case #0001</div>
+                          <div class="embed-description" id="sim-uverify-ephemeral-desc" style="font-size: 0.82rem;">
+                            <strong>Applicant:</strong> @DaevaLegend (<code>DaevaLegend</code>)<br>
+                            <strong>Case Status:</strong> ⏳ Pending Review<br><br>
+                            <em>Choose an action below — these controls are <strong>invisible</strong> to the applicant:</em>
+                          </div>
+                          <div class="embed-footer">🔒 Hidden Reviewer Panel • Only visible to you</div>
+                        </div>
+
+                        <div class="discord-action-row">
+                          <button type="button" class="discord-btn discord-btn-success" id="sim-btn-uverify-approve">
+                            ✅ Approve
+                          </button>
+                          <button type="button" class="discord-btn discord-btn-secondary" id="sim-btn-uverify-reupload">
+                            🔄 Request Re-upload
+                          </button>
+                          <button type="button" class="discord-btn discord-btn-danger" id="sim-btn-uverify-reject">
+                            ❌ Reject &amp; Close
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2334,6 +2352,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=7.1"></script>
+  <script type="module" src="js/main.js?v=7.2"></script>
 </body>
 </html>

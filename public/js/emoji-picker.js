@@ -1,5 +1,5 @@
-import { state } from './state.js?v=7.1';
-import { AION2_CUSTOM_EMOJIS, extractFlagIsoCode, getCustomEmojiEntry, normalizeEmojiCode } from './utils.js?v=7.1';
+import { state } from './state.js?v=7.2';
+import { AION2_CUSTOM_EMOJIS, extractFlagIsoCode, getCustomEmojiEntry, normalizeEmojiCode } from './utils.js?v=7.2';
 
 const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg';
 

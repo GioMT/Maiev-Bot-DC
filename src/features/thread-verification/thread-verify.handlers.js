@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   ChannelType,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   ThreadAutoArchiveDuration
 } from 'discord.js';
@@ -14,6 +15,7 @@ import { threadVerifyStore } from './thread-verify.store.js';
 import {
   createUserVerifyPanelPayload,
   createThreadControlPayload,
+  createEphemeralReviewerPanelPayload,
   createReviewerReasonModal,
   resolveUploadedVideoDiskPath
 } from './thread-verify.embed.js';
@@ -205,8 +207,137 @@ export async function handleStartVideoVerifyButton(interaction) {
 }
 
 /**
+ * Slash Command (/review) & Message Context Menu (Apps -> Review Verification) Handler:
+ * Opens an Ephemeral ("Only you can see this") Reviewer Button Panel inside a verification thread
+ * so applicants never see Reviewer buttons.
+ */
+export async function handleReviewCommand(interaction) {
+  const { guild, member, channel } = interaction;
+  const config = configStore.get();
+
+  if (!isAuthorizedReviewer(member, guild, config)) {
+    await interaction.reply({
+      content: '❌ **Access Denied:** Only Server Administrators or appointed Verification Reviewers can open the verification review panel.',
+      ephemeral: true
+    });
+    return;
+  }
+
+  if (!channel || !channel.isThread()) {
+    await interaction.reply({
+      content: '⚠️ Please use `/review` (or Right-Click a video → **Apps → Review Verification**) **inside** a user\'s private verification thread (e.g. `#verify-0001-...`).',
+      ephemeral: true
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  let rec = threadVerifyStore.getThread(channel.id);
+  const caseCode = threadVerifyStore.resolveCaseCode(channel);
+
+  // Fallback recovery if verify-threads.json was cleared or thread predates tracking
+  if (!rec?.userId) {
+    let inferredUserId = null;
+    let inferredControlMsgId = null;
+
+    const recentMessages = await channel.messages.fetch({ limit: 25 }).catch(() => null);
+    if (recentMessages) {
+      const botMsgs = [...recentMessages.values()]
+        .filter(m => m.author?.id === interaction.client.user?.id && m.embeds?.length > 0)
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+      for (const bMsg of botMsgs) {
+        const mentionMatch = String(bMsg.content || '').match(/^<@!?(\d{17,20})>/) ||
+          String(bMsg.embeds?.[0]?.description || '').match(/<@!?(\d{17,20})>/);
+        if (mentionMatch) {
+          inferredUserId = mentionMatch[1];
+          inferredControlMsgId = bMsg.id;
+          break;
+        }
+      }
+    }
+
+    if (
+      !inferredUserId &&
+      interaction.isMessageContextMenuCommand?.() &&
+      interaction.targetMessage?.author &&
+      !interaction.targetMessage.author.bot &&
+      (String(channel.name || '').startsWith('verify-') || channel.parentId === config.userVerifyChannelId)
+    ) {
+      inferredUserId = interaction.targetMessage.author.id;
+    }
+
+    if (inferredUserId) {
+      rec = threadVerifyStore.saveThread(channel.id, {
+        caseCode,
+        userId: inferredUserId,
+        channelId: channel.parentId || config.userVerifyChannelId || '',
+        ...(inferredControlMsgId ? { controlMessageId: inferredControlMsgId } : {}),
+        status: rec?.status || 'pending'
+      });
+    }
+  }
+
+  if (!rec?.userId) {
+    await interaction.editReply({
+      content: '⚠️ Could not detect a verification applicant for this thread. Make sure you run `/review` inside a private verification thread created by Maiev.'
+    });
+    return;
+  }
+
+  // Self-heal legacy threads: if the welcome card still had public buttons from an older build, strip them automatically
+  if (rec.controlMessageId) {
+    const legacyControlMsg = await channel.messages.fetch(rec.controlMessageId).catch(() => null);
+    if (legacyControlMsg && legacyControlMsg.components?.length > 0) {
+      await legacyControlMsg.edit({ components: [] }).catch(() => null);
+    }
+  }
+
+  const targetMember = await guild.members.fetch(rec.userId).catch(() => null);
+  const displayName = targetMember?.displayName || rec.displayName || rec.userTag || 'Applicant';
+  const userTag = targetMember?.user?.tag || rec.userTag || rec.userId;
+
+  const isClosed =
+    rec.status === 'approved' ||
+    rec.status === 'rejected' ||
+    rec.status === 'closed_left' ||
+    Boolean(channel.locked);
+
+  let statusText = '⏳ Pending Review';
+  let embedColor = 0x5865F2;
+  if (rec.status === 'approved') {
+    statusText = '✅ Approved & Verified';
+    embedColor = 0x2ecc71;
+  } else if (rec.status === 'rejected') {
+    statusText = '❌ Rejected & Closed';
+    embedColor = 0xe74c3c;
+  } else if (rec.status === 'reupload_requested') {
+    statusText = '🔄 Re-upload Requested — Waiting for updated video';
+    embedColor = 0xf39c12;
+  }
+
+  const targetMessageUrl = interaction.isMessageContextMenuCommand?.()
+    ? (interaction.targetMessage?.url || '')
+    : '';
+
+  const panel = createEphemeralReviewerPanelPayload({
+    caseCode,
+    userId: rec.userId,
+    userTag,
+    displayName,
+    statusText,
+    targetMessageUrl,
+    embedColor,
+    disableButtons: isClosed
+  });
+
+  await interaction.editReply(panel);
+}
+
+/**
  * Prefix Button Handler ('btn_vthread_'):
- * Handles Approve, Request Re-upload, and Reject & Close clicks inside private threads.
+ * Handles Approve, Request Re-upload, and Reject & Close clicks from the hidden Ephemeral Reviewer Panel.
  */
 export async function handleReviewerActionButton(interaction) {
   const { guild, member, channel } = interaction;
@@ -230,8 +361,7 @@ export async function handleReviewerActionButton(interaction) {
   if (action === 'reupload' || action === 'reject') {
     const modal = createReviewerReasonModal({
       mode: action,
-      userId,
-      controlMessageId: interaction.message.id
+      userId
     });
     try {
       await interaction.showModal(modal);
@@ -247,7 +377,7 @@ export async function handleReviewerActionButton(interaction) {
     return;
   }
 
-  // Option C — Approve immediately grants roles, updates card, notifies user, and locks + archives thread
+  // Option C — Approve immediately grants roles, updates thread status card, notifies user, and locks + archives thread
   if (action === 'approve') {
     const botMember = guild.members.me;
     if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
@@ -258,26 +388,46 @@ export async function handleReviewerActionButton(interaction) {
       return;
     }
 
+    const isEphemeralMsg = Boolean(interaction.message?.flags?.has(MessageFlags.Ephemeral));
     await interaction.deferUpdate();
+
+    const rec = threadVerifyStore.getThread(channel?.id);
     const caseCode = threadVerifyStore.resolveCaseCode(channel);
+    const controlMsgId = rec?.controlMessageId || (!isEphemeralMsg ? interaction.message?.id : null);
+    const controlMsg = controlMsgId && channel
+      ? await channel.messages.fetch(controlMsgId).catch(() => null)
+      : null;
 
     const targetMember = await guild.members.fetch(userId).catch(() => null);
     if (!targetMember) {
-      const leftPayload = createThreadControlPayload({
-        guild,
-        caseCode,
-        userId,
-        displayName: 'Former Member',
-        parentChannelName: channel?.parent?.name || 'user-verify',
-        reviewerMentionsText: formatReviewerMentions(guild, config),
-        statusText: `⚠️ Applicant left the server (Closed by <@${member.id}>)`,
-        embedColor: 0x95a5a6,
-        disableButtons: true
-      });
-      await interaction.message.edit({
-        embeds: leftPayload.embeds,
-        components: leftPayload.components
-      }).catch(() => null);
+      if (controlMsg) {
+        const leftPayload = createThreadControlPayload({
+          guild,
+          caseCode,
+          userId,
+          displayName: 'Former Member',
+          parentChannelName: channel?.parent?.name || 'user-verify',
+          reviewerMentionsText: formatReviewerMentions(guild, config),
+          statusText: `⚠️ Applicant left the server (Closed by <@${member.id}>)`,
+          embedColor: 0x95a5a6
+        });
+        await controlMsg.edit({
+          embeds: leftPayload.embeds,
+          components: []
+        }).catch(() => null);
+      }
+
+      if (isEphemeralMsg) {
+        const closedPanel = createEphemeralReviewerPanelPayload({
+          caseCode,
+          userId,
+          displayName: 'Former Member',
+          statusText: '⚠️ Applicant left the server — Thread closed',
+          embedColor: 0x95a5a6,
+          disableButtons: true
+        });
+        await interaction.editReply(closedPanel).catch(() => null);
+      }
 
       threadVerifyStore.saveThread(channel.id, { status: 'closed_left', reviewedBy: member.id });
       if (channel?.isThread()) {
@@ -329,24 +479,39 @@ export async function handleReviewerActionButton(interaction) {
 
     await ensureGuildEmojisLoaded(guild);
 
-    // 3. Update Reviewer Control Card in-place with disabled buttons
-    const approvedControl = createThreadControlPayload({
-      guild,
-      caseCode,
-      userId: targetMember.id,
-      userTag: targetMember.user.tag,
-      displayName: targetMember.displayName,
-      parentChannelName: channel?.parent?.name || 'user-verify',
-      reviewerMentionsText: formatReviewerMentions(guild, config),
-      statusText: `✅ Approved by <@${member.id}>`,
-      embedColor: 0x2ecc71,
-      disableButtons: true
-    });
+    // 3. Update the public Welcome & Status Card inside the thread (with ZERO buttons)
+    if (controlMsg) {
+      const approvedControl = createThreadControlPayload({
+        guild,
+        caseCode,
+        userId: targetMember.id,
+        userTag: targetMember.user.tag,
+        displayName: targetMember.displayName,
+        parentChannelName: channel?.parent?.name || 'user-verify',
+        reviewerMentionsText: formatReviewerMentions(guild, config),
+        statusText: `✅ Approved by <@${member.id}>`,
+        embedColor: 0x2ecc71
+      });
 
-    await interaction.message.edit({
-      embeds: approvedControl.embeds,
-      components: approvedControl.components
-    }).catch(() => null);
+      await controlMsg.edit({
+        embeds: approvedControl.embeds,
+        components: []
+      }).catch(() => null);
+    }
+
+    // 3b. Update Reviewer's hidden Ephemeral Panel in-place
+    if (isEphemeralMsg) {
+      const approvedPanel = createEphemeralReviewerPanelPayload({
+        caseCode,
+        userId: targetMember.id,
+        userTag: targetMember.user.tag,
+        displayName: targetMember.displayName,
+        statusText: '✅ Approved & Verified! Private thread archived.',
+        embedColor: 0x2ecc71,
+        disableButtons: true
+      });
+      await interaction.editReply(approvedPanel).catch(() => null);
+    }
 
     // 4. Send celebratory confirmation message inside the thread BEFORE archiving
     const serverName = config.serverName || guild.name;
@@ -430,28 +595,39 @@ export async function handleReviewerReasonModal(interaction) {
     return;
   }
 
-  // Format: modal_vthread_<mode>_<userId>_<controlMessageId>
+  // Format: modal_vthread_<mode>_<userId> (with optional legacy _<controlMessageId>)
   const stripped = interaction.customId.replace('modal_vthread_', '');
-  const [mode, userId, controlMessageId] = stripped.split('_');
+  const [mode, userId, legacyControlMsgId] = stripped.split('_');
   const reason = interaction.fields.getTextInputValue('input_vthread_reason').trim();
 
   if (!mode || !userId || !reason) return;
 
-  await interaction.deferReply({ ephemeral: true });
+  const isEphemeralSource =
+    Boolean(interaction.isFromMessage?.()) &&
+    Boolean(interaction.message?.flags?.has(MessageFlags.Ephemeral));
+
+  if (isEphemeralSource) {
+    await interaction.deferUpdate();
+  } else {
+    await interaction.deferReply({ ephemeral: true });
+  }
+
   await ensureGuildEmojisLoaded(guild);
 
+  const rec = threadVerifyStore.getThread(channel?.id);
   const caseCode = threadVerifyStore.resolveCaseCode(channel);
   const targetMember = await guild.members.fetch(userId).catch(() => null);
-  const displayName = targetMember?.displayName || 'Applicant';
-  const userTag = targetMember?.user?.tag || userId;
+  const displayName = targetMember?.displayName || rec?.displayName || 'Applicant';
+  const userTag = targetMember?.user?.tag || rec?.userTag || userId;
   const serverName = config.serverName || guild.name;
 
-  // Fetch the Reviewer Control Card message so we can update its status badge
-  const controlMsg = controlMessageId && channel
-    ? await channel.messages.fetch(controlMessageId).catch(() => null)
+  // Fetch the public Welcome & Status Card inside the thread so we can update its status badge
+  const controlMsgId = rec?.controlMessageId || legacyControlMsgId || null;
+  const controlMsg = controlMsgId && channel
+    ? await channel.messages.fetch(controlMsgId).catch(() => null)
     : null;
 
-  // CASE 1: Request Re-upload — Keep private thread OPEN and buttons ACTIVE!
+  // CASE 1: Request Re-upload — Keep private thread OPEN for new recording!
   if (mode === 'reupload') {
     if (controlMsg) {
       const updatedControl = createThreadControlPayload({
@@ -463,12 +639,11 @@ export async function handleReviewerReasonModal(interaction) {
         parentChannelName: channel?.parent?.name || 'user-verify',
         reviewerMentionsText: formatReviewerMentions(guild, config),
         statusText: `🔄 Re-upload Requested by <@${member.id}>`,
-        embedColor: 0xf39c12,
-        disableButtons: false
+        embedColor: 0xf39c12
       });
       await controlMsg.edit({
         embeds: updatedControl.embeds,
-        components: updatedControl.components
+        components: []
       }).catch(() => null);
     }
 
@@ -497,13 +672,26 @@ export async function handleReviewerReasonModal(interaction) {
 
     console.log(`[Video Verify] 🔄 Case #${caseCode} re-upload requested for ${userTag} by ${member.user.tag}: "${reason}"`);
 
-    await interaction.editReply({
-      content: `✅ Re-upload request posted to **Case #${caseCode}**! This private thread remains **open** so the user can submit a new recording.`
-    });
+    if (isEphemeralSource) {
+      const updatedPanel = createEphemeralReviewerPanelPayload({
+        caseCode,
+        userId,
+        userTag,
+        displayName,
+        statusText: '🔄 Re-upload Requested — Thread remains open for new recording',
+        embedColor: 0xf39c12,
+        disableButtons: false
+      });
+      await interaction.editReply(updatedPanel).catch(() => null);
+    } else {
+      await interaction.editReply({
+        content: `✅ Re-upload request posted to **Case #${caseCode}**! This private thread remains **open** so the user can submit a new recording.`
+      }).catch(() => null);
+    }
     return;
   }
 
-  // CASE 2: Reject & Close — Post reason, DM user, disable buttons, then Lock & Archive thread!
+  // CASE 2: Reject & Close — Post reason, DM user, update status card, then Lock & Archive thread!
   if (mode === 'reject') {
     if (controlMsg) {
       const rejectedControl = createThreadControlPayload({
@@ -515,12 +703,11 @@ export async function handleReviewerReasonModal(interaction) {
         parentChannelName: channel?.parent?.name || 'user-verify',
         reviewerMentionsText: formatReviewerMentions(guild, config),
         statusText: `❌ Rejected & Closed by <@${member.id}>`,
-        embedColor: 0xe74c3c,
-        disableButtons: true
+        embedColor: 0xe74c3c
       });
       await controlMsg.edit({
         embeds: rejectedControl.embeds,
-        components: rejectedControl.components
+        components: []
       }).catch(() => null);
     }
 
@@ -565,9 +752,22 @@ export async function handleReviewerReasonModal(interaction) {
     console.log(`[Video Verify] ❌ Rejected & closed Case #${caseCode} for ${userTag} by ${member.user.tag}: "${reason}"`);
 
     // Complete interaction reply BEFORE archiving the thread so Discord keeps it archived
-    await interaction.editReply({
-      content: '✅ Verification rejected and thread will now be locked & archived.'
-    });
+    if (isEphemeralSource) {
+      const rejectedPanel = createEphemeralReviewerPanelPayload({
+        caseCode,
+        userId,
+        userTag,
+        displayName,
+        statusText: '❌ Rejected & Private Thread Archived',
+        embedColor: 0xe74c3c,
+        disableButtons: true
+      });
+      await interaction.editReply(rejectedPanel).catch(() => null);
+    } else {
+      await interaction.editReply({
+        content: '✅ Verification rejected and thread will now be locked & archived.'
+      }).catch(() => null);
+    }
 
     if (channel?.isThread()) {
       await channel.setLocked(true, `Verification rejected by ${member.user.tag}`).catch(() => null);
