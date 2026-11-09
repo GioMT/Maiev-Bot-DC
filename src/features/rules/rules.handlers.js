@@ -4,7 +4,10 @@ import {
   resolveRole,
   resolveChannel,
   hasCompletedVerification,
-  getActiveGuild
+  getActiveGuild,
+  diagnoseChannelPermissions,
+  formatChannelPermissionError,
+  findBotCardMessage
 } from '../../shared/discord-resolvers.js';
 import { createRulesMessage } from './rules.embed.js';
 import { ensureGuildEmojisLoaded } from '../../shared/emoji-utils.js';
@@ -97,7 +100,11 @@ export async function handlePostRulesCommand(interaction) {
   try {
     await ensureGuildEmojisLoaded(interaction.guild);
     const payload = createRulesMessage(interaction.guild);
-    await interaction.channel.send(payload);
+    const sentMsg = await interaction.channel.send(payload);
+    configStore.save({
+      rulesChannelId: interaction.channelId,
+      rulesMessageId: sentMsg.id
+    });
     await interaction.editReply({ content: '✅ Rules card posted successfully in this channel!' });
   } catch (sendErr) {
     await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
@@ -105,20 +112,81 @@ export async function handlePostRulesCommand(interaction) {
 }
 
 export async function handlePostRulesApi(req, res, { client }) {
+  let channel = null;
+  const requiredPerms = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.EmbedLinks];
   try {
-    const { channelId } = req.body;
-    const config = configStore.get();
+    const {
+      channelId,
+      forceNew = true,
+      rulesTitle,
+      rulesContent,
+      rulesFooter,
+      onboardedRoleId
+    } = req.body;
+
+    const currentConfig = configStore.get();
+    const savedConfig = configStore.save({
+      rulesChannelId: channelId || currentConfig.rulesChannelId,
+      ...(rulesTitle !== undefined ? { rulesTitle } : {}),
+      ...(rulesContent !== undefined ? { rulesContent } : {}),
+      ...(rulesFooter !== undefined ? { rulesFooter } : {}),
+      ...(onboardedRoleId !== undefined ? { onboardedRoleId } : {})
+    });
+
     const guild = getActiveGuild(client);
-    const channel = await guild?.channels.fetch(channelId || config.rulesChannelId).catch(() => null);
+    const targetChannelId = channelId || savedConfig.rulesChannelId;
+    channel = await guild?.channels.fetch(targetChannelId).catch(() => null);
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
+
     await ensureGuildEmojisLoaded(guild);
     const payload = createRulesMessage(guild);
-    await channel.send(payload);
-    res.json({ success: true });
+
+    let targetMsg = null;
+    let wasUpdated = false;
+
+    if (!forceNew) {
+      targetMsg = await findBotCardMessage(
+        channel,
+        savedConfig.rulesMessageId,
+        (msg) =>
+          msg.components?.some(r => r.components?.some(c => c.customId === 'btn_accept_rules')) ||
+          msg.embeds?.some(e => e.title && /rules/i.test(e.title))
+      );
+    }
+
+    if (!targetMsg) {
+      requiredPerms.push(PermissionFlagsBits.SendMessages);
+    }
+
+    const permDiag = diagnoseChannelPermissions(channel, requiredPerms);
+    if (!permDiag.ok) {
+      return res.status(403).json({ error: permDiag.message });
+    }
+
+    if (targetMsg) {
+      await targetMsg.edit(payload);
+      wasUpdated = true;
+    } else {
+      targetMsg = await channel.send(payload);
+    }
+
+    const finalConfig = configStore.save({
+      rulesChannelId: channel.id,
+      rulesMessageId: targetMsg.id
+    });
+
+    res.json({
+      success: true,
+      updated: wasUpdated,
+      posted: !wasUpdated,
+      messageId: targetMsg.id,
+      channelName: channel.name,
+      config: finalConfig
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: formatChannelPermissionError(channel, err, requiredPerms) });
   }
 }
 

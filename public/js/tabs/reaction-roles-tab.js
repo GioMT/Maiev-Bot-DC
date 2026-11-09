@@ -1,8 +1,8 @@
 import {
   DEFAULT_NATIONALITY_TEMPLATE,
   ROLE_PRESETS
-} from '../presets.js?v=7.5';
-import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.5';
+} from '../presets.js?v=7.6';
+import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.6';
 import {
   formatDiscordMarkdown,
   extractFlagIsoCode,
@@ -10,9 +10,9 @@ import {
   renderEmojiHtml,
   refreshIcons,
   showToast
-} from '../utils.js?v=7.5';
-import { autoSaveNationalityRoles } from '../api.js?v=7.5';
-import { setupDiscordEmojiPicker } from '../emoji-picker.js?v=7.5';
+} from '../utils.js?v=7.6';
+import { autoSaveNationalityRoles } from '../api.js?v=7.6';
+import { setupDiscordEmojiPicker } from '../emoji-picker.js?v=7.6';
 
 let reactionRolesSaveTimer = null;
 

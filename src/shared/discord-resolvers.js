@@ -88,3 +88,118 @@ export function getActiveGuild(client) {
   return (guildId && client.guilds.cache.get(guildId)) || client.guilds.cache.first() || null;
 }
 
+const PERMISSION_LABELS = new Map([
+  [PermissionFlagsBits.ViewChannel, 'View Channel'],
+  [PermissionFlagsBits.SendMessages, 'Send Messages'],
+  [PermissionFlagsBits.EmbedLinks, 'Embed Links'],
+  [PermissionFlagsBits.AttachFiles, 'Attach Files'],
+  [PermissionFlagsBits.ReadMessageHistory, 'Read Message History'],
+  [PermissionFlagsBits.AddReactions, 'Add Reactions'],
+  [PermissionFlagsBits.UseExternalEmojis, 'Use External Emojis'],
+  [PermissionFlagsBits.ManageMessages, 'Manage Messages'],
+  [PermissionFlagsBits.CreatePrivateThreads, 'Create Private Threads'],
+  [PermissionFlagsBits.ManageThreads, 'Manage Threads'],
+  [PermissionFlagsBits.SendMessagesInThreads, 'Send Messages in Threads']
+]);
+
+/**
+ * Checks whether Maiev has the required permissions in a specific target channel.
+ * Detects when a channel-level permission override (like @everyone ❌) blocks Maiev's server role permissions.
+ */
+export function diagnoseChannelPermissions(channel, requiredFlags = []) {
+  const guild = channel?.guild;
+  const botMember = guild?.members?.me;
+  if (!channel || !botMember) {
+    return { ok: true, missing: [], blockedByChannelOverride: false, message: '' };
+  }
+
+  if (botMember.permissions.has(PermissionFlagsBits.Administrator)) {
+    return { ok: true, missing: [], blockedByChannelOverride: false, message: '' };
+  }
+
+  const channelPerms = channel.permissionsFor(botMember);
+  if (!channelPerms) {
+    return { ok: true, missing: [], blockedByChannelOverride: false, message: '' };
+  }
+
+  const missing = [];
+  let blockedByChannelOverride = false;
+
+  for (const flag of requiredFlags) {
+    if (!channelPerms.has(flag)) {
+      const label = PERMISSION_LABELS.get(flag) || String(flag);
+      missing.push(label);
+      if (botMember.permissions.has(flag)) {
+        blockedByChannelOverride = true;
+      }
+    }
+  }
+
+  if (missing.length === 0) {
+    return { ok: true, missing: [], blockedByChannelOverride: false, message: '' };
+  }
+
+  const chName = `#${channel.name || 'channel'}`;
+  const overrideExplanation = blockedByChannelOverride
+    ? `Maiev has these permissions in Server Settings → Roles, but a Channel Permission Override in ${chName} (such as @everyone ❌) is blocking them.`
+    : `Maiev is missing these permissions in ${chName}.`;
+
+  const message =
+    `Missing Permission(s) in ${chName}: ${missing.join(', ')}. ${overrideExplanation} ` +
+    `Fix: Enable "Administrator" on Maiev's role in Server Settings → Roles (recommended so you never have to configure individual channels), OR grant Maiev green ✅ overrides in ${chName} → Edit Channel → Permissions.`;
+
+  return {
+    ok: false,
+    missing,
+    blockedByChannelOverride,
+    message
+  };
+}
+
+/**
+ * Formats a Discord API error (including 50013 Missing Permissions) with actionable channel-override guidance.
+ */
+export function formatChannelPermissionError(channel, err, requiredFlags = []) {
+  const diag = diagnoseChannelPermissions(channel, requiredFlags);
+  if (!diag.ok) {
+    return diag.message;
+  }
+  if (err?.code === 50013 || /Missing Permissions|Missing Access/i.test(err?.message || '')) {
+    const chName = channel?.name ? `#${channel.name}` : 'the target channel';
+    return (
+      `Missing Permissions in ${chName}. Even if Maiev's role has permissions enabled in Server Settings → Roles, ` +
+      `a channel-level override in ${chName} (like @everyone ❌) will block the bot unless Maiev has "Administrator" enabled in Server Settings → Roles ` +
+      `or is explicitly granted View Channel, Send Messages, Embed Links, Attach Files, and Read Message History in ${chName} → Edit Channel → Permissions.`
+    );
+  }
+  return err?.message || 'Unknown Discord API error';
+}
+
+/**
+ * Finds an active card message authored by the bot in a channel by savedMessageId or by scanning recent messages.
+ */
+export async function findBotCardMessage(channel, savedMessageId, matcherFn) {
+  if (!channel || !channel.isTextBased()) return null;
+  const botId = channel.client?.user?.id || channel.guild?.members?.me?.id;
+
+  if (savedMessageId) {
+    const msg = await channel.messages.fetch(savedMessageId).catch(() => null);
+    if (msg && (!botId || msg.author?.id === botId)) {
+      return msg;
+    }
+  }
+
+  if (typeof matcherFn === 'function') {
+    const recent = await channel.messages.fetch({ limit: 30 }).catch(() => null);
+    if (recent) {
+      for (const msg of recent.values()) {
+        if ((!botId || msg.author?.id === botId) && matcherFn(msg)) {
+          return msg;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+

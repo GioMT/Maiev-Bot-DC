@@ -1,6 +1,11 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
-import { resolveRole, getActiveGuild } from '../../shared/discord-resolvers.js';
+import {
+  resolveRole,
+  getActiveGuild,
+  diagnoseChannelPermissions,
+  formatChannelPermissionError
+} from '../../shared/discord-resolvers.js';
 import {
   findNationalityByEmoji,
   extractFlagIsoCode,
@@ -536,6 +541,12 @@ export function handleSaveReactionRolesApi(req, res) {
 }
 
 export async function handlePostReactionRolesApi(req, res, { client }) {
+  let channel = null;
+  const requiredPerms = [
+    PermissionFlagsBits.ViewChannel,
+    PermissionFlagsBits.EmbedLinks,
+    PermissionFlagsBits.AddReactions
+  ];
   try {
     const {
       channelId,
@@ -556,7 +567,7 @@ export async function handlePostReactionRolesApi(req, res, { client }) {
 
     const config = configStore.get();
     const guild = getActiveGuild(client);
-    const channel = await guild?.channels.fetch(channelId).catch(() => null);
+    channel = await guild?.channels.fetch(channelId).catch(() => null);
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
@@ -600,6 +611,15 @@ export async function handlePostReactionRolesApi(req, res, { client }) {
           }
         }
       }
+    }
+
+    if (!targetMsg) {
+      requiredPerms.push(PermissionFlagsBits.SendMessages);
+    }
+
+    const permDiag = diagnoseChannelPermissions(channel, requiredPerms);
+    if (!permDiag.ok) {
+      return res.status(403).json({ error: permDiag.message });
     }
 
     if (targetMsg) {
@@ -659,7 +679,7 @@ export async function handlePostReactionRolesApi(req, res, { client }) {
     });
   } catch (err) {
     console.error('Error in /api/post-nationality-roles:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: formatChannelPermissionError(channel, err, requiredPerms) });
   }
 }
 

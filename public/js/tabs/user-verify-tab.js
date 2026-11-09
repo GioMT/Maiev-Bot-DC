@@ -1,6 +1,6 @@
-import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.5';
-import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.5';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
+import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.6';
+import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.6';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.6';
 
 let currentUploadedVideoPath = '';
 let videoExplicitlyCleared = false;

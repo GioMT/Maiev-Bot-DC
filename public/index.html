@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=7.5">
+  <link rel="stylesheet" href="style.css?v=7.6">
   <script src="lucide.min.js"></script>
 </head>
 <body>
@@ -331,7 +331,10 @@
               <div class="card-title-group">
                 <span class="card-icon"><i data-lucide="book-open"></i></span>
                 <div>
-                  <h2 class="card-title">Rules Acknowledgment Action</h2>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <h2 class="card-title" style="margin: 0;">Rules Acknowledgment Action</h2>
+                    <span class="badge" id="rules-deploy-badge">Not Posted Yet</span>
+                  </div>
                   <p class="card-subtitle">Configure role assignment and instructions for acknowledging community rules.</p>
                 </div>
               </div>
@@ -360,9 +363,12 @@
                     <option value="">Loading channels...</option>
                   </select>
                 </div>
-                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
-                  <button type="button" class="btn btn-secondary" id="btn-post-rules-channel">
-                    <i data-lucide="send"></i> Post Rules Embed
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px; display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary" id="btn-post-rules-channel" title="Post a fresh rules embed card in the channel">
+                    <i data-lucide="send"></i> Post Card
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-update-rules-channel" title="Update the active rules embed card in-place">
+                    <i data-lucide="refresh-cw"></i> Update Active Card
                   </button>
                 </div>
               </div>
@@ -465,7 +471,10 @@
               <div class="card-title-group">
                 <span class="card-icon"><i data-lucide="user-check"></i></span>
                 <div>
-                  <h2 class="card-title">AION 2 IGN Setup Pipeline</h2>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <h2 class="card-title" style="margin: 0;">AION 2 IGN Setup Pipeline</h2>
+                    <span class="badge" id="verify-deploy-badge">Not Posted Yet</span>
+                  </div>
                   <p class="card-subtitle">Configure character name registration, nickname sync, and setup roles.</p>
                 </div>
               </div>
@@ -484,9 +493,12 @@
                     <option value="">Loading channels...</option>
                   </select>
                 </div>
-                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px;">
-                  <button type="button" class="btn btn-secondary" id="btn-post-verify-channel">
-                    <i data-lucide="send"></i> Post Setup Embed
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px; display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary" id="btn-post-verify-channel" title="Post a fresh IGN setup embed card in the channel">
+                    <i data-lucide="send"></i> Post Card
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-update-verify-channel" title="Update the active IGN setup embed card in-place">
+                    <i data-lucide="refresh-cw"></i> Update Active Card
                   </button>
                 </div>
               </div>
@@ -1490,7 +1502,17 @@
                   </select>
                   <span class="form-hint">Channel where the live 2-embed countdown table is posted and auto-edited every minute.</span>
                 </div>
+                <div class="form-group-action" style="align-self: flex-start; padding-top: 26px; display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary" id="btn-force-new-boss-timer-top" title="Post a fresh Boss Timer message in the channel">
+                    <i data-lucide="send"></i> Post Card
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-update-boss-timer-top" title="Update the active Boss Timer card in-place">
+                    <i data-lucide="refresh-cw"></i> Update Active Card
+                  </button>
+                </div>
+              </div>
 
+              <div class="form-row mt-2">
                 <div class="form-group flex-1">
                   <label for="select-boss-alert-channel" class="form-label">
                     10-Minute @here Alert Channel:
@@ -1567,11 +1589,11 @@
 
               <!-- Bottom Action Buttons -->
               <div class="card-bottom-actions mt-4" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-                <button type="button" class="btn btn-primary" id="btn-post-boss-timer" title="Post or update the live Boss Timer embeds in the selected channel">
-                  <i data-lucide="send"></i> Post / Update Boss Timer
+                <button type="button" class="btn btn-primary" id="btn-force-new-boss-timer" title="Create a brand-new Boss Timer message in the channel">
+                  <i data-lucide="send"></i> Post Card
                 </button>
-                <button type="button" class="btn btn-secondary" id="btn-force-new-boss-timer" title="Create a brand-new Boss Timer message in the channel">
-                  <i data-lucide="plus-square"></i> Post Fresh Timer Message
+                <button type="button" class="btn btn-secondary" id="btn-post-boss-timer" title="Update the active Boss Timer card in-place">
+                  <i data-lucide="refresh-cw"></i> Update Active Card
                 </button>
                 <button type="button" class="btn btn-secondary" id="btn-test-boss-alert" title="Send a test 10-minute @here Major Boss alert to the Alert Channel">
                   <i data-lucide="bell-ring"></i> Send Test 10m Alert
@@ -2444,6 +2466,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=7.5"></script>
+  <script type="module" src="js/main.js?v=7.6"></script>
 </body>
 </html>

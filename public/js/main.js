@@ -1,48 +1,48 @@
 /**
  * Maiev Bot Control Center — Modular ES Entry Point
  */
-import { state, syncCachedConfig } from './state.js?v=7.5';
-import { refreshIcons, showToast } from './utils.js?v=7.5';
-import { saveAllConfiguration, flushPendingAutoSaveOnUnload } from './api.js?v=7.5';
+import { state, syncCachedConfig } from './state.js?v=7.6';
+import { refreshIcons, showToast } from './utils.js?v=7.6';
+import { saveAllConfiguration, flushPendingAutoSaveOnUnload } from './api.js?v=7.6';
 import {
   setupTabs,
   renderHeaderTelemetry,
   renderRoleDropdowns,
   renderChannelDropdowns,
   setupServerNameEditing
-} from './tabs/header-telemetry.js?v=7.5';
-import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.5';
+} from './tabs/header-telemetry.js?v=7.6';
+import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.6';
 import {
   renderVerifyEditor,
   renderWelcomeEditor,
   setupVerifyTabListeners
-} from './tabs/verify-tab.js?v=7.5';
+} from './tabs/verify-tab.js?v=7.6';
 import {
   renderUserVerifyEditor,
   setupUserVerifyTabListeners
-} from './tabs/user-verify-tab.js?v=7.5';
+} from './tabs/user-verify-tab.js?v=7.6';
 import {
   renderWelcomeAnnouncementEditor,
   setupWelcomeTabListeners
-} from './tabs/welcome-tab.js?v=7.5';
+} from './tabs/welcome-tab.js?v=7.6';
 import {
   renderNationalityRolesManager,
   setupReactionRolesTabListeners,
   applyRemoteNationalitySync
-} from './tabs/reaction-roles-tab.js?v=7.5';
+} from './tabs/reaction-roles-tab.js?v=7.6';
 import {
   renderDiagnostics,
   fetchMembers,
   setupDiagnosticsTabListeners
-} from './tabs/diagnostics-tab.js?v=7.5';
+} from './tabs/diagnostics-tab.js?v=7.6';
 import {
   fetchBossTimerState,
   setupBossTimerTabListeners
-} from './tabs/boss-timer-tab.js?v=7.5';
+} from './tabs/boss-timer-tab.js?v=7.6';
 import {
   fetchAlertsState,
   setupAlertsTabListeners
-} from './tabs/alerts-tab.js?v=7.5';
+} from './tabs/alerts-tab.js?v=7.6';
 
 export async function fetchServerState() {
   try {

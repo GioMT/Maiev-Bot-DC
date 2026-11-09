@@ -17,7 +17,9 @@ export const DEFAULT_CONFIG = {
   ignRolesToAdd: [],
   ignRolesToRemove: [],
   rulesChannelId: process.env.RULES_CHANNEL_ID || '',
+  rulesMessageId: '',
   verifyChannelId: process.env.VERIFY_CHANNEL_ID || '',
+  verifyMessageId: '',
   rulesTitle: process.env.RULES_TITLE || '📜 Server Rules & Guidelines',
   rulesContent: process.env.RULES_CONTENT || (
     'Welcome to the community! Before proceeding, please review our core server rules:\n\n' +

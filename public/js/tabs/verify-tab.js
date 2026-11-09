@@ -1,10 +1,10 @@
 import {
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE
-} from '../presets.js?v=7.5';
-import { state, getActiveServerName } from '../state.js?v=7.5';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
-import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.5';
+} from '../presets.js?v=7.6';
+import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.6';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.6';
+import { saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.6';
 
 export function renderVerifyEditor(cfg) {
   const title = cfg.verifyTitle !== undefined ? cfg.verifyTitle : DEFAULT_VERIFY_TEMPLATE.title;
@@ -14,10 +14,21 @@ export function renderVerifyEditor(cfg) {
   const titleEl = document.getElementById('verify-title-input');
   const contentEl = document.getElementById('verify-content-input');
   const footerEl = document.getElementById('verify-footer-input');
+  const deployBadge = document.getElementById('verify-deploy-badge');
 
   if (titleEl) titleEl.value = title;
   if (contentEl) contentEl.value = content;
   if (footerEl) footerEl.value = footer;
+
+  if (deployBadge) {
+    if (cfg.verifyMessageId) {
+      deployBadge.className = 'badge badge-success';
+      deployBadge.textContent = `Deployed (${String(cfg.verifyMessageId).slice(-6)})`;
+    } else {
+      deployBadge.className = 'badge';
+      deployBadge.textContent = 'Not Posted Yet';
+    }
+  }
 
   updateVerifyPreview();
 }
@@ -45,6 +56,69 @@ export function renderWelcomeEditor(cfg) {
   if (titleEl) titleEl.value = title;
   if (contentEl) contentEl.value = content;
   if (footerEl) footerEl.value = footer;
+}
+
+async function deployVerifyPanel(forceNew = true) {
+  const channelId = document.getElementById('select-verify-channel')?.value;
+  if (!channelId) {
+    showToast('Please select a target setup channel first.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById(forceNew ? 'btn-post-verify-channel' : 'btn-update-verify-channel');
+  const origHtml = btn?.innerHTML;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2"></i> ${forceNew ? 'Posting...' : 'Updating...'}`;
+    refreshIcons();
+  }
+
+  try {
+    await saveAllConfiguration({ silent: true, skipBossTimer: true });
+    const res = await fetch('/api/post-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channelId,
+        forceNew,
+        verifyTitle: document.getElementById('verify-title-input')?.value,
+        verifyContent: document.getElementById('verify-content-input')?.value,
+        verifyFooter: document.getElementById('verify-footer-input')?.value,
+        welcomeTitle: document.getElementById('welcome-title-input')?.value,
+        welcomeContent: document.getElementById('welcome-content-input')?.value,
+        welcomeFooter: document.getElementById('welcome-footer-input')?.value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to deploy IGN setup card');
+
+    if (data.config) {
+      syncCachedConfig(data.config, true);
+    } else if (data.messageId) {
+      syncCachedConfig({ verifyChannelId: channelId, verifyMessageId: data.messageId });
+    }
+
+    const deployBadge = document.getElementById('verify-deploy-badge');
+    if (deployBadge && data.messageId) {
+      deployBadge.className = 'badge badge-success';
+      deployBadge.textContent = `Deployed (${String(data.messageId).slice(-6)})`;
+    }
+
+    showToast(
+      data.updated
+        ? `Updated active IGN Setup card in #${data.channelName || 'verify'}!`
+        : `Posted IGN Setup card to #${data.channelName || 'verify'}!`,
+      'success'
+    );
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  } finally {
+    if (btn && origHtml) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+      refreshIcons();
+    }
+  }
 }
 
 export function setupVerifyTabListeners() {
@@ -81,15 +155,8 @@ export function setupVerifyTabListeners() {
     showToast('Reset welcome popup card to standard template!', 'success');
   });
 
-  document.getElementById('btn-post-verify-channel')?.addEventListener('click', async () => {
-    const channelId = document.getElementById('select-verify-channel').value;
-    if (!channelId) {
-      showToast('Please select a setup channel first.', 'error');
-      return;
-    }
-    await saveAllConfiguration({ silent: true, skipBossTimer: true });
-    postEmbed('/api/post-verify', channelId, 'AION 2 IGN Setup card posted successfully!');
-  });
+  document.getElementById('btn-post-verify-channel')?.addEventListener('click', () => deployVerifyPanel(true));
+  document.getElementById('btn-update-verify-channel')?.addEventListener('click', () => deployVerifyPanel(false));
 
   const modalBackdrop = document.getElementById('sim-modal-backdrop');
   document.getElementById('sim-btn-open-modal')?.addEventListener('click', () => {

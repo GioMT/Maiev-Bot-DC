@@ -1,7 +1,7 @@
-import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=7.5';
-import { getActiveServerName } from '../state.js?v=7.5';
-import { formatDiscordMarkdown, showToast } from '../utils.js?v=7.5';
-import { scheduleAutoSave } from '../api.js?v=7.5';
+import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=7.6';
+import { getActiveServerName } from '../state.js?v=7.6';
+import { formatDiscordMarkdown, showToast } from '../utils.js?v=7.6';
+import { scheduleAutoSave } from '../api.js?v=7.6';
 
 export function renderWelcomeAnnouncementEditor(cfg) {
   const enable = cfg.enableWelcomeAnnouncement !== false;

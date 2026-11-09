@@ -1,14 +1,14 @@
-import { state, getActiveServerName, syncCachedConfig } from './state.js?v=7.5';
+import { state, getActiveServerName, syncCachedConfig } from './state.js?v=7.6';
 import {
   DEFAULT_RULES_TEMPLATE,
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE,
   DEFAULT_NATIONALITY_TEMPLATE
-} from './presets.js?v=7.5';
-import { showToast } from './utils.js?v=7.5';
-import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.5';
-import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.5';
-import { saveAlertsToBackend } from './tabs/alerts-tab.js?v=7.5';
+} from './presets.js?v=7.6';
+import { showToast } from './utils.js?v=7.6';
+import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.6';
+import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.6';
+import { saveAlertsToBackend } from './tabs/alerts-tab.js?v=7.6';
 
 let autoSaveTimer = null;
 

@@ -1,7 +1,13 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { configStore } from '../../core/storage/config-store.js';
 import { eventBus } from '../../core/event-bus.js';
-import { resolveRole, getActiveGuild } from '../../shared/discord-resolvers.js';
+import {
+  resolveRole,
+  getActiveGuild,
+  diagnoseChannelPermissions,
+  formatChannelPermissionError,
+  findBotCardMessage
+} from '../../shared/discord-resolvers.js';
 import {
   createVerifyMessage,
   createVerifyModal,
@@ -115,7 +121,11 @@ export async function handlePostVerifyCommand(interaction) {
   try {
     await ensureGuildEmojisLoaded(interaction.guild);
     const payload = createVerifyMessage(interaction.guild);
-    await interaction.channel.send(payload);
+    const sentMsg = await interaction.channel.send(payload);
+    configStore.save({
+      verifyChannelId: interaction.channelId,
+      verifyMessageId: sentMsg.id
+    });
     await interaction.editReply({ content: '✅ Maiev AION 2 verification card posted successfully!' });
   } catch (sendErr) {
     await interaction.editReply({ content: `❌ Error: **${sendErr.message}**.` });
@@ -180,20 +190,85 @@ export async function handleSetNicknameCommand(interaction) {
 }
 
 export async function handlePostVerifyApi(req, res, { client }) {
+  let channel = null;
+  const requiredPerms = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.EmbedLinks];
   try {
-    const { channelId } = req.body;
-    const config = configStore.get();
+    const {
+      channelId,
+      forceNew = true,
+      verifyTitle,
+      verifyContent,
+      verifyFooter,
+      welcomeTitle,
+      welcomeContent,
+      welcomeFooter
+    } = req.body;
+
+    const currentConfig = configStore.get();
+    const savedConfig = configStore.save({
+      verifyChannelId: channelId || currentConfig.verifyChannelId,
+      ...(verifyTitle !== undefined ? { verifyTitle } : {}),
+      ...(verifyContent !== undefined ? { verifyContent } : {}),
+      ...(verifyFooter !== undefined ? { verifyFooter } : {}),
+      ...(welcomeTitle !== undefined ? { welcomeTitle } : {}),
+      ...(welcomeContent !== undefined ? { welcomeContent } : {}),
+      ...(welcomeFooter !== undefined ? { welcomeFooter } : {})
+    });
+
     const guild = getActiveGuild(client);
-    const channel = await guild?.channels.fetch(channelId || config.verifyChannelId).catch(() => null);
+    const targetChannelId = channelId || savedConfig.verifyChannelId;
+    channel = await guild?.channels.fetch(targetChannelId).catch(() => null);
     if (!channel || !channel.isTextBased()) {
       return res.status(400).json({ error: 'Invalid or non-text channel specified' });
     }
+
     await ensureGuildEmojisLoaded(guild);
     const payload = createVerifyMessage(guild);
-    await channel.send(payload);
-    res.json({ success: true });
+
+    let targetMsg = null;
+    let wasUpdated = false;
+
+    if (!forceNew) {
+      targetMsg = await findBotCardMessage(
+        channel,
+        savedConfig.verifyMessageId,
+        (msg) =>
+          msg.components?.some(r => r.components?.some(c => c.customId === 'btn_open_ign_modal')) ||
+          msg.embeds?.some(e => e.title && /ign setup|verification/i.test(e.title))
+      );
+    }
+
+    if (!targetMsg) {
+      requiredPerms.push(PermissionFlagsBits.SendMessages);
+    }
+
+    const permDiag = diagnoseChannelPermissions(channel, requiredPerms);
+    if (!permDiag.ok) {
+      return res.status(403).json({ error: permDiag.message });
+    }
+
+    if (targetMsg) {
+      await targetMsg.edit(payload);
+      wasUpdated = true;
+    } else {
+      targetMsg = await channel.send(payload);
+    }
+
+    const finalConfig = configStore.save({
+      verifyChannelId: channel.id,
+      verifyMessageId: targetMsg.id
+    });
+
+    res.json({
+      success: true,
+      updated: wasUpdated,
+      posted: !wasUpdated,
+      messageId: targetMsg.id,
+      channelName: channel.name,
+      config: finalConfig
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: formatChannelPermissionError(channel, err, requiredPerms) });
   }
 }
 

@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.5';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
+import { state } from '../state.js?v=7.6';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.6';
 
 const DEFAULT_BOSS_TITLES = {
   abyssTitle: '🔥 Fregion — Reshanta / Abyss Bosses',
@@ -521,6 +521,8 @@ export function setupBossTimerTabListeners() {
 
   document.getElementById('btn-post-boss-timer')?.addEventListener('click', () => handlePostBossTimer(false));
   document.getElementById('btn-force-new-boss-timer')?.addEventListener('click', () => handlePostBossTimer(true));
+  document.getElementById('btn-update-boss-timer-top')?.addEventListener('click', () => handlePostBossTimer(false));
+  document.getElementById('btn-force-new-boss-timer-top')?.addEventListener('click', () => handlePostBossTimer(true));
 
   // Send Test 10m Alert
   document.getElementById('btn-test-boss-alert')?.addEventListener('click', async () => {

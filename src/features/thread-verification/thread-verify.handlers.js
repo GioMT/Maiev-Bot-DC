@@ -9,7 +9,13 @@ import {
 } from 'discord.js';
 import { configStore, ROOT_DIR } from '../../core/storage/config-store.js';
 import { eventBus } from '../../core/event-bus.js';
-import { getActiveGuild, resolveRole } from '../../shared/discord-resolvers.js';
+import {
+  getActiveGuild,
+  resolveRole,
+  diagnoseChannelPermissions,
+  formatChannelPermissionError,
+  findBotCardMessage
+} from '../../shared/discord-resolvers.js';
 import { ensureGuildEmojisLoaded } from '../../shared/emoji-utils.js';
 import { threadVerifyStore } from './thread-verify.store.js';
 import {
@@ -1226,6 +1232,8 @@ export function handleDeleteVerifyVideoApi(req, res) {
  * Posts a fresh verification embed (with video!) or updates the existing card in-place.
  */
 export async function handlePostUserVerifyApi(req, res, { client }) {
+  let channel = null;
+  const requiredPerms = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.EmbedLinks];
   try {
     const {
       channelId,
@@ -1263,7 +1271,7 @@ export async function handlePostUserVerifyApi(req, res, { client }) {
 
     const guild = getActiveGuild(client);
     const targetChannelId = channelId || savedConfig.userVerifyChannelId;
-    const channel = await guild?.channels.fetch(targetChannelId).catch(() => null);
+    channel = await guild?.channels.fetch(targetChannelId).catch(() => null);
 
     if (!channel || !channel.isTextBased() || channel.isThread()) {
       return res.status(400).json({
@@ -1273,24 +1281,62 @@ export async function handlePostUserVerifyApi(req, res, { client }) {
 
     await ensureGuildEmojisLoaded(guild);
     const payload = createUserVerifyPanelPayload(guild);
+    const diskVideoPath = resolveUploadedVideoDiskPath(savedConfig.userVerifyUploadedVideo);
+    const expectedVideoFileName = diskVideoPath ? path.basename(diskVideoPath) : null;
 
     let targetMsg = null;
     let wasUpdated = false;
 
-    if (!forceNew && savedConfig.userVerifyMessageId) {
-      targetMsg = await channel.messages.fetch(savedConfig.userVerifyMessageId).catch(() => null);
+    if (!forceNew) {
+      targetMsg = await findBotCardMessage(
+        channel,
+        savedConfig.userVerifyMessageId,
+        (msg) =>
+          msg.components?.some(r => r.components?.some(c => c.customId === 'btn_start_video_verify')) ||
+          msg.embeds?.some(e => e.title && /video verification/i.test(e.title))
+      );
+    }
+
+    const alreadyHasExpectedVideo = Boolean(
+      targetMsg &&
+      expectedVideoFileName &&
+      targetMsg.attachments?.some(a => a.name === expectedVideoFileName)
+    );
+    const needsFileUpload = Boolean(expectedVideoFileName && (!targetMsg || !alreadyHasExpectedVideo));
+
+    if (!targetMsg) {
+      requiredPerms.push(PermissionFlagsBits.SendMessages);
+    }
+    if (needsFileUpload) {
+      requiredPerms.push(PermissionFlagsBits.AttachFiles);
+    }
+
+    const permDiag = diagnoseChannelPermissions(channel, requiredPerms);
+    if (!permDiag.ok) {
+      return res.status(403).json({ error: permDiag.message });
     }
 
     if (targetMsg) {
-      await targetMsg.edit(payload);
+      const editPayload = {
+        embeds: payload.embeds,
+        components: payload.components
+      };
+      if (!expectedVideoFileName && targetMsg.attachments?.size > 0) {
+        editPayload.attachments = [];
+      } else if (needsFileUpload && payload.files) {
+        editPayload.files = payload.files;
+        editPayload.attachments = [];
+      }
+      await targetMsg.edit(editPayload);
       wasUpdated = true;
     } else {
       targetMsg = await channel.send(payload);
-      configStore.save({
-        userVerifyChannelId: channel.id,
-        userVerifyMessageId: targetMsg.id
-      });
     }
+
+    const finalConfig = configStore.save({
+      userVerifyChannelId: channel.id,
+      userVerifyMessageId: targetMsg.id
+    });
 
     res.json({
       success: true,
@@ -1298,11 +1344,11 @@ export async function handlePostUserVerifyApi(req, res, { client }) {
       posted: !wasUpdated,
       messageId: targetMsg.id,
       channelName: channel.name,
-      config: configStore.get()
+      config: finalConfig
     });
   } catch (err) {
     console.error('[Video Verify] Error in /api/post-user-verify:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: formatChannelPermissionError(channel, err, requiredPerms) });
   }
 }
 
