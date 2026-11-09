@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=7.4';
-import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.4';
-import { persistServerName, scheduleAutoSave } from '../api.js?v=7.4';
-import { updateRulesPreview } from './rules-tab.js?v=7.4';
-import { updateVerifyPreview } from './verify-tab.js?v=7.4';
-import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.4';
-import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.4';
-import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.4';
-import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.4';
-import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.4';
+import { state } from '../state.js?v=7.5';
+import { adjustServerInputWidth, refreshIcons, showToast } from '../utils.js?v=7.5';
+import { persistServerName, scheduleAutoSave } from '../api.js?v=7.5';
+import { updateRulesPreview } from './rules-tab.js?v=7.5';
+import { updateVerifyPreview } from './verify-tab.js?v=7.5';
+import { renderUserVerifyRoleCheckboxes, updateUserVerifyPreview } from './user-verify-tab.js?v=7.5';
+import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.5';
+import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.5';
+import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.5';
+import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.5';
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',
@@ -171,8 +171,10 @@ export function renderRoleDropdowns(data) {
   const removeContainer = document.getElementById('roles-to-remove-container');
   removeContainer.innerHTML = '';
 
-  const defaultAdd = currentConfig.ignRolesToAdd || [];
-  const defaultRemove = currentConfig.ignRolesToRemove || [];
+  const defaultAdd = Array.isArray(currentConfig.ignRolesToAdd) ? currentConfig.ignRolesToAdd : [];
+  const defaultRemove = Array.isArray(currentConfig.ignRolesToRemove) ? currentConfig.ignRolesToRemove : [];
+  const hasExplicitAddArray = Array.isArray(currentConfig.ignRolesToAdd);
+  const hasExplicitRemoveArray = Array.isArray(currentConfig.ignRolesToRemove);
 
   roles.forEach(role => {
     if (role.name === '@everyone') return;
@@ -180,7 +182,7 @@ export function renderRoleDropdowns(data) {
     const addLabel = document.createElement('label');
     addLabel.className = 'role-checkbox-item';
     const isAddChecked = defaultAdd.includes(role.id) ||
-      (defaultAdd.length === 0 && (role.name.includes('Unverified') || role.name.includes('Elyos')));
+      (!hasExplicitAddArray && (role.name.includes('Unverified') || role.name.includes('Elyos')));
 
     addLabel.innerHTML = `
       <input type="checkbox" name="role_add" value="${role.id}" ${isAddChecked ? 'checked' : ''}>
@@ -192,7 +194,7 @@ export function renderRoleDropdowns(data) {
     const removeLabel = document.createElement('label');
     removeLabel.className = 'role-checkbox-item';
     const isRemoveChecked = defaultRemove.includes(role.id) ||
-      (defaultRemove.length === 0 && (role.name.includes('Compliant') || role.name.includes('Onboard')));
+      (!hasExplicitRemoveArray && (role.name.includes('Compliant') || role.name.includes('Onboard')));
 
     removeLabel.innerHTML = `
       <input type="checkbox" name="role_remove" value="${role.id}" ${isRemoveChecked ? 'checked' : ''}>

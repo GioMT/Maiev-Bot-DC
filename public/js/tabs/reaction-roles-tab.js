@@ -1,8 +1,8 @@
 import {
   DEFAULT_NATIONALITY_TEMPLATE,
   ROLE_PRESETS
-} from '../presets.js?v=7.4';
-import { state, getActiveServerName } from '../state.js?v=7.4';
+} from '../presets.js?v=7.5';
+import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.5';
 import {
   formatDiscordMarkdown,
   extractFlagIsoCode,
@@ -10,9 +10,27 @@ import {
   renderEmojiHtml,
   refreshIcons,
   showToast
-} from '../utils.js?v=7.4';
-import { autoSaveNationalityRoles } from '../api.js?v=7.4';
-import { setupDiscordEmojiPicker } from '../emoji-picker.js?v=7.4';
+} from '../utils.js?v=7.5';
+import { autoSaveNationalityRoles } from '../api.js?v=7.5';
+import { setupDiscordEmojiPicker } from '../emoji-picker.js?v=7.5';
+
+let reactionRolesSaveTimer = null;
+
+function scheduleReactionRolesAutoSave(delayMs = 350) {
+  if (!state.initialLoadComplete) return;
+  state.pendingConfigSave = true;
+  const allRoles = Object.values(state.reactionPresets).flatMap(p => p.roles || []);
+  syncCachedConfig({
+    nationalityRoles: allRoles,
+    reactionPresets: state.reactionPresets
+  });
+
+  if (reactionRolesSaveTimer) clearTimeout(reactionRolesSaveTimer);
+  reactionRolesSaveTimer = setTimeout(() => {
+    reactionRolesSaveTimer = null;
+    autoSaveNationalityRoles(false);
+  }, delayMs);
+}
 
 export function renderNationalityRolesManager(data) {
   const cfg = data.config || {};
@@ -128,14 +146,25 @@ export function renderNationalityRolesManager(data) {
       const mId = typeof item === 'object' ? item.messageId : item;
       const cId = typeof item === 'object' ? item.channelId : null;
       if (pId && state.reactionPresets[pId]) {
-        state.reactionPresets[pId].messageId = mId;
-        if (cId) state.reactionPresets[pId].channelId = cId;
+        if (!state.reactionPresets[pId].messageId && mId) {
+          state.reactionPresets[pId].messageId = mId;
+        }
+        if (!state.reactionPresets[pId].channelId && cId) {
+          state.reactionPresets[pId].channelId = cId;
+        }
       }
     });
   }
 
   const keys = Object.keys(state.reactionPresets);
-  if (!keys.includes(state.activePresetId)) {
+  let savedPreset = null;
+  try {
+    savedPreset = localStorage.getItem('maiev_active_reaction_preset');
+  } catch (_) {}
+
+  if (savedPreset && keys.includes(savedPreset)) {
+    state.activePresetId = savedPreset;
+  } else if (!keys.includes(state.activePresetId)) {
     state.activePresetId = keys[0] || 'classes';
   }
 
@@ -224,6 +253,10 @@ export function switchActivePreset(presetId) {
   }
 
   state.activePresetId = presetId;
+  try {
+    localStorage.setItem('maiev_active_reaction_preset', presetId);
+  } catch (_) {}
+
   const preset = state.reactionPresets[presetId];
   state.currentNationalityRoles = preset.roles || [];
 
@@ -233,10 +266,23 @@ export function switchActivePreset(presetId) {
   const channelSelect = document.getElementById('select-nationality-roles-channel');
   const intentSelect = document.getElementById('reaction-default-intent-select');
 
-  if (titleInput) titleInput.value = preset.title || (ROLE_PRESETS[presetId]?.defaultTitle || 'Reaction Roles — Choose Your Roles');
-  if (contentInput) contentInput.value = preset.content || '';
-  if (footerInput) footerInput.value = preset.footer || (ROLE_PRESETS[presetId]?.defaultFooter || 'React with an emoji below to toggle your role');
-  if (channelSelect && preset.channelId) channelSelect.value = preset.channelId;
+  if (titleInput) {
+    titleInput.value = preset.title !== undefined
+      ? preset.title
+      : (ROLE_PRESETS[presetId]?.defaultTitle || 'Reaction Roles — Choose Your Roles');
+  }
+  if (contentInput) {
+    contentInput.value = preset.content !== undefined ? preset.content : '';
+  }
+  if (footerInput) {
+    footerInput.value = preset.footer !== undefined
+      ? preset.footer
+      : (ROLE_PRESETS[presetId]?.defaultFooter || 'React with an emoji below to toggle your role');
+  }
+  if (channelSelect) {
+    const targetCh = preset.channelId || state.serverState?.config?.nationalityChannelId || '';
+    if (targetCh) channelSelect.value = targetCh;
+  }
   if (intentSelect && preset.intent) intentSelect.value = preset.intent;
 
   const nameLabel = document.getElementById('active-subtab-name-label');
@@ -714,7 +760,7 @@ export function autoFitEmbedSettingsToRoles() {
 }
 
 export function applyRemoteNationalitySync(remoteConfig) {
-  if (!remoteConfig) return;
+  if (!remoteConfig || state.pendingConfigSave || reactionRolesSaveTimer) return;
 
   const activeEl = document.activeElement;
   if (activeEl && ['new-nat-emoji', 'new-nat-name', 'new-nat-code', 'new-nat-role', 'nationality-content-input', 'nationality-title-input', 'nationality-footer-input'].includes(activeEl.id)) {
@@ -747,18 +793,29 @@ export function setupReactionRolesTabListeners() {
       state.reactionPresets[state.activePresetId].title = e.target.value;
     }
     updateNationalityPreview();
+    scheduleReactionRolesAutoSave(350);
   });
   natContentInput?.addEventListener('input', (e) => {
     if (state.reactionPresets[state.activePresetId]) {
       state.reactionPresets[state.activePresetId].content = e.target.value;
     }
     updateNationalityPreview();
+    scheduleReactionRolesAutoSave(350);
   });
   natFooterInput?.addEventListener('input', (e) => {
     if (state.reactionPresets[state.activePresetId]) {
       state.reactionPresets[state.activePresetId].footer = e.target.value;
     }
     updateNationalityPreview();
+    scheduleReactionRolesAutoSave(350);
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (reactionRolesSaveTimer) {
+      clearTimeout(reactionRolesSaveTimer);
+      reactionRolesSaveTimer = null;
+      autoSaveNationalityRoles(true);
+    }
   });
 
   const defaultIntentSelect = document.getElementById('reaction-default-intent-select');
@@ -796,7 +853,14 @@ export function setupReactionRolesTabListeners() {
     if (natTitleInput) natTitleInput.value = DEFAULT_NATIONALITY_TEMPLATE.title;
     if (natContentInput) natContentInput.value = DEFAULT_NATIONALITY_TEMPLATE.content;
     if (natFooterInput) natFooterInput.value = DEFAULT_NATIONALITY_TEMPLATE.footer;
+    const currentPreset = state.reactionPresets[state.activePresetId];
+    if (currentPreset) {
+      currentPreset.title = DEFAULT_NATIONALITY_TEMPLATE.title;
+      currentPreset.content = DEFAULT_NATIONALITY_TEMPLATE.content;
+      currentPreset.footer = DEFAULT_NATIONALITY_TEMPLATE.footer;
+    }
     updateNationalityPreview();
+    autoSaveNationalityRoles();
     showToast('Reset reaction roles template to standard format!', 'success');
   });
 

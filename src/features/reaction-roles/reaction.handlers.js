@@ -516,8 +516,20 @@ export function handleSaveReactionRolesApi(req, res) {
     if (req.body.reactionPresets !== undefined) {
       updates.reactionPresets = req.body.reactionPresets;
     }
+    if (req.body.nationalityChannelId !== undefined) {
+      updates.nationalityChannelId = req.body.nationalityChannelId;
+    }
+    if (req.body.nationalityTitle !== undefined) {
+      updates.nationalityTitle = req.body.nationalityTitle;
+    }
+    if (req.body.nationalityContent !== undefined) {
+      updates.nationalityContent = req.body.nationalityContent;
+    }
+    if (req.body.nationalityFooter !== undefined) {
+      updates.nationalityFooter = req.body.nationalityFooter;
+    }
     const updated = configStore.save(updates);
-    res.json({ success: true, count: updated.nationalityRoles.length });
+    res.json({ success: true, count: updated.nationalityRoles.length, config: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

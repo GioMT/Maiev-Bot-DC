@@ -1,24 +1,23 @@
 import {
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE
-} from '../presets.js?v=7.4';
-import { state, getActiveServerName } from '../state.js?v=7.4';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
-import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.4';
+} from '../presets.js?v=7.5';
+import { state, getActiveServerName } from '../state.js?v=7.5';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
+import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.5';
 
 export function renderVerifyEditor(cfg) {
-  const title = cfg.verifyTitle || DEFAULT_VERIFY_TEMPLATE.title;
-  const content = cfg.verifyContent || DEFAULT_VERIFY_TEMPLATE.content;
-  const footer = cfg.verifyFooter || DEFAULT_VERIFY_TEMPLATE.footer;
+  const title = cfg.verifyTitle !== undefined ? cfg.verifyTitle : DEFAULT_VERIFY_TEMPLATE.title;
+  const content = cfg.verifyContent !== undefined ? cfg.verifyContent : DEFAULT_VERIFY_TEMPLATE.content;
+  const footer = cfg.verifyFooter !== undefined ? cfg.verifyFooter : DEFAULT_VERIFY_TEMPLATE.footer;
 
   const titleEl = document.getElementById('verify-title-input');
   const contentEl = document.getElementById('verify-content-input');
   const footerEl = document.getElementById('verify-footer-input');
-  const active = document.activeElement;
 
-  if (titleEl && active !== titleEl) titleEl.value = title;
-  if (contentEl && active !== contentEl) contentEl.value = content;
-  if (footerEl && active !== footerEl) footerEl.value = footer;
+  if (titleEl) titleEl.value = title;
+  if (contentEl) contentEl.value = content;
+  if (footerEl) footerEl.value = footer;
 
   updateVerifyPreview();
 }
@@ -35,18 +34,17 @@ export function updateVerifyPreview() {
 }
 
 export function renderWelcomeEditor(cfg) {
-  const title = cfg.welcomeTitle || DEFAULT_WELCOME_TEMPLATE.title;
-  const content = cfg.welcomeContent || DEFAULT_WELCOME_TEMPLATE.content;
-  const footer = cfg.welcomeFooter || DEFAULT_WELCOME_TEMPLATE.footer;
+  const title = cfg.welcomeTitle !== undefined ? cfg.welcomeTitle : DEFAULT_WELCOME_TEMPLATE.title;
+  const content = cfg.welcomeContent !== undefined ? cfg.welcomeContent : DEFAULT_WELCOME_TEMPLATE.content;
+  const footer = cfg.welcomeFooter !== undefined ? cfg.welcomeFooter : DEFAULT_WELCOME_TEMPLATE.footer;
 
   const titleEl = document.getElementById('welcome-title-input');
   const contentEl = document.getElementById('welcome-content-input');
   const footerEl = document.getElementById('welcome-footer-input');
-  const active = document.activeElement;
 
-  if (titleEl && active !== titleEl) titleEl.value = title;
-  if (contentEl && active !== contentEl) contentEl.value = content;
-  if (footerEl && active !== footerEl) footerEl.value = footer;
+  if (titleEl) titleEl.value = title;
+  if (contentEl) contentEl.value = content;
+  if (footerEl) footerEl.value = footer;
 }
 
 export function setupVerifyTabListeners() {

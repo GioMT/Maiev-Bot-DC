@@ -1,7 +1,7 @@
-import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=7.4';
-import { getActiveServerName } from '../state.js?v=7.4';
-import { formatDiscordMarkdown, showToast } from '../utils.js?v=7.4';
-import { scheduleAutoSave } from '../api.js?v=7.4';
+import { DEFAULT_WELCOME_ANNOUNCEMENT_TEMPLATE } from '../presets.js?v=7.5';
+import { getActiveServerName } from '../state.js?v=7.5';
+import { formatDiscordMarkdown, showToast } from '../utils.js?v=7.5';
+import { scheduleAutoSave } from '../api.js?v=7.5';
 
 export function renderWelcomeAnnouncementEditor(cfg) {
   const enable = cfg.enableWelcomeAnnouncement !== false;
@@ -11,7 +11,7 @@ export function renderWelcomeAnnouncementEditor(cfg) {
   if (checkEl) checkEl.checked = enable;
 
   const msgInput = document.getElementById('welcome-announcement-input');
-  if (msgInput && document.activeElement !== msgInput) msgInput.value = message;
+  if (msgInput) msgInput.value = message;
 
   updateWelcomeAnnouncementPreview();
 }

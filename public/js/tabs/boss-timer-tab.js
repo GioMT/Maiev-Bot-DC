@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.4';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
+import { state } from '../state.js?v=7.5';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
 
 const DEFAULT_BOSS_TITLES = {
   abyssTitle: '🔥 Fregion — Reshanta / Abyss Bosses',
@@ -44,6 +44,7 @@ const KNOWN_VERTERON_BOSSES = [
 ];
 
 let bossTimerData = null;
+let bossTimerSaveTimer = null;
 let majorBossesSet = new Set([
   'Watcher Kaira',
   'Argo, the Spirit King',
@@ -56,6 +57,15 @@ let majorBossesSet = new Set([
   'Executor Argo',
   'Executor Kaira'
 ]);
+
+function scheduleBossTimerAutoSave(delayMs = 400) {
+  if (!bossTimerData) return;
+  if (bossTimerSaveTimer) clearTimeout(bossTimerSaveTimer);
+  bossTimerSaveTimer = setTimeout(() => {
+    bossTimerSaveTimer = null;
+    saveBossTimerSettings(false).catch(() => null);
+  }, delayMs);
+}
 
 function formatCountdownClient(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -114,15 +124,18 @@ export function renderBossTimerChannelDropdowns(channels = []) {
   const trackerSelect = document.getElementById('select-boss-timer-channel');
   const alertSelect = document.getElementById('select-boss-alert-channel');
   const cfg = bossTimerData?.config || {};
+  const hasLoadedBossCfg = Boolean(bossTimerData?.config);
 
   if (trackerSelect) {
-    const currentVal = cfg.channelId || trackerSelect.value || '1563876333623312394';
+    const currentVal = hasLoadedBossCfg
+      ? (cfg.channelId || '')
+      : (trackerSelect.value || '1563876333623312394');
     trackerSelect.innerHTML = '<option value="">-- Choose Tracker Channel --</option>';
     channels.forEach(ch => {
       const opt = document.createElement('option');
       opt.value = ch.id;
       opt.textContent = `#${ch.name}`;
-      if (ch.id === currentVal || (!cfg.channelId && /boss|timer/i.test(ch.name))) {
+      if (ch.id === currentVal || (!hasLoadedBossCfg && !currentVal && /boss|timer/i.test(ch.name))) {
         opt.selected = true;
       }
       trackerSelect.appendChild(opt);
@@ -130,14 +143,16 @@ export function renderBossTimerChannelDropdowns(channels = []) {
   }
 
   if (alertSelect) {
-    const currentAlertVal = cfg.alertChannelId || alertSelect.value || '';
+    const currentAlertVal = hasLoadedBossCfg
+      ? (cfg.alertChannelId || '')
+      : (alertSelect.value || '');
     alertSelect.innerHTML = '<option value="">-- Disabled (No @here Alert Channel) --</option>';
     channels.forEach(ch => {
       const opt = document.createElement('option');
       opt.value = ch.id;
       opt.textContent = `#${ch.name}`;
-      if (ch.id === currentAlertVal || (!currentAlertVal && /general|alert/i.test(ch.name))) {
-        if (currentAlertVal === ch.id) opt.selected = true;
+      if (currentAlertVal && ch.id === currentAlertVal) {
+        opt.selected = true;
       }
       alertSelect.appendChild(opt);
     });
@@ -157,13 +172,13 @@ export function renderBossTimerEditor(data) {
   if (autoDeleteEl) autoDeleteEl.checked = cfg.autoDeleteAlerts !== false;
 
   const abyssTitleEl = document.getElementById('boss-abyss-title-input');
-  if (abyssTitleEl) abyssTitleEl.value = cfg.abyssTitle || DEFAULT_BOSS_TITLES.abyssTitle;
+  if (abyssTitleEl) abyssTitleEl.value = cfg.abyssTitle !== undefined ? cfg.abyssTitle : DEFAULT_BOSS_TITLES.abyssTitle;
 
   const elyosTitleEl = document.getElementById('boss-elyos-title-input');
-  if (elyosTitleEl) elyosTitleEl.value = cfg.elyosTitle || DEFAULT_BOSS_TITLES.elyosTitle;
+  if (elyosTitleEl) elyosTitleEl.value = cfg.elyosTitle !== undefined ? cfg.elyosTitle : DEFAULT_BOSS_TITLES.elyosTitle;
 
   const footerEl = document.getElementById('boss-footer-input');
-  if (footerEl) footerEl.value = cfg.footerText || DEFAULT_BOSS_TITLES.footerText;
+  if (footerEl) footerEl.value = cfg.footerText !== undefined ? cfg.footerText : DEFAULT_BOSS_TITLES.footerText;
 
   // Populate channel selects if serverState channels are already loaded
   if (state.serverState?.guild?.channels) {
@@ -241,12 +256,14 @@ export function renderMajorBossesPills() {
       bossNames.forEach(n => majorBossesSet.add(n));
       renderMajorBossesPills();
       updateBossTimerPreview();
+      scheduleBossTimerAutoSave(300);
     });
 
     header.querySelector('.btn-group-clear-all')?.addEventListener('click', () => {
       bossNames.forEach(n => majorBossesSet.delete(n));
       renderMajorBossesPills();
       updateBossTimerPreview();
+      scheduleBossTimerAutoSave(300);
     });
 
     groupBox.appendChild(header);
@@ -271,6 +288,7 @@ export function renderMajorBossesPills() {
         }
         renderMajorBossesPills();
         updateBossTimerPreview();
+        scheduleBossTimerAutoSave(300);
       });
 
       pillsWrap.appendChild(pill);
@@ -329,16 +347,20 @@ export function updateBossTimerPreview() {
   }
 }
 
-export async function saveBossTimerSettings() {
+export async function saveBossTimerSettings(keepalive = false) {
   if (!bossTimerData) return null;
+  if (bossTimerSaveTimer) {
+    clearTimeout(bossTimerSaveTimer);
+    bossTimerSaveTimer = null;
+  }
   const serverId = Number(document.getElementById('boss-server-id-input')?.value) || 1507;
   const channelId = document.getElementById('select-boss-timer-channel')?.value || '';
   const alertChannelId = document.getElementById('select-boss-alert-channel')?.value || '';
   const enableAlerts = document.getElementById('check-boss-enable-alerts')?.checked !== false;
   const autoDeleteAlerts = document.getElementById('check-boss-autodelete-alerts')?.checked !== false;
-  const abyssTitle = document.getElementById('boss-abyss-title-input')?.value.trim() || DEFAULT_BOSS_TITLES.abyssTitle;
-  const elyosTitle = document.getElementById('boss-elyos-title-input')?.value.trim() || DEFAULT_BOSS_TITLES.elyosTitle;
-  const footerText = document.getElementById('boss-footer-input')?.value.trim() || DEFAULT_BOSS_TITLES.footerText;
+  const abyssTitle = document.getElementById('boss-abyss-title-input')?.value ?? DEFAULT_BOSS_TITLES.abyssTitle;
+  const elyosTitle = document.getElementById('boss-elyos-title-input')?.value ?? DEFAULT_BOSS_TITLES.elyosTitle;
+  const footerText = document.getElementById('boss-footer-input')?.value ?? DEFAULT_BOSS_TITLES.footerText;
 
   const res = await fetch('/api/boss-timer/config', {
     method: 'POST',
@@ -353,22 +375,54 @@ export async function saveBossTimerSettings() {
       elyosTitle,
       footerText,
       majorBosses: Array.from(majorBossesSet)
-    })
+    }),
+    keepalive
   });
 
+  if (keepalive) return bossTimerData;
   if (!res.ok) throw new Error('Failed to save Boss Timer settings');
   const data = await res.json();
   bossTimerData = data;
-  renderBossTimerEditor(data);
   updateBossTimerPreview();
   return data;
 }
 
 export function setupBossTimerTabListeners() {
-  document.getElementById('boss-abyss-title-input')?.addEventListener('input', updateBossTimerPreview);
-  document.getElementById('boss-elyos-title-input')?.addEventListener('input', updateBossTimerPreview);
-  document.getElementById('boss-footer-input')?.addEventListener('input', updateBossTimerPreview);
-  document.getElementById('select-boss-timer-channel')?.addEventListener('change', updateBossTimerPreview);
+  window.addEventListener('beforeunload', () => {
+    if (bossTimerSaveTimer) {
+      clearTimeout(bossTimerSaveTimer);
+      bossTimerSaveTimer = null;
+      saveBossTimerSettings(true).catch(() => null);
+    }
+  });
+
+  ['boss-abyss-title-input', 'boss-elyos-title-input', 'boss-footer-input'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      updateBossTimerPreview();
+      scheduleBossTimerAutoSave(400);
+    });
+  });
+
+  document.getElementById('boss-server-id-input')?.addEventListener('input', () => {
+    scheduleBossTimerAutoSave(450);
+  });
+
+  document.getElementById('select-boss-timer-channel')?.addEventListener('change', () => {
+    updateBossTimerPreview();
+    scheduleBossTimerAutoSave(250);
+  });
+
+  document.getElementById('select-boss-alert-channel')?.addEventListener('change', () => {
+    scheduleBossTimerAutoSave(250);
+  });
+
+  document.getElementById('check-boss-enable-alerts')?.addEventListener('change', () => {
+    scheduleBossTimerAutoSave(250);
+  });
+
+  document.getElementById('check-boss-autodelete-alerts')?.addEventListener('change', () => {
+    scheduleBossTimerAutoSave(250);
+  });
 
   // Add custom major boss button
   document.getElementById('btn-add-major-boss')?.addEventListener('click', () => {
@@ -382,6 +436,7 @@ export function setupBossTimerTabListeners() {
     input.value = '';
     renderMajorBossesPills();
     updateBossTimerPreview();
+    scheduleBossTimerAutoSave(250);
     showToast(`Added "${name}" to Major Boss watchlist (★)!`, 'success');
   });
 
@@ -395,6 +450,7 @@ export function setupBossTimerTabListeners() {
       renderMajorBossesPills();
     }
     updateBossTimerPreview();
+    scheduleBossTimerAutoSave(200);
     showToast('Reset Boss Timer titles and Major Boss watchlist to defaults!', 'success');
   });
 

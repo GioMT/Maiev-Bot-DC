@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.4';
-import { refreshIcons, showToast } from '../utils.js?v=7.4';
+import { state } from '../state.js?v=7.5';
+import { refreshIcons, showToast } from '../utils.js?v=7.5';
 
 export function renderDiagnostics(data) {
   const perms = data.permissions || {};

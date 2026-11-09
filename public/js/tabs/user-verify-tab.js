@@ -1,6 +1,6 @@
-import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.4';
-import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.4';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
+import { DEFAULT_USER_VERIFY_TEMPLATE } from '../presets.js?v=7.5';
+import { state, getActiveServerName, syncCachedConfig } from '../state.js?v=7.5';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
 
 let currentUploadedVideoPath = '';
 let videoExplicitlyCleared = false;
@@ -128,14 +128,21 @@ export function renderUserVerifyEditor(cfg = {}) {
   const threadContentEl = document.getElementById('uverify-thread-content-input');
   const deployBadge = document.getElementById('uverify-deploy-badge');
 
-  const active = document.activeElement;
-  if (titleEl && active !== titleEl) titleEl.value = (cfg.userVerifyTitle || DEFAULT_USER_VERIFY_TEMPLATE.title).replace(/^📹\s*/, '');
-  if (contentEl && active !== contentEl) contentEl.value = (cfg.userVerifyContent || DEFAULT_USER_VERIFY_TEMPLATE.content).replace(/📹\s*Start Video Verification/g, 'Start Video Verification');
-  if (footerEl && active !== footerEl) footerEl.value = cfg.userVerifyFooter || DEFAULT_USER_VERIFY_TEMPLATE.footer;
-  if (btnLabelEl && active !== btnLabelEl) btnLabelEl.value = (cfg.userVerifyButtonLabel || DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel).replace(/^📹\s*/, '');
-  if (videoUrlEl && active !== videoUrlEl) videoUrlEl.value = cfg.userVerifyVideoUrl || '';
-  if (threadTitleEl && active !== threadTitleEl) threadTitleEl.value = (cfg.userVerifyThreadTitle || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle).replace(/^🛡️\s*/, '');
-  if (threadContentEl && active !== threadContentEl) threadContentEl.value = cfg.userVerifyThreadContent || DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
+  const rawTitle = cfg.userVerifyTitle !== undefined ? cfg.userVerifyTitle : DEFAULT_USER_VERIFY_TEMPLATE.title;
+  const rawContent = cfg.userVerifyContent !== undefined ? cfg.userVerifyContent : DEFAULT_USER_VERIFY_TEMPLATE.content;
+  const rawFooter = cfg.userVerifyFooter !== undefined ? cfg.userVerifyFooter : DEFAULT_USER_VERIFY_TEMPLATE.footer;
+  const rawBtnLabel = cfg.userVerifyButtonLabel !== undefined ? cfg.userVerifyButtonLabel : DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel;
+  const rawVideoUrl = cfg.userVerifyVideoUrl !== undefined ? cfg.userVerifyVideoUrl : '';
+  const rawThreadTitle = cfg.userVerifyThreadTitle !== undefined ? cfg.userVerifyThreadTitle : DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
+  const rawThreadContent = cfg.userVerifyThreadContent !== undefined ? cfg.userVerifyThreadContent : DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
+
+  if (titleEl) titleEl.value = String(rawTitle).replace(/^📹\s*/, '');
+  if (contentEl) contentEl.value = String(rawContent).replace(/📹\s*Start Video Verification/g, 'Start Video Verification');
+  if (footerEl) footerEl.value = rawFooter;
+  if (btnLabelEl) btnLabelEl.value = String(rawBtnLabel).replace(/^📹\s*/, '');
+  if (videoUrlEl) videoUrlEl.value = rawVideoUrl;
+  if (threadTitleEl) threadTitleEl.value = String(rawThreadTitle).replace(/^🛡️\s*/, '');
+  if (threadContentEl) threadContentEl.value = rawThreadContent;
 
   if (deployBadge) {
     if (cfg.userVerifyMessageId) {
@@ -398,13 +405,19 @@ export function collectUserVerifyFormValues() {
   const userVerifyRolesToAdd = readUserVerifyRoleCheckboxes('role_uverify_add', cfg.userVerifyRolesToAdd);
   const userVerifyRolesToRemove = readUserVerifyRoleCheckboxes('role_uverify_remove', cfg.userVerifyRolesToRemove);
 
-  const userVerifyTitle = document.getElementById('uverify-title-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.title;
-  const userVerifyContent = document.getElementById('uverify-content-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.content;
-  const userVerifyFooter = document.getElementById('uverify-footer-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.footer;
-  const userVerifyButtonLabel = document.getElementById('uverify-btn-label-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel;
-  const userVerifyVideoUrl = document.getElementById('uverify-video-url-input')?.value.trim() || '';
-  const userVerifyThreadTitle = document.getElementById('uverify-thread-title-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.threadTitle;
-  const userVerifyThreadContent = document.getElementById('uverify-thread-content-input')?.value.trim() || DEFAULT_USER_VERIFY_TEMPLATE.threadContent;
+  const readField = (id, cfgVal, defVal) => {
+    const el = document.getElementById(id);
+    if (el) return el.value;
+    return cfgVal !== undefined ? cfgVal : defVal;
+  };
+
+  const userVerifyTitle = readField('uverify-title-input', cfg.userVerifyTitle, DEFAULT_USER_VERIFY_TEMPLATE.title);
+  const userVerifyContent = readField('uverify-content-input', cfg.userVerifyContent, DEFAULT_USER_VERIFY_TEMPLATE.content);
+  const userVerifyFooter = readField('uverify-footer-input', cfg.userVerifyFooter, DEFAULT_USER_VERIFY_TEMPLATE.footer);
+  const userVerifyButtonLabel = readField('uverify-btn-label-input', cfg.userVerifyButtonLabel, DEFAULT_USER_VERIFY_TEMPLATE.buttonLabel);
+  const userVerifyVideoUrl = readField('uverify-video-url-input', cfg.userVerifyVideoUrl, '').trim();
+  const userVerifyThreadTitle = readField('uverify-thread-title-input', cfg.userVerifyThreadTitle, DEFAULT_USER_VERIFY_TEMPLATE.threadTitle);
+  const userVerifyThreadContent = readField('uverify-thread-content-input', cfg.userVerifyThreadContent, DEFAULT_USER_VERIFY_TEMPLATE.threadContent);
   const effectiveUploadedVideo = currentUploadedVideoPath ||
     (!videoExplicitlyCleared ? (cfg.userVerifyUploadedVideo || '') : '');
 

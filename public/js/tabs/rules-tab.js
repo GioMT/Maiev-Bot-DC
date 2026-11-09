@@ -1,20 +1,19 @@
-import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=7.4';
-import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.4';
-import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.4';
+import { DEFAULT_RULES_TEMPLATE } from '../presets.js?v=7.5';
+import { formatDiscordMarkdown, refreshIcons, showToast } from '../utils.js?v=7.5';
+import { postEmbed, saveAllConfiguration, scheduleAutoSave } from '../api.js?v=7.5';
 
 export function renderRulesEditor(cfg) {
-  const title = cfg.rulesTitle || DEFAULT_RULES_TEMPLATE.title;
-  const content = cfg.rulesContent || DEFAULT_RULES_TEMPLATE.content;
-  const footer = cfg.rulesFooter || DEFAULT_RULES_TEMPLATE.footer;
+  const title = cfg.rulesTitle !== undefined ? cfg.rulesTitle : DEFAULT_RULES_TEMPLATE.title;
+  const content = cfg.rulesContent !== undefined ? cfg.rulesContent : DEFAULT_RULES_TEMPLATE.content;
+  const footer = cfg.rulesFooter !== undefined ? cfg.rulesFooter : DEFAULT_RULES_TEMPLATE.footer;
 
   const titleEl = document.getElementById('rules-title-input');
   const contentEl = document.getElementById('rules-content-input');
   const footerEl = document.getElementById('rules-footer-input');
-  const active = document.activeElement;
 
-  if (titleEl && active !== titleEl) titleEl.value = title;
-  if (contentEl && active !== contentEl) contentEl.value = content;
-  if (footerEl && active !== footerEl) footerEl.value = footer;
+  if (titleEl) titleEl.value = title;
+  if (contentEl) contentEl.value = content;
+  if (footerEl) footerEl.value = footer;
 
   updateRulesPreview();
 }

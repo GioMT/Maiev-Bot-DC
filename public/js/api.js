@@ -1,13 +1,14 @@
-import { state, getActiveServerName, syncCachedConfig } from './state.js?v=7.4';
+import { state, getActiveServerName, syncCachedConfig } from './state.js?v=7.5';
 import {
   DEFAULT_RULES_TEMPLATE,
   DEFAULT_VERIFY_TEMPLATE,
   DEFAULT_WELCOME_TEMPLATE,
   DEFAULT_NATIONALITY_TEMPLATE
-} from './presets.js?v=7.4';
-import { showToast } from './utils.js?v=7.4';
-import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.4';
-import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.4';
+} from './presets.js?v=7.5';
+import { showToast } from './utils.js?v=7.5';
+import { saveBossTimerSettings } from './tabs/boss-timer-tab.js?v=7.5';
+import { collectUserVerifyFormValues } from './tabs/user-verify-tab.js?v=7.5';
+import { saveAlertsToBackend } from './tabs/alerts-tab.js?v=7.5';
 
 let autoSaveTimer = null;
 
@@ -33,8 +34,36 @@ function readSelectValue(selectId, fallbackValue) {
   return el.value;
 }
 
+function readTextInput(inputId, cfgVal, defaultVal) {
+  const el = document.getElementById(inputId);
+  if (el) return el.value;
+  return cfgVal !== undefined ? cfgVal : defaultVal;
+}
+
+export function syncActivePresetInputsToState() {
+  const activePreset = state.reactionPresets?.[state.activePresetId];
+  if (!activePreset) return;
+  const tEl = document.getElementById('nationality-title-input');
+  const cEl = document.getElementById('nationality-content-input');
+  const fEl = document.getElementById('nationality-footer-input');
+  const chEl = document.getElementById('select-nationality-roles-channel');
+  const intentEl = document.getElementById('reaction-default-intent-select');
+
+  if (tEl) activePreset.title = tEl.value;
+  if (cEl) activePreset.content = cEl.value;
+  if (fEl) activePreset.footer = fEl.value;
+  if (chEl && state.initialLoadComplete && chEl.options.length > 1) {
+    activePreset.channelId = chEl.value;
+  }
+  if (intentEl && intentEl.value) {
+    activePreset.intent = intentEl.value;
+  }
+}
+
 export function buildFullConfigPayload() {
   const cfg = state.serverState?.config || {};
+
+  syncActivePresetInputsToState();
 
   const autoJoinRoleIds = readCheckedRoles('role_auto_join', cfg.autoJoinRoleIds);
   const onboardedRoleId = readSelectValue('select-onboarded-role', cfg.onboardedRoleId);
@@ -44,26 +73,26 @@ export function buildFullConfigPayload() {
   const ignRolesToAdd = readCheckedRoles('role_add', cfg.ignRolesToAdd);
   const ignRolesToRemove = readCheckedRoles('role_remove', cfg.ignRolesToRemove);
 
-  const rulesTitle = document.getElementById('rules-title-input')?.value.trim() || DEFAULT_RULES_TEMPLATE.title;
-  const rulesContent = document.getElementById('rules-content-input')?.value.trim() || DEFAULT_RULES_TEMPLATE.content;
-  const rulesFooter = document.getElementById('rules-footer-input')?.value.trim() || DEFAULT_RULES_TEMPLATE.footer;
+  const rulesTitle = readTextInput('rules-title-input', cfg.rulesTitle, DEFAULT_RULES_TEMPLATE.title);
+  const rulesContent = readTextInput('rules-content-input', cfg.rulesContent, DEFAULT_RULES_TEMPLATE.content);
+  const rulesFooter = readTextInput('rules-footer-input', cfg.rulesFooter, DEFAULT_RULES_TEMPLATE.footer);
 
-  const verifyTitle = document.getElementById('verify-title-input')?.value.trim() || DEFAULT_VERIFY_TEMPLATE.title;
-  const verifyContent = document.getElementById('verify-content-input')?.value.trim() || DEFAULT_VERIFY_TEMPLATE.content;
-  const verifyFooter = document.getElementById('verify-footer-input')?.value.trim() || DEFAULT_VERIFY_TEMPLATE.footer;
+  const verifyTitle = readTextInput('verify-title-input', cfg.verifyTitle, DEFAULT_VERIFY_TEMPLATE.title);
+  const verifyContent = readTextInput('verify-content-input', cfg.verifyContent, DEFAULT_VERIFY_TEMPLATE.content);
+  const verifyFooter = readTextInput('verify-footer-input', cfg.verifyFooter, DEFAULT_VERIFY_TEMPLATE.footer);
 
-  const welcomeTitle = document.getElementById('welcome-title-input')?.value.trim() || DEFAULT_WELCOME_TEMPLATE.title;
-  const welcomeContent = document.getElementById('welcome-content-input')?.value.trim() || DEFAULT_WELCOME_TEMPLATE.content;
-  const welcomeFooter = document.getElementById('welcome-footer-input')?.value.trim() || DEFAULT_WELCOME_TEMPLATE.footer;
+  const welcomeTitle = readTextInput('welcome-title-input', cfg.welcomeTitle, DEFAULT_WELCOME_TEMPLATE.title);
+  const welcomeContent = readTextInput('welcome-content-input', cfg.welcomeContent, DEFAULT_WELCOME_TEMPLATE.content);
+  const welcomeFooter = readTextInput('welcome-footer-input', cfg.welcomeFooter, DEFAULT_WELCOME_TEMPLATE.footer);
 
   const welcomeAnnouncementChannelId = readSelectValue('select-welcome-channel', cfg.welcomeAnnouncementChannelId);
   const enableWelcomeAnnouncement = document.getElementById('check-enable-welcome-announcement')?.checked !== false;
-  const welcomeAnnouncementMessage = document.getElementById('welcome-announcement-input')?.value.trim() || '';
+  const welcomeAnnouncementMessage = readTextInput('welcome-announcement-input', cfg.welcomeAnnouncementMessage, '');
 
   const nationalityChannelId = readSelectValue('select-nationality-roles-channel', cfg.nationalityChannelId);
-  const nationalityTitle = document.getElementById('nationality-title-input')?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.title;
-  const nationalityContent = document.getElementById('nationality-content-input')?.value.trim() || '';
-  const nationalityFooter = document.getElementById('nationality-footer-input')?.value.trim() || DEFAULT_NATIONALITY_TEMPLATE.footer;
+  const nationalityTitle = readTextInput('nationality-title-input', cfg.nationalityTitle, DEFAULT_NATIONALITY_TEMPLATE.title);
+  const nationalityContent = readTextInput('nationality-content-input', cfg.nationalityContent, '');
+  const nationalityFooter = readTextInput('nationality-footer-input', cfg.nationalityFooter, DEFAULT_NATIONALITY_TEMPLATE.footer);
   const serverName = document.getElementById('server-name-input')?.value.trim() || getActiveServerName();
 
   const reactionRoleIntent = document.getElementById('reaction-default-intent-select')?.value || cfg.reactionRoleIntent || 'toggle';
@@ -124,7 +153,8 @@ export async function persistServerName(name) {
     const res = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ serverName: name })
+      body: JSON.stringify({ serverName: name }),
+      keepalive: true
     });
     const data = await res.json().catch(() => null);
     if (data?.config) syncCachedConfig(data.config, true);
@@ -133,26 +163,51 @@ export async function persistServerName(name) {
   }
 }
 
-export async function autoSaveNationalityRoles() {
+export async function autoSaveNationalityRoles(keepalive = false) {
   try {
+    syncActivePresetInputsToState();
+    const cfg = state.serverState?.config || {};
     const allRoles = Object.values(state.reactionPresets).flatMap(p => p.roles || []);
     const intent = document.getElementById('reaction-default-intent-select')?.value || 'toggle';
+    const nationalityChannelId = readSelectValue('select-nationality-roles-channel', cfg.nationalityChannelId);
+    const nationalityTitle = readTextInput('nationality-title-input', cfg.nationalityTitle, DEFAULT_NATIONALITY_TEMPLATE.title);
+    const nationalityContent = readTextInput('nationality-content-input', cfg.nationalityContent, '');
+    const nationalityFooter = readTextInput('nationality-footer-input', cfg.nationalityFooter, DEFAULT_NATIONALITY_TEMPLATE.footer);
+
+    state.pendingConfigSave = true;
     syncCachedConfig({
       nationalityRoles: allRoles,
       reactionPresets: state.reactionPresets,
-      reactionRoleIntent: intent
+      reactionRoleIntent: intent,
+      nationalityChannelId,
+      nationalityTitle,
+      nationalityContent,
+      nationalityFooter
     });
-    await fetch('/api/nationality-roles', {
+    const res = await fetch('/api/nationality-roles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nationalityRoles: allRoles,
         reactionPresets: state.reactionPresets,
-        intent
-      })
+        intent,
+        nationalityChannelId,
+        nationalityTitle,
+        nationalityContent,
+        nationalityFooter
+      }),
+      keepalive
     });
+    if (res.ok && !keepalive) {
+      const data = await res.json().catch(() => null);
+      if (data?.config) syncCachedConfig(data.config, true);
+    }
   } catch (err) {
-    console.error('Failed to auto-save reaction roles:', err);
+    if (!keepalive) {
+      console.error('Failed to auto-save reaction roles:', err);
+    }
+  } finally {
+    state.pendingConfigSave = false;
   }
 }
 
@@ -215,7 +270,8 @@ export async function saveAllConfiguration(options = {}) {
     const res = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      keepalive: true
     });
 
     if (!res.ok) throw new Error('Save failed');
@@ -224,7 +280,10 @@ export async function saveAllConfiguration(options = {}) {
       syncCachedConfig(result.config, true);
     }
     if (!skipBossTimer) {
-      await saveBossTimerSettings().catch(() => null);
+      await Promise.all([
+        saveBossTimerSettings().catch(() => null),
+        saveAlertsToBackend(false).catch(() => null)
+      ]);
     }
     if (!silent) {
       showToast('All dashboard configuration settings saved successfully!', 'success');

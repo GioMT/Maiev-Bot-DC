@@ -1,5 +1,5 @@
-import { state } from '../state.js?v=7.4';
-import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=7.4';
+import { state } from '../state.js?v=7.5';
+import { formatDiscordMarkdown, normalizeEmojiCode, renderEmojiHtml, refreshIcons, showToast } from '../utils.js?v=7.5';
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -21,6 +21,28 @@ const DAY_LABELS = [
 
 let alertsList = [];
 let activeAlertId = 'abyss-farming';
+try {
+  const savedAlertId = localStorage.getItem('maiev_active_alert_id');
+  if (savedAlertId) activeAlertId = savedAlertId;
+} catch (_) {}
+
+let alertsSaveTimer = null;
+
+function setActiveAlertId(id) {
+  activeAlertId = id;
+  try {
+    localStorage.setItem('maiev_active_alert_id', id);
+  } catch (_) {}
+}
+
+function scheduleAlertsAutoSave(delayMs = 400) {
+  if (!alertsList.length) return;
+  if (alertsSaveTimer) clearTimeout(alertsSaveTimer);
+  alertsSaveTimer = setTimeout(() => {
+    alertsSaveTimer = null;
+    saveAlertsToBackend(false, false);
+  }, delayMs);
+}
 
 function formatTime12h(hhmm) {
   if (!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) return hhmm;
@@ -166,7 +188,7 @@ export function getActiveAlert() {
   let found = alertsList.find(a => a.id === activeAlertId);
   if (!found) {
     found = alertsList[0];
-    activeAlertId = found.id;
+    setActiveAlertId(found.id);
   }
   ensureEventTimesAndOffsets(found);
   return found;
@@ -180,7 +202,7 @@ export async function fetchAlertsState() {
     alertsList = Array.isArray(data.alerts) ? data.alerts : [];
     alertsList.forEach(ensureEventTimesAndOffsets);
     if (!alertsList.some(a => a.id === activeAlertId) && alertsList.length > 0) {
-      activeAlertId = alertsList[0].id;
+      setActiveAlertId(alertsList[0].id);
     }
     renderAlertsSubtabs();
     renderActiveAlertForm();
@@ -326,7 +348,7 @@ export function renderAlertsSubtabs() {
 
     btn.addEventListener('click', () => {
       syncCurrentFormToActiveAlert();
-      activeAlertId = alert.id;
+      setActiveAlertId(alert.id);
       renderAlertsSubtabs();
       renderActiveAlertForm();
       updateAlertsPreview();
@@ -457,6 +479,7 @@ function renderEventTimesPills(active) {
       renderScheduledTimesPills(active);
       renderAlertsSubtabs();
       updateAlertsPreview();
+      scheduleAlertsAutoSave(300);
     });
 
     container.appendChild(pill);
@@ -502,6 +525,7 @@ function renderOffsetsPills(active) {
       renderScheduledTimesPills(active);
       renderAlertsSubtabs();
       updateAlertsPreview();
+      scheduleAlertsAutoSave(300);
     });
 
     container.appendChild(pill);
@@ -561,6 +585,7 @@ function renderDaysOfWeekPills(active) {
       }
       renderDaysOfWeekPills(active);
       updateAlertsPreview();
+      scheduleAlertsAutoSave(300);
     });
 
     container.appendChild(btn);
@@ -610,6 +635,7 @@ function renderScheduledTimesPills(active) {
       renderScheduledTimesPills(active);
       renderAlertsSubtabs();
       updateAlertsPreview();
+      scheduleAlertsAutoSave(300);
     });
 
     container.appendChild(pill);
@@ -834,14 +860,21 @@ export function updateAlertsPreview() {
   }
 }
 
-async function saveAlertsToBackend(showSuccessToast = true) {
+export async function saveAlertsToBackend(showSuccessToast = true, keepalive = false) {
+  if (!alertsList.length) return true;
+  if (alertsSaveTimer) {
+    clearTimeout(alertsSaveTimer);
+    alertsSaveTimer = null;
+  }
   syncCurrentFormToActiveAlert();
   try {
     const res = await fetch('/api/alerts/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ alerts: alertsList })
+      body: JSON.stringify({ alerts: alertsList }),
+      keepalive
     });
+    if (keepalive) return true;
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to save alerts configuration');
     alertsList = data.alerts || alertsList;
@@ -852,12 +885,22 @@ async function saveAlertsToBackend(showSuccessToast = true) {
     }
     return true;
   } catch (err) {
-    showToast(err.message, 'error');
+    if (showSuccessToast) {
+      showToast(err.message, 'error');
+    }
     return false;
   }
 }
 
 export function setupAlertsTabListeners() {
+  window.addEventListener('beforeunload', () => {
+    if (alertsSaveTimer) {
+      clearTimeout(alertsSaveTimer);
+      alertsSaveTimer = null;
+      saveAlertsToBackend(false, true);
+    }
+  });
+
   const inputsToWatch = [
     'check-alert-enabled',
     'select-alert-target-channel',
@@ -883,6 +926,7 @@ export function setupAlertsTabListeners() {
       if (active) updateDaysWrapState(active);
       renderAlertsSubtabs();
       updateAlertsPreview();
+      scheduleAlertsAutoSave(400);
     };
     el.addEventListener('input', handleChange);
     el.addEventListener('change', handleChange);
@@ -908,6 +952,7 @@ export function setupAlertsTabListeners() {
       renderScheduledTimesPills(active);
       renderAlertsSubtabs();
       updateAlertsPreview();
+      scheduleAlertsAutoSave(250);
       showToast(`Added Event Start Time ${formatTime12h(val)} PHT!`, 'success');
     } else {
       showToast(`${formatTime12h(val)} PHT is already in Event Start Times.`, 'info');
@@ -939,6 +984,7 @@ export function setupAlertsTabListeners() {
     renderScheduledTimesPills(active);
     renderAlertsSubtabs();
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
     showToast(`Generated ${active.eventTimes.length} recurring event times (every ${intervalHours}h) & synced ${active.times.length} pre-event alerts!`, 'success');
   });
 
@@ -955,6 +1001,7 @@ export function setupAlertsTabListeners() {
     renderScheduledTimesPills(active);
     renderAlertsSubtabs();
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
   });
 
   // Insert {countdown}, {event_time}, {name} tag buttons
@@ -976,6 +1023,7 @@ export function setupAlertsTabListeners() {
       if (targetId === 'input-alert-description') {
         syncCurrentFormToActiveAlert();
         updateAlertsPreview();
+        scheduleAlertsAutoSave(300);
       }
     });
   });
@@ -999,6 +1047,7 @@ export function setupAlertsTabListeners() {
     renderScheduledTimesPills(active);
     renderAlertsSubtabs();
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
     showToast(`Added ${minsBefore}m pre-event offset across all ${active.eventTimes.length} event time(s)!`, 'success');
   });
 
@@ -1022,6 +1071,7 @@ export function setupAlertsTabListeners() {
     renderScheduledTimesPills(active);
     renderAlertsSubtabs();
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
   });
 
   // Clear all times
@@ -1034,6 +1084,7 @@ export function setupAlertsTabListeners() {
     renderScheduledTimesPills(active);
     renderAlertsSubtabs();
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
   });
 
   // Quick Day selection buttons
@@ -1043,6 +1094,7 @@ export function setupAlertsTabListeners() {
     active.daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
     renderDaysOfWeekPills(active);
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
   });
 
   document.getElementById('btn-alert-days-weekdays')?.addEventListener('click', () => {
@@ -1051,6 +1103,7 @@ export function setupAlertsTabListeners() {
     active.daysOfWeek = [1, 2, 3, 4, 5];
     renderDaysOfWeekPills(active);
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
   });
 
   document.getElementById('btn-alert-days-weekends')?.addEventListener('click', () => {
@@ -1059,6 +1112,7 @@ export function setupAlertsTabListeners() {
     active.daysOfWeek = [0, 6];
     renderDaysOfWeekPills(active);
     updateAlertsPreview();
+    scheduleAlertsAutoSave(250);
   });
 
   // Quick Auto-Delete duration chips
@@ -1075,6 +1129,7 @@ export function setupAlertsTabListeners() {
         active.deleteAfterMinutes = mins;
       }
       updateAlertsPreview();
+      scheduleAlertsAutoSave(250);
     });
   });
 
@@ -1201,7 +1256,7 @@ export function setupAlertsTabListeners() {
     };
 
     alertsList.push(newAlert);
-    activeAlertId = newAlert.id;
+    setActiveAlertId(newAlert.id);
     if (createModal) createModal.classList.add('hidden');
 
     if (nameEl) nameEl.value = '';
@@ -1225,7 +1280,7 @@ export function setupAlertsTabListeners() {
     }
     const removedName = active.name;
     alertsList = alertsList.filter(a => a.id !== active.id);
-    activeAlertId = alertsList[0]?.id || 'abyss-farming';
+    setActiveAlertId(alertsList[0]?.id || 'abyss-farming');
     renderAlertsSubtabs();
     renderActiveAlertForm();
     updateAlertsPreview();
