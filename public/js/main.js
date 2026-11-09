@@ -10,7 +10,7 @@ import {
   renderRoleDropdowns,
   renderChannelDropdowns,
   setupServerNameEditing
-} from './tabs/header-telemetry.js?v=7.6';
+} from './tabs/header-telemetry.js?v=7.7';
 import { renderRulesEditor, setupRulesTabListeners } from './tabs/rules-tab.js?v=7.6';
 import {
   renderVerifyEditor,
@@ -116,7 +116,7 @@ function setupRealtimeSync() {
           syncCachedConfig(data.config, true);
           applyRemoteNationalitySync(data.config);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
   }
 
@@ -132,7 +132,7 @@ function setupRealtimeSync() {
           applyRemoteNationalitySync(data.config);
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }, 5000);
 }
 
@@ -141,7 +141,7 @@ function bootstrap() {
   try {
     const cached = localStorage.getItem('maiev_config_cache');
     if (cached) initialCfg = JSON.parse(cached);
-  } catch (_) {}
+  } catch (_) { }
 
   state.serverState = { config: initialCfg, guildReady: false };
 

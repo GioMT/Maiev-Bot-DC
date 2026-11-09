@@ -11,7 +11,7 @@ import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './aler
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',
-  'tab-rules': 'Rules Onboarding',
+  'tab-rules': 'Onboarding',
   'tab-verify': 'IGN Verification',
   'tab-user-verify': 'Video Verification',
   'tab-welcome': 'Public Welcome',
