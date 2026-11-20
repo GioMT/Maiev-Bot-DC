@@ -116,6 +116,9 @@
       <button type="button" class="main-tab-btn" data-tab="tab-alerts" role="tab" aria-selected="false">
         <i data-lucide="bell-ring"></i> Scheduled Alerts
       </button>
+      <button type="button" class="main-tab-btn" data-tab="tab-announcer" role="tab" aria-selected="false">
+        <i data-lucide="send"></i> Send Message
+      </button>
       </nav>
       <div class="dyno-sidebar-footer">
         <div class="dyno-sidebar-footer-row">
@@ -246,6 +249,24 @@
             <p class="dyno-module-card-desc">Live auto-updating Reshanta &amp; Verteron boss respawn tables with 10-minute Major Boss @here alerts.</p>
             <div class="dyno-module-card-footer">
               <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-boss-timer">Settings</button></div></div><div class="dyno-module-card"><div class="dyno-module-card-top"><div class="dyno-module-card-icon"><i data-lucide="bell-ring"></i></div><div class="dyno-module-card-title-wrap"><h3>Scheduled Alerts</h3><span class="dyno-module-tag">Notifications</span></div><label class="dyno-switch" title="Module Enabled"><input type="checkbox" checked disabled><span class="dyno-slider"></span></label></div><p class="dyno-module-card-desc">Multi-time daily &amp; custom-day alerts for Announcements, Abyss Farming, Rifts, Events, and custom embeds with auto-delete.</p><div class="dyno-module-card-footer"><button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-alerts">Settings</button>
+            </div>
+          </div>
+
+          <div class="dyno-module-card">
+            <div class="dyno-module-card-top">
+              <div class="dyno-module-card-icon"><i data-lucide="send"></i></div>
+              <div class="dyno-module-card-title-wrap">
+                <h3>Send Message</h3>
+                <span class="dyno-module-tag">Announcer</span>
+              </div>
+              <label class="dyno-switch" title="Module Enabled">
+                <input type="checkbox" checked disabled>
+                <span class="dyno-slider"></span>
+              </label>
+            </div>
+            <p class="dyno-module-card-desc">Compose custom messages or styled embeds from the Web UI or /say command and post them as Maiev to any channel.</p>
+            <div class="dyno-module-card-footer">
+              <button type="button" class="btn btn-secondary btn-sm dyno-open-module-btn" data-open-tab="tab-announcer">Open Composer</button>
             </div>
           </div>
 
@@ -2008,6 +2029,127 @@
       </main>
     </section>
 
+    <!-- TAB: Send Message / Announcer -->
+    <section id="tab-announcer" class="tab-pane" role="tabpanel">
+      <main class="dashboard-grid">
+        <div class="grid-col config-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="send"></i></span>
+                <div>
+                  <h2 class="card-title">Send Message as Maiev</h2>
+                  <p class="card-subtitle">Post a custom message or styled embed to any channel. You can also use <code>/say</code> in Discord.</p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-announcer-clear" title="Clear Composer">
+                <i data-lucide="eraser"></i> Clear
+              </button>
+            </div>
+
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="select-announcer-channel" class="form-label">Target Channel:</label>
+                  <select id="select-announcer-channel" class="form-select">
+                    <option value="">Loading channels...</option>
+                  </select>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="select-announcer-mention" class="form-label">Mention Ping (Optional):</label>
+                  <select id="select-announcer-mention" class="form-select">
+                    <option value="">No Mention</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row" style="align-items: center;">
+                <div class="form-group flex-1 mb-0">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="check-announcer-embed">
+                    <span>Send as Styled Embed</span>
+                  </label>
+                </div>
+                <div class="form-group mb-0" style="display: flex; align-items: center; gap: 8px;">
+                  <label for="announcer-embed-color" class="form-label mb-0">Embed Color:</label>
+                  <input type="color" id="announcer-embed-color" value="#00d2ff" style="width: 38px; height: 32px; border: 1px solid var(--border-subtle); border-radius: 6px; background: transparent; cursor: pointer;">
+                </div>
+              </div>
+
+              <div class="form-group mt-3">
+                <label for="announcer-title-input" class="form-label">Embed Title (Optional — automatically uses embed style if filled):</label>
+                <input type="text" id="announcer-title-input" class="form-input" maxlength="256" placeholder="e.g. Legion Maintenance Notice">
+              </div>
+
+              <div class="form-group">
+                <label for="announcer-content-input" class="form-label">Message Content:</label>
+                <textarea id="announcer-content-input" class="form-textarea" rows="7" maxlength="4000" placeholder="Write the message Maiev should send to the selected channel..."></textarea>
+                <span class="form-hint">Supports Discord Markdown (<code>**bold**</code>, <code>*italic*</code>, lists, links) and custom server emoji shortcodes (e.g. <code>:Templar:</code>).</span>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                <div id="announcer-last-sent" class="hidden" style="font-size: 0.82rem; color: #2ecc71;">
+                  Sent to <strong id="announcer-last-sent-channel">#channel</strong>
+                  <a id="announcer-last-sent-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden" style="margin-left: 8px; color: var(--accent-cyan); text-decoration: underline;">View in Discord</a>
+                </div>
+                <button type="button" class="btn btn-primary" id="btn-announcer-send" style="margin-left: auto;">
+                  <i data-lucide="send"></i> Send Message
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-col simulator-column">
+          <div class="card glass-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon"><i data-lucide="eye"></i></span>
+                <div>
+                  <h2 class="card-title">Live Message Preview</h2>
+                  <p class="card-subtitle">Preview how Maiev's message will appear in Discord.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="discord-preview-container">
+                <div class="discord-chat-header">
+                  <span class="discord-hash">#</span>
+                  <span class="discord-channel-name" id="sim-announcer-channel-name">general</span>
+                  <span class="discord-topic">Live Preview</span>
+                </div>
+
+                <div class="discord-message-group">
+                  <div class="discord-message">
+                    <img class="discord-author-avatar" id="sim-bot-avatar-11" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Maiev">
+                    <div class="discord-message-content">
+                      <div class="discord-author-row">
+                        <span class="discord-author-name">Maiev</span>
+                        <span class="discord-bot-badge">BOT</span>
+                        <span class="discord-timestamp">Just now</span>
+                      </div>
+
+                      <div id="sim-announcer-plain-wrap" class="embed-description" style="color: #dbdee1;">
+                        <span style="color: var(--text-muted); font-style: italic;">Start typing your message on the left to preview it here...</span>
+                      </div>
+
+                      <div id="sim-announcer-mention-wrap" class="hidden" style="color: var(--accent-blurple); font-weight: 600; margin-bottom: 6px;"></div>
+
+                      <div id="sim-announcer-embed-wrap" class="discord-embed hidden" style="border-left-color: #00d2ff;">
+                        <div class="embed-title hidden" id="sim-announcer-title"></div>
+                        <div class="embed-description" id="sim-announcer-desc"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+
     <!-- TAB 6: Diagnostics & Server Roster -->
     <section id="tab-health" class="tab-pane" role="tabpanel">
       <!-- System Health Diagnostics -->
@@ -2466,6 +2608,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=7.7"></script>
+  <script type="module" src="js/main.js?v=7.8"></script>
 </body>
 </html>

@@ -43,6 +43,7 @@ import {
   fetchAlertsState,
   setupAlertsTabListeners
 } from './tabs/alerts-tab.js?v=7.6';
+import { setupAnnouncerTabListeners } from './tabs/announcer-tab.js?v=7.6';
 
 export async function fetchServerState() {
   try {
@@ -103,6 +104,7 @@ function setupGlobalListeners() {
   setupReactionRolesTabListeners();
   setupBossTimerTabListeners();
   setupAlertsTabListeners();
+  setupAnnouncerTabListeners();
   setupDiagnosticsTabListeners(fetchServerState);
 }
 

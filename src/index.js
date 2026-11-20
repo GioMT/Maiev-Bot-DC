@@ -16,6 +16,7 @@ import { welcomeFeature } from './features/welcome/index.js';
 import { reactionRolesFeature } from './features/reaction-roles/index.js';
 import { bossTimerFeature } from './features/boss-timer/index.js';
 import { alertsFeature } from './features/alerts/index.js';
+import { announcerFeature } from './features/announcer/index.js';
 import { statusFeature } from './features/status/index.js';
 
 const {
@@ -58,6 +59,7 @@ loadFeatures([
   reactionRolesFeature,
   bossTimerFeature,
   alertsFeature,
+  announcerFeature,
   statusFeature
 ], context);
 

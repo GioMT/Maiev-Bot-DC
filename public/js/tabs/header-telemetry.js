@@ -8,6 +8,7 @@ import { updateWelcomeAnnouncementPreview } from './welcome-tab.js?v=7.6';
 import { updateNationalityPreview } from './reaction-roles-tab.js?v=7.6';
 import { renderBossTimerChannelDropdowns, updateBossTimerPreview } from './boss-timer-tab.js?v=7.6';
 import { renderAlertsChannelAndRoleDropdowns, updateAlertsPreview } from './alerts-tab.js?v=7.6';
+import { renderAnnouncerDropdowns } from './announcer-tab.js?v=7.6';
 
 const MODULE_TITLES = {
   'tab-modules-hub': 'All Modules',
@@ -18,6 +19,7 @@ const MODULE_TITLES = {
   'tab-reaction-roles': 'Reaction Roles',
   'tab-boss-timer': 'Field Boss Timer',
   'tab-alerts': 'Scheduled Alerts',
+  'tab-announcer': 'Send Message',
   'tab-health': 'Diagnostics',
   'tab-roster': 'Server Roster'
 };
@@ -92,6 +94,8 @@ export function renderHeaderTelemetry(data) {
     if (simAvatar9) simAvatar9.src = data.avatar;
     const simAvatar10 = document.getElementById('sim-bot-avatar-10');
     if (simAvatar10) simAvatar10.src = data.avatar;
+    const simAvatar11 = document.getElementById('sim-bot-avatar-11');
+    if (simAvatar11) simAvatar11.src = data.avatar;
   }
   document.getElementById('bot-connection-string').textContent = `${data.botName} • Connected to Discord Gateway`;
   document.getElementById('ping-value').textContent = `${Math.max(data.ping, 1)} ms`;
@@ -287,6 +291,7 @@ export function renderChannelDropdowns(data) {
   populate(natSelect, currentConfig.nationalityChannelId, 'nation');
   renderBossTimerChannelDropdowns(channels);
   renderAlertsChannelAndRoleDropdowns(data);
+  renderAnnouncerDropdowns(data);
 
   updateSimChannelHeaders();
   updateUserVerifyPreview();
