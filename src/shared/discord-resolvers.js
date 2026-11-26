@@ -7,15 +7,27 @@ import { configStore } from '../core/storage/config-store.js';
 export async function resolveRole(guild, roleId, fallbackNames = []) {
   if (roleId) {
     const role = await guild.roles.fetch(roleId).catch(() => null);
-    if (role) return role;
+    if (role && role.id !== guild.id) return role;
   }
+  const cleanFallbacks = (Array.isArray(fallbackNames) ? fallbackNames : [])
+    .map(name => String(name || '').replace(/<a?:.+?:\d+>|:[a-zA-Z0-9_]+:/g, '').replace(/[[\]]/g, '').trim().toLowerCase())
+    .filter(Boolean);
+  if (cleanFallbacks.length === 0) return null;
+
   const roles = await guild.roles.fetch().catch(() => guild.roles.cache);
-  return roles.find(r => {
+  // Prefer exact name match first, then substring match (excluding @everyone)
+  const exact = roles.find(r => {
+    if (r.id === guild.id) return false;
     const cleanRoleName = r.name.replace(/[[\]]/g, '').trim().toLowerCase();
-    return fallbackNames.some(name => {
-      const cleanTarget = name.replace(/[[\]]/g, '').trim().toLowerCase();
-      return cleanRoleName === cleanTarget || cleanRoleName.includes(cleanTarget) || cleanTarget.includes(cleanRoleName);
-    });
+    return Boolean(cleanRoleName) && cleanFallbacks.some(target => cleanRoleName === target);
+  });
+  if (exact) return exact;
+
+  return roles.find(r => {
+    if (r.id === guild.id) return false;
+    const cleanRoleName = r.name.replace(/[[\]]/g, '').trim().toLowerCase();
+    if (!cleanRoleName) return false;
+    return cleanFallbacks.some(target => cleanRoleName.includes(target) || target.includes(cleanRoleName));
   }) || null;
 }
 

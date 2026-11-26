@@ -283,7 +283,7 @@ export function switchActivePreset(presetId) {
     const targetCh = preset.channelId || state.serverState?.config?.nationalityChannelId || '';
     if (targetCh) channelSelect.value = targetCh;
   }
-  if (intentSelect && preset.intent) intentSelect.value = preset.intent;
+  if (intentSelect) intentSelect.value = preset.intent || 'toggle';
 
   const nameLabel = document.getElementById('active-subtab-name-label');
   if (nameLabel) nameLabel.textContent = preset.name || presetId;

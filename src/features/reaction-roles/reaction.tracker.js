@@ -3,6 +3,7 @@ import { PermissionFlagsBits } from 'discord.js';
 import { JsonStore } from '../../core/storage/json-store.js';
 import { configStore, ROOT_DIR } from '../../core/storage/config-store.js';
 import { findMessageAcrossGuild } from '../../shared/discord-resolvers.js';
+import { isReactionRoleCardMessage } from './reaction.embed.js';
 
 const REACTIONS_FILE = path.join(ROOT_DIR, 'reactions-tracker.json');
 const reactionsStore = new JsonStore(REACTIONS_FILE, {}, { debounceMs: 1000 });
@@ -123,10 +124,7 @@ export async function cleanupUserReactionsOnLeave(client, guild, userId, userTag
       const recent = await channel.messages.fetch({ limit: 10 }).catch(() => null);
       if (recent) {
         for (const msg of recent.values()) {
-          const isRoleCard = msg.author?.id === client.user?.id && (
-            msg.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
-            config.nationalityMessageIds?.some(id => (typeof id === 'object' ? id.messageId : id) === msg.id)
-          );
+          const isRoleCard = isReactionRoleCardMessage(msg, config, client);
           if (isRoleCard && !scannedMessageIds.has(msg.id)) {
             scannedMessageIds.add(msg.id);
             candidateMessages.push(msg);
@@ -209,10 +207,7 @@ export async function purgeGhostReactions(client, guild, targetChannel = null) {
       const recent = await ch.messages.fetch({ limit: 15 }).catch(() => null);
       if (recent) {
         for (const m of recent.values()) {
-          const isBotCard = m.author?.id === client.user?.id && (
-            m.embeds?.some(e => e.title && /nationality|regional|choose your/i.test(e.title)) ||
-            config.nationalityMessageIds?.some(id => (typeof id === 'object' ? id.messageId : id) === m.id)
-          );
+          const isBotCard = isReactionRoleCardMessage(m, config, client);
           if (isBotCard && !messagesToInspect.some(existing => existing.id === m.id)) {
             messagesToInspect.push(m);
           }

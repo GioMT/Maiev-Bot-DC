@@ -78,7 +78,7 @@ export function resolveCustomEmojiShortcodes(text, guild) {
 /**
  * Match emoji (Unicode or Custom) to a configured nationality/reaction role.
  */
-export function findNationalityByEmoji(emoji, nationalityRoles = []) {
+export function findNationalityByEmoji(emoji, nationalityRoles = [], guild = null) {
   if (!emoji || !Array.isArray(nationalityRoles)) return null;
   const emojiName = emoji.name ? emoji.name.trim() : '';
   const emojiId = emoji.id || '';
@@ -86,9 +86,10 @@ export function findNationalityByEmoji(emoji, nationalityRoles = []) {
 
   return nationalityRoles.find(n => {
     if (!n) return false;
-    const nEmojiResolved = resolveEmojiToReactable(n.emoji) || n.emoji;
+    const nEmojiResolved = resolveEmojiToReactable(n.emoji, guild) || n.emoji;
 
-    // 1. Exact emoji string match
+    // 1. Exact emoji string or resolved custom emoji ID match
+    if (emojiId && nEmojiResolved === emojiId) return true;
     if (nEmojiResolved && (nEmojiResolved === emojiName || nEmojiResolved === emojiString)) return true;
     if (n.emoji && (n.emoji === emojiName || n.emoji === emojiString)) return true;
 

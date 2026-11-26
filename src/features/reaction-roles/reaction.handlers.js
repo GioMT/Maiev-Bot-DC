@@ -20,8 +20,88 @@ import {
 import {
   createNationalityMessage,
   reactToNationalityCard,
-  getPresetForMessage
+  getPresetForMessage,
+  isReactionRoleCardMessage
 } from './reaction.embed.js';
+import { alertsStore } from '../alerts/alerts.scheduler.js';
+
+function ensureMessageTracked(message, preset, config) {
+  const nationalityMessageIds = Array.isArray(config.nationalityMessageIds) ? [...config.nationalityMessageIds] : [];
+  const existingIdx = nationalityMessageIds.findIndex(item => (typeof item === 'object' ? item?.messageId : item) === message.id);
+  let changed = false;
+
+  if (existingIdx === -1) {
+    nationalityMessageIds.push({
+      messageId: message.id,
+      channelId: message.channelId,
+      presetId: preset?.id || null
+    });
+    changed = true;
+  } else if (preset?.id && typeof nationalityMessageIds[existingIdx] === 'object' && !nationalityMessageIds[existingIdx].presetId) {
+    nationalityMessageIds[existingIdx] = {
+      ...nationalityMessageIds[existingIdx],
+      channelId: nationalityMessageIds[existingIdx].channelId || message.channelId,
+      presetId: preset.id
+    };
+    changed = true;
+  }
+
+  const updates = {};
+  if (changed) updates.nationalityMessageIds = nationalityMessageIds;
+
+  if (preset?.id && config.reactionPresets?.[preset.id] && !config.reactionPresets[preset.id].messageId) {
+    updates.reactionPresets = {
+      ...config.reactionPresets,
+      [preset.id]: {
+        ...config.reactionPresets[preset.id],
+        messageId: message.id,
+        channelId: config.reactionPresets[preset.id].channelId || message.channelId
+      }
+    };
+  }
+
+  if (Object.keys(updates).length > 0) {
+    configStore.save(updates);
+  }
+}
+
+function resolveConfiguredRoleEntry(emoji, preset, config, guild) {
+  const presetRoles = preset && Array.isArray(preset.roles) && preset.roles.length > 0 ? preset.roles : [];
+  const globalRoles = Array.isArray(config.nationalityRoles) ? config.nationalityRoles : [];
+
+  const matchedFromPreset = presetRoles.length > 0 ? findNationalityByEmoji(emoji, presetRoles, guild) : null;
+  const matchedFromGlobal = findNationalityByEmoji(emoji, globalRoles, guild);
+  const base = matchedFromPreset || matchedFromGlobal;
+  if (!base) return null;
+
+  let resolvedRoleId = base.roleId || matchedFromGlobal?.roleId || '';
+  if (!resolvedRoleId) {
+    const alerts = alertsStore.get()?.alerts;
+    if (Array.isArray(alerts)) {
+      const linkedAlert = alerts.find(a =>
+        a && a.roleId && (
+          (base.code && (a.code === base.code || a.id === base.code)) ||
+          (base.name && a.name && a.name.toLowerCase() === base.name.toLowerCase())
+        )
+      );
+      if (linkedAlert?.roleId) resolvedRoleId = linkedAlert.roleId;
+    }
+  }
+
+  return resolvedRoleId && resolvedRoleId !== base.roleId
+    ? { ...base, roleId: resolvedRoleId }
+    : base;
+}
+
+function buildRoleFallbackNames(natConfig) {
+  const code = String(natConfig.code || '').trim();
+  return [
+    natConfig.name,
+    `${natConfig.emoji || ''} ${natConfig.name || ''}`.trim(),
+    code ? code.toUpperCase() : '',
+    code ? code.replace(/[-_]+/g, ' ') : ''
+  ].filter(Boolean);
+}
 
 export async function handleNationalityButton(interaction) {
   const { guild, member } = interaction;
@@ -293,20 +373,10 @@ export async function handleCleanReactionsCommand(interaction, { client }) {
 export async function handleMessageCreate(message, client) {
   try {
     if (message.author?.id !== client.user?.id) return;
-    const isNationalityCard = message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|class archetype/i.test(e.title));
-    if (isNationalityCard) {
-      const config = configStore.get();
+    const config = configStore.get();
+    if (isReactionRoleCardMessage(message, config, client)) {
       const preset = getPresetForMessage(message, config);
-      const nationalityMessageIds = Array.isArray(config.nationalityMessageIds) ? [...config.nationalityMessageIds] : [];
-      const alreadyTracked = nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
-      if (!alreadyTracked) {
-        nationalityMessageIds.push({
-          messageId: message.id,
-          channelId: message.channelId,
-          presetId: preset?.id || null
-        });
-        configStore.save({ nationalityMessageIds });
-      }
+      ensureMessageTracked(message, preset, config);
       // Note: Message posting handlers already call reactToNationalityCard explicitly.
       // We avoid calling it here to prevent concurrent reaction race conditions.
     }
@@ -342,45 +412,26 @@ export async function handleReactionAdd(reaction, user, client) {
     trackUserReaction(guild.id, user.id, message.channelId, message.id, emoji.identifier || emoji.name);
 
     const config = configStore.get();
-    const isReactionMessage =
-      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
-      (message.author?.id === client.user?.id && (
-        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role|class archetype/i.test(e.title)) ||
-        message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
-      ));
+    if (!isReactionRoleCardMessage(message, config, client)) return;
 
-    if (!isReactionMessage) return;
-
+    await ensureGuildEmojisLoaded(guild);
     const preset = getPresetForMessage(message, config);
     const candidateRoles = preset && Array.isArray(preset.roles) && preset.roles.length > 0
       ? preset.roles
       : (config.nationalityRoles || []);
 
-    const nationalityMessageIds = Array.isArray(config.nationalityMessageIds) ? [...config.nationalityMessageIds] : [];
-    const alreadyTracked = nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id);
-    if (!alreadyTracked) {
-      nationalityMessageIds.push({
-        messageId: message.id,
-        channelId: message.channelId,
-        presetId: preset?.id || null
-      });
-      configStore.save({ nationalityMessageIds });
-    }
+    ensureMessageTracked(message, preset, config);
 
-    const natConfig = findNationalityByEmoji(emoji, candidateRoles);
+    const natConfig = resolveConfiguredRoleEntry(emoji, preset, config, guild);
     if (!natConfig) return;
 
-    const targetRole = await resolveRole(guild, natConfig.roleId, [
-      natConfig.name,
-      `${natConfig.emoji} ${natConfig.name}`,
-      natConfig.code ? natConfig.code.toUpperCase() : ''
-    ]);
+    const targetRole = await resolveRole(guild, natConfig.roleId, buildRoleFallbackNames(natConfig));
     if (!targetRole) {
       console.warn(`[Reaction Role] Role for ${natConfig.name} not found in guild.`);
       return;
     }
 
-    const member = await guild.members.fetch(user.id).catch(() => null);
+    const member = await guild.members.fetch({ user: user.id, force: true }).catch(() => guild.members.cache.get(user.id) || null);
     if (!member) return;
 
     const botMember = guild.members.me;
@@ -447,38 +498,30 @@ export async function handleReactionRemove(reaction, user, client) {
     untrackUserReaction(guild.id, user.id, message.channelId, message.id, emoji.identifier || emoji.name);
 
     const config = configStore.get();
-    const isReactionMessage =
-      (Array.isArray(config.nationalityMessageIds) && config.nationalityMessageIds.some(item => (typeof item === 'object' ? item.messageId : item) === message.id)) ||
-      (message.author?.id === client.user?.id && (
-        message.embeds?.some(e => e.title && /nationality|regional|choose your|reaction role|roles|assign your role|class archetype/i.test(e.title)) ||
-        message.components?.some(row => row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_')))
-      ));
+    if (!isReactionRoleCardMessage(message, config, client)) return;
 
-    if (!isReactionMessage) return;
-
+    await ensureGuildEmojisLoaded(guild);
     const preset = getPresetForMessage(message, config);
-    const candidateRoles = preset && Array.isArray(preset.roles) && preset.roles.length > 0
-      ? preset.roles
-      : (config.nationalityRoles || []);
+    ensureMessageTracked(message, preset, config);
 
-    const natConfig = findNationalityByEmoji(emoji, candidateRoles);
+    const natConfig = resolveConfiguredRoleEntry(emoji, preset, config, guild);
     if (!natConfig) return;
 
     const intent = (natConfig.intent || preset?.intent || config.reactionRoleIntent || 'toggle').toLowerCase();
     if (intent === 'give_only' || intent === 'remove_only') return;
 
-    const targetRole = await resolveRole(guild, natConfig.roleId, [
-      natConfig.name,
-      `${natConfig.emoji} ${natConfig.name}`,
-      natConfig.code ? natConfig.code.toUpperCase() : ''
-    ]);
-    if (!targetRole) return;
+    const targetRole = await resolveRole(guild, natConfig.roleId, buildRoleFallbackNames(natConfig));
+    if (!targetRole) {
+      console.warn(`[Reaction Role] Role for ${natConfig.name} not found in guild when removing reaction.`);
+      return;
+    }
 
-    const member = await guild.members.fetch(user.id).catch(() => null);
+    const member = await guild.members.fetch({ user: user.id, force: true }).catch(() => guild.members.cache.get(user.id) || null);
     if (!member) return;
 
     const botMember = guild.members.me;
     if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles) || botMember.roles.highest.position <= targetRole.position) {
+      console.warn(`[Reaction Role] Bot cannot remove role @${targetRole.name} (permissions or hierarchy).`);
       return;
     }
 

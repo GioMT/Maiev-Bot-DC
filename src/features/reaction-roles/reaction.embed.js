@@ -36,11 +36,17 @@ export function getPresetForMessage(message, config = null) {
 
   // 3. Match by embed title
   if (Array.isArray(message.embeds) && message.embeds.length > 0) {
-    const title = (message.embeds[0].title || '').toLowerCase().trim();
+    const stripDecorations = (s) =>
+      String(s || '')
+        .toLowerCase()
+        .replace(/<a?:.+?:\d+>|:[a-zA-Z0-9_]+:/g, '')
+        .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+        .trim();
+
+    const cleanMsgTitle = stripDecorations(message.embeds[0].title);
     for (const [id, preset] of Object.entries(presets)) {
       if (preset && preset.title) {
-        const cleanPresetTitle = preset.title.toLowerCase().replace(/<a?:.+?:\d+>|:[a-zA-Z0-9_]+:/g, '').trim();
-        const cleanMsgTitle = title.replace(/<a?:.+?:\d+>|:[a-zA-Z0-9_]+:/g, '').trim();
+        const cleanPresetTitle = stripDecorations(preset.title);
         if (cleanPresetTitle && cleanMsgTitle && (cleanPresetTitle === cleanMsgTitle || cleanMsgTitle.includes(cleanPresetTitle) || cleanPresetTitle.includes(cleanMsgTitle))) {
           return { id, ...preset };
         }
@@ -71,6 +77,52 @@ export function getPresetForMessage(message, config = null) {
   }
 
   return null;
+}
+
+/**
+ * Determine whether a Discord message is one of Maiev's Reaction Role cards
+ * (including Classes, Region, Notification Preferences, Gaming Platforms, or any custom preset).
+ */
+export function isReactionRoleCardMessage(message, config = null, client = null) {
+  if (!message) return false;
+  const cfg = config || configStore.get();
+
+  // 1. Explicitly tracked in nationalityMessageIds
+  if (
+    Array.isArray(cfg.nationalityMessageIds) &&
+    cfg.nationalityMessageIds.some(item => (typeof item === 'object' ? item?.messageId : item) === message.id)
+  ) {
+    return true;
+  }
+
+  // 2. Explicitly linked on any reactionPreset
+  const presets = cfg.reactionPresets || {};
+  if (Object.values(presets).some(p => p && p.messageId && p.messageId === message.id)) {
+    return true;
+  }
+
+  // 3. Authored by Maiev and matches a preset, reaction-role embed title/footer, or legacy button row
+  const botId = client?.user?.id || message.client?.user?.id;
+  if (botId && message.author?.id === botId) {
+    if (getPresetForMessage(message, cfg)) return true;
+
+    const hasReactionEmbed = message.embeds?.some(e => {
+      const t = e.title || '';
+      const f = e.footer?.text || '';
+      return (
+        /nationality|regional|choose your|reaction role|roles|assign your role|class archetype|notification|preferences|gaming platform|select your/i.test(t) ||
+        /react with an? (emoji|flag|icon) below|toggle (your )?(role|region|notification)/i.test(f)
+      );
+    });
+    if (hasReactionEmbed) return true;
+
+    const hasLegacyButtons = message.components?.some(row =>
+      row.components?.some(c => c.customId && c.customId.startsWith('btn_nat_'))
+    );
+    if (hasLegacyButtons) return true;
+  }
+
+  return false;
 }
 
 export function createNationalityButtonRows(nationalityRoles = []) {
